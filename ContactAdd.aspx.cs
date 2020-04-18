@@ -51,6 +51,7 @@ namespace Saved
                 return;
             }
 
+            sql = "Insert into Contact (id,firstname,lastname,emailaddress, added, updated, userid) values (newid(),@firstname,@lastname,@emailaddress,getdate(),getdate(),@userid)";
             command = new SqlCommand(sql);
 
             command.Parameters.AddWithValue("@emailaddress", txtEmailAddress.Text);
