@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29609.76
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Saved", "Saved.csproj", "{78F7F6BC-8DC9-40A7-827C-DE1795AC1B33}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NBitcoin", "NBitcoin\NBitcoin.csproj", "{FAF1696F-AA44-4902-84E4-705F5595D06D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Google.Authenticator.WebSample", "GoogleAuthenticator-master\Google.Authenticator.WebSample\Google.Authenticator.WebSample.csproj", "{21A63F79-D85F-4FE7-AC74-5171FAC0DCBF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Google.Authenticator", "GoogleAuthenticator-master\Google.Authenticator\Google.Authenticator.csproj", "{DAC3D229-1AFE-4A03-8F94-92696491A229}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{78F7F6BC-8DC9-40A7-827C-DE1795AC1B33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78F7F6BC-8DC9-40A7-827C-DE1795AC1B33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78F7F6BC-8DC9-40A7-827C-DE1795AC1B33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78F7F6BC-8DC9-40A7-827C-DE1795AC1B33}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FAF1696F-AA44-4902-84E4-705F5595D06D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAF1696F-AA44-4902-84E4-705F5595D06D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAF1696F-AA44-4902-84E4-705F5595D06D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAF1696F-AA44-4902-84E4-705F5595D06D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21A63F79-D85F-4FE7-AC74-5171FAC0DCBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21A63F79-D85F-4FE7-AC74-5171FAC0DCBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21A63F79-D85F-4FE7-AC74-5171FAC0DCBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21A63F79-D85F-4FE7-AC74-5171FAC0DCBF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DAC3D229-1AFE-4A03-8F94-92696491A229}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DAC3D229-1AFE-4A03-8F94-92696491A229}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DAC3D229-1AFE-4A03-8F94-92696491A229}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DAC3D229-1AFE-4A03-8F94-92696491A229}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {92C8D07E-29AA-4526-9720-56E55BBFF902}
+	EndGlobalSection
+EndGlobal

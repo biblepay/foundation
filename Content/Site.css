@@ -1,0 +1,196 @@
+/* Move down content because we have a fixed navbar that is 50px tall */
+
+
+html, body {
+    padding-top: 80px;
+    padding-bottom: 10px;
+    /*padding-left: 100px; */
+}
+
+
+/* Wrapping element */
+/* Set some basic padding to keep content from hitting the edges */
+.body-content {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+/* Set widths on the form inputs since otherwise they're 100% wide */
+input,
+select,
+textarea {
+    max-width: 80%;
+}
+
+
+/* Responsive: Portrait tablets and up */
+@media screen and (min-width: 768px) {
+    .jumbotron {
+        margin-top: 40px;
+    }
+
+    
+    .body-content {
+        xpadding: 0;
+        margin-left: 300px;
+    }
+}
+a:hover {
+    xbackground-color: white;
+    xcolor: red;
+    xcolor:gold;
+    font-style:italic;
+}
+
+
+a {
+    color:darkblue;
+}
+UL.nav > LI {
+    float: left;
+    border: 1px solid black;
+    position: relative;         
+    height: 20px;
+    color:black;
+    font-size:18px;
+}
+ul.nav a {
+    color:red;
+}
+UL.nav UL {
+    left: -10000px;
+    position: absolute;
+    color:black;
+}
+
+UL.nav > LI:hover UL {
+    left: 0;
+    top: 34px; /* IE7 has problems without this */
+    border:1px solid red;
+    color:yellow;
+    font-size:18px;
+    background-color:black;
+}
+
+
+.footer {
+    xposition: fixed;
+    xbottom: 0;
+    xxleft: 0;
+    xright: 0;
+    min-height:35px;
+}
+
+
+.footer_wrapper {
+    width: 100%;
+    background-color: grey;
+}
+
+.footer_wrapper.fixed 
+{
+   position: fixed;
+   bottom: -20px;
+   xoverflow:auto;
+   xheight:45px;
+   xbackground-color: yellow;
+}
+
+
+.custompopup {
+    background-color: #fff;
+    border: 3px solid #fff;
+    display: inline-block;
+    left: 50%;
+    padding: 15px;
+    position: fixed;
+    text-align: justify;
+    top: 40%;
+    z-index: 10;
+    -webkit-transform: translate(-50%, -50%);
+    -moz-transform: translate(-50%, -50%);
+    -ms-transform: translate(-50%, -50%);
+    -o-transform: translate(-50%, -50%);
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+    -ms-border-radius: 10px;
+    -o-border-radius: 10px;
+    -webkit-box-shadow: 0 1px 1px 2px rgba(0, 0, 0, 0.4) inset;
+    -moz-box-shadow: 0 1px 1px 2px rgba(0, 0, 0, 0.4) inset;
+    -ms-box-shadow: 0 1px 1px 2px rgba(0, 0, 0, 0.4) inset;
+    -o-box-shadow: 0 1px 1px 2px rgba(0, 0, 0, 0.4) inset;
+    -webkit-transition: opacity .5s, top .5s;
+    -moz-transition: opacity .5s, top .5s;
+    -ms-transition: opacity .5s, top .5s;
+    -o-transition: opacity .5s, top .5s;
+}
+
+    .custompopup p, .custompopup div {
+        margin-bottom: 10px;
+    }
+
+    .custompopup label {
+        display: inline-block;
+        text-align: left;
+        width: 120px;
+    }
+
+    .custompopup input[type="text"], .custompopup input[type="password"] {
+        border: 1px solid;
+        border-color: #999 #ccc #ccc;
+        margin: 0;
+        padding: 2px;
+        -webkit-border-radius: 2px;
+        -moz-border-radius: 2px;
+        -ms-border-radius: 2px;
+        -o-border-radius: 2px;
+        border-radius: 2px;
+    }
+
+        .custompopup input[type="text"]:hover, .custompopup input[type="password"]:hover {
+            border-color: #555 #888 #888;
+        }
+
+
+table.saved td {
+    background-color: lime;
+    margin: 12px 12px 12px 12px;
+    padding: 12px 12px 12px 12px;
+}
+
+table.saved {
+    border-collapse: separate;
+    border-spacing: 10px;
+    *border-collapse: expression('separate', cellSpacing = '10px');
+}
+
+table.standard td {
+        xbackground-color: lime;
+        margin: 4px 4px 4px 4px;
+        padding: 7px 7px 7px 7px;
+    }
+
+table.standard {
+    border-collapse: separate;
+    border-spacing: 10px;
+}
+
+
+.hidden {
+    display: none;
+}
+
+
+.global-header {
+    xmin-height: 600px;
+    background-image: url("../Images/RockMarriage.jpg");
+    xmargin-top:50%;
+    x-moz-background-size: cover;
+    x-o-background-size: cover;
+    background-size: 100% 90%;
+    background-repeat: no-repeat;
+    xbackground-size: 1200px 600px;
+}
+
+
+
