@@ -175,7 +175,7 @@ namespace Saved
 
             if (nReq <= 0 || nReq > 1000000)
             {
-                MsgBox("Corrupted Value", "Sorry, the amount requested is incorrect.", this);
+                MsgBox("Out of Range", "Sorry, the amount requested is too high or low.", this);
                 return;
             }
 
@@ -230,7 +230,7 @@ namespace Saved
 
             if (nReq <= 0 || nReq > 1000000)
             {
-                MsgBox("Corrupted Value", "Sorry, the amount requested is incorrect.", this);
+                MsgBox("Out of Range", "Sorry, the amount requested is too high or low.", this);
                 return;
             }
             // Deduct the balance and add to the fractional sanc

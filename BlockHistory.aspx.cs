@@ -16,9 +16,7 @@ namespace Saved
         protected void Page_Load(object sender, EventArgs e)
         {
         }
-
-
-
+        
         public string RenderControlToHtml(Control ControlToRender)
         {
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
@@ -40,14 +38,14 @@ namespace Saved
         protected string GetBH()
         {
             int elapsed = UnixTimeStamp() - lastBH;
-            if (elapsed < (60*5))
+            if (elapsed < (60 * 17))
             {
                 return lastReport;
             }
             int nHeight = _pool._template.height;
             lastBH = UnixTimeStamp();
-            string sql = "Select Height, bbpaddress, percentage, reward, subsidy, txid from Share (nolock) where subsidy > 1 and reward > .01 and height > " 
-                + (nHeight-(205 * 2)).ToString() + "order by height desc, bbpaddress";
+            string sql = "Select Height, bbpaddress, percentage, reward, subsidy, txid from Share (nolock) where subsidy > 1 and reward > .01 and updated > getdate()-2 and height > " 
+                + (nHeight-(300)).ToString() + "order by height desc, bbpaddress";
 
             
             DataTable dt = gData.GetDataTable(sql);

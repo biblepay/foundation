@@ -24,23 +24,65 @@ namespace Saved.Code
         public static int iXMRThreadCount = 0;
         public static int iTitheNumber = 0;
 
+        public static List<SqlCommand> lSQL = new List<SqlCommand>();
         public static DateTime start_date = DateTime.Now;
         public static int MIN_DIFF = 1;
         public static object cs_p = new object();
 
-
+        public static void SetWorker(WorkerInfo worker, string sKey)
+        {
+                try
+                {
+                    if (!dictWorker.ContainsKey(sKey))
+                    {
+                        worker = GetWorker(sKey);
+                    }
+                    dictWorker[sKey] = worker;
+                }
+                catch (Exception ex)
+                {
+                    Log("SetWorker" + ex.Message);
+                }
+        }
         public static WorkerInfo GetWorker(string socketid)
         {
-            WorkerInfo w = new WorkerInfo();
-            if (!dictWorker.ContainsKey(socketid))
+            try
             {
-                w.receivedtime = UnixTimeStamp();
-                dictWorker[socketid] = w;
+                WorkerInfo w = new WorkerInfo();
+                if (!dictWorker.ContainsKey(socketid))
+                {
+                    w.receivedtime = UnixTimeStamp();
+                    dictWorker[socketid] = w;
+                }
+                w = dictWorker[socketid];
+                return w;
             }
-            w = dictWorker[socketid];
-            return w;
+            catch(Exception ex)
+            {
+                // This is not supposed to happen, but I see this error in the log... 
+                WorkerInfo w = new WorkerInfo();
+                SetWorker(w, socketid);
+                return w;
+            }
         }
 
+        public static string GetPoolValue(string sKey)
+        {
+            string sql = "Select value from System where systemkey='" + sKey + "'";
+            string value = gData.GetScalarString(sql, "value", false);
+            return value;
+        }
+        public static void RemoveWorker(string socketid)
+        {
+                try
+                {
+                    dictWorker.Remove(socketid);
+                }
+                catch (Exception ex)
+                {
+                    Log("Rem w" + ex.Message);
+                }
+        }
         public static WorkerInfo GetWorkerBan(string socketid)
         {
             WorkerInfo w = new WorkerInfo();
@@ -68,30 +110,52 @@ namespace Saved.Code
 
         }
 
-        public static double Ban(string socketid, double iHowMuch, out int lastreceived)
+        public static void insBanDetails(string IP, string sWHY, double iLevel)
+        {
+            if (!fUseBanTable) return;
+
+            try
+            {
+                string sql = "Insert into BanDetails (id,IP,Notes,Added,Level) values (newid(), '" + IP + "','" + sWHY + "',getdate(),'" + iLevel.ToString() + "')";
+                gData.Exec(sql);
+            }
+            catch(Exception x)
+            {
+                string test = x.Message;
+            }
+        }
+
+        private static int BAN_THRESHHOLD = 256;
+        public static WorkerInfo Ban(string socketid, double iHowMuch, string sWhy)
         {
             string sKey = GetIPOnly(socketid);
             bool fIsBanned = lBanList.Contains(sKey);
             WorkerInfo w = GetWorkerBan(sKey);
-            lastreceived = w.lastreceived;
-
-            if (fIsBanned)
-            {
-                w.banlevel = 512;
-                // Log("Booted " + GetIPOnly(socketid));
-            }
+     
+            
             w.banlevel += iHowMuch;
             if (w.banlevel > 255)
             {
-                if (w.banlevel == 256)
-                    Log("Banned " + GetIPOnly(socketid));
-                if (w.banlevel > 256)
-                    w.banlevel = 512; 
+                if (!w.logged)
+                {
+                    //Log("Banned " + GetIPOnly(socketid));
+                    w.logged = true;
+                }
+                w.banlevel = 256;
+            }
+            if (fIsBanned)
+            {
+                w.banlevel = 512;
             }
             if (w.banlevel < 0)
                 w.banlevel = 0;
+            w.banned = w.banlevel >= BAN_THRESHHOLD ? true : false;
             dictBan[sKey] = w;
-            return w.banlevel;
+            if (w.banlevel > 0 && (w.banlevel < 10 || w.banlevel % 10 == 0))
+            {
+                insBanDetails(sKey, sWhy, w.banlevel);
+            }
+            return w;
         }
 
         public static string GetIPOnly(string fullendpoint)
@@ -106,12 +170,9 @@ namespace Saved.Code
 
         public static void PurgeSockets(bool fClearBans)
         {
-
-            lock (cs_p)
-            {
                 try
                 {
-                    foreach (KeyValuePair<string, WorkerInfo> entry in dictWorker.ToList())
+                    foreach (KeyValuePair<string, WorkerInfo> entry in dictWorker.ToArray())
                     {
                         if (entry.Key != null)
                         {
@@ -120,26 +181,18 @@ namespace Saved.Code
                                 WorkerInfo w1 = GetWorker(entry.Key);
                                 int nElapsed = UnixTimeStamp() - w1.receivedtime;
                                 bool fRemove = false;
-                                fRemove = (nElapsed > (60 * 5) && w1.receivedtime > 0)
-                                    || (nElapsed > 30 && (w1.bbpaddress == null || w1.bbpaddress == ""));
+                                fRemove = (nElapsed > (60 * 15) && w1.receivedtime > 0)
+                                    || (nElapsed > (60 * 15) && (w1.bbpaddress == null || w1.bbpaddress == ""));
 
                                 if (fClearBans)
                                 {
                                     w1.banlevel = 0;
-                                    dictWorker[entry.Key] = w1;
+                                    SetWorker(w1, entry.Key);
                                 }
 
                                 if (fRemove)
                                 {
-                                    try
-                                    {
-                                        dictWorker.Remove(entry.Key);
-                                        IncThreadCount(-1);
-                                    }
-                                    catch (Exception ex9)
-                                    {
-
-                                    }
+                                    RemoveWorker(entry.Key);
                                 }
                             }
                         }
@@ -149,51 +202,54 @@ namespace Saved.Code
                 {
                     Log("Purge Sockets: " + ex.Message);
                 }
-            }
         }
 
 
         public static void InsShare(string bbpaddress, int nShareAdj, int nFailAdj, int height, int nBXMR, int nBXMRC)
         {
-            string sql = "exec insShare @bbpid,@shareAdj,@failAdj,@height,@sxmr,@fxmr,@sxmrc,@fxmrc,@bxmr,@bxmrc";
-            SqlCommand command = new SqlCommand(sql);
-            command.Parameters.AddWithValue("@bbpid", bbpaddress);
-            command.Parameters.AddWithValue("@shareAdj", nShareAdj);
-            command.Parameters.AddWithValue("@failAdj", nFailAdj);
-            command.Parameters.AddWithValue("@height", height);
-
-            command.Parameters.AddWithValue("@sxmr", 0);
-            command.Parameters.AddWithValue("@fxmr", 0);
-            command.Parameters.AddWithValue("@sxmrc", 0);
-            command.Parameters.AddWithValue("@fxmrc", 0);
-
-            command.Parameters.AddWithValue("@bxmr", nBXMR);
-            command.Parameters.AddWithValue("@bxmrc", nBXMRC);
-
-            gData.ExecCmd(command);
-
+                string sql = "exec insShare @bbpid,@shareAdj,@failAdj,@height,@sxmr,@fxmr,@sxmrc,@fxmrc,@bxmr,@bxmrc";
+                SqlCommand command = new SqlCommand(sql);
+                command.Parameters.AddWithValue("@bbpid", bbpaddress);
+                command.Parameters.AddWithValue("@shareAdj", nShareAdj);
+                command.Parameters.AddWithValue("@failAdj", nFailAdj);
+                command.Parameters.AddWithValue("@height", height);
+                command.Parameters.AddWithValue("@sxmr", 0);
+                command.Parameters.AddWithValue("@fxmr", 0);
+                command.Parameters.AddWithValue("@sxmrc", 0);
+                command.Parameters.AddWithValue("@fxmrc", 0);
+                command.Parameters.AddWithValue("@bxmr", nBXMR);
+                command.Parameters.AddWithValue("@bxmrc", nBXMRC);
+                try
+                {
+                    lSQL.Add(command);
+                }
+                catch (Exception ex)
+                {
+                    Log("insShare: " + ex.Message);
+                }
         }
 
         public static string GetBBPAddress(string sMoneroAddress)
         {
-            try
-            {
-                foreach (KeyValuePair<string, WorkerInfo> entry in dictWorker)
+                try
                 {
-                    if (entry.Value.moneroaddress == sMoneroAddress && entry.Value.bbpaddress.Length > 10)
-                    {
-                        return entry.Value.bbpaddress;
+                
+                    foreach (KeyValuePair<string, WorkerInfo> item in dictWorker.ToArray())
+                    { 
+                        if (item.Value.moneroaddress == sMoneroAddress && item.Value.bbpaddress.Length > 10)
+                        {
+                            return item.Value.bbpaddress;
+                        }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                Log("FMB: " + ex.Message);
-            }
-            // Retrieve from the database instead
-            string sql = "Select bbpaddress from worker where moneroaddress='" + sMoneroAddress + "'";
-            string bbp = gData.GetScalarString(sql, "bbpaddress");
-            return bbp;
+                catch (Exception ex)
+                {
+                    Log("FMB: " + ex.Message);
+                }
+                // Retrieve from the database instead
+                string sql = "Select bbpaddress from worker (nolock) where moneroaddress='" + sMoneroAddress + "'";
+                string bbp = gData.GetScalarString(sql, "bbpaddress");
+                return bbp;
         }
         
 
@@ -201,13 +257,13 @@ namespace Saved.Code
         {
             try
             {
-                foreach (KeyValuePair<string, WorkerInfo> entry in dictWorker.ToList())
+                foreach (KeyValuePair<string, WorkerInfo> entry in dictWorker.ToArray())
                 {
                     if (dictWorker.ContainsKey(entry.Key))
                     {
                         WorkerInfo w1 = GetWorker(entry.Key);
                         w1.Broadcast = true;
-                        dictWorker[entry.Key] = w1;
+                        SetWorker(w1, entry.Key);
                     }
                 }
             }
@@ -233,8 +289,7 @@ namespace Saved.Code
             }
             catch (Exception ex)
             {
-                Log(" " + ex.Message);
-
+                Log("IncThreadCount: " + ex.Message);
             }
         }
 
@@ -423,11 +478,14 @@ namespace Saved.Code
             public bool Broadcast;
             public int receivedtime;
             public int lastreceived;
+            public string IP;
             public bool reset;
             public int solvetime;
             public int priorsolvetime;
             public double banlevel;
             public int starttime;
+            public bool logged;
+            public bool banned;
         }
         public struct BlockTemplate
         {
@@ -865,7 +923,8 @@ namespace Saved.Code
         }
 
         static List<string> lBanList = new List<string>();
-
+        public static bool fUseJobsTable = false;
+        public static bool fUseBanTable = false;
         static int nLastBoarded = 0;
         public static void Leaderboard()
         {
@@ -873,27 +932,45 @@ namespace Saved.Code
             if (nElapsed < (60 * 2))
                 return;
             nLastBoarded = UnixTimeStamp();
+            fUseBanTable = Convert.ToBoolean(GetDouble(GetPoolValue("USEBAN")));
+            fUseJobsTable = Convert.ToBoolean(GetDouble(GetPoolValue("USEJOB")));
 
             try
             {
                 // Update the leaderboard
                 string sql = "exec updLeaderboard";
                 SqlCommand command = new SqlCommand(sql);
-                gData.ExecCmd(command);
-                //Memorize the excess banlist
-                sql = "Select distinct dbo.iponly(ip) ip from job where bbpaddress in (select bbpaddress from leaderboard where efficiency < .20) UNION ALL Select IP from Bans";
-                DataTable dt = gData.GetDataTable(sql);
-                lBanList.Clear();
-                for (int i = 0; i < dt.Rows.Count; i++)
-                {
-                    lBanList.Add(dt.Rows[i]["ip"].ToString());
-                }
+                lSQL.Add(command);
 
                 GetChartOfWorkers();
                 GetChartOfHashRate();
                 GetDepositTXIDList();
                 GetChartOfBlocks();
                 Code.BMS.LaunchInterfaceWithWCG();
+
+
+                // Clear banned pool users
+                try
+                {
+                    dictBan.Clear();
+                    //Memorize the excess banlist
+                    sql = "Select distinct dbo.iponly(ip) ip from Worker where bbpaddress in (select bbpaddress from leaderboard where efficiency < .20) UNION ALL Select IP from Bans";
+                    DataTable dt = gData.GetDataTable(sql);
+                    lBanList.Clear();
+                    for (int i = 0; i < dt.Rows.Count; i++)
+                    {
+                        if (dt.Rows[i]["ip"].ToString().Length > 1)
+                            lBanList.Add(dt.Rows[i]["ip"].ToString());
+                    }
+                    // Clear the ddos level also
+                    PurgeSockets(true);
+                    // End of Clear ban
+                }
+                catch (Exception ex)
+                {
+                    Log("Clearing ban " + ex.Message);
+                }
+
 
             }
             catch (Exception ex)
@@ -938,11 +1015,6 @@ namespace Saved.Code
 
             try
             {
-                // Clear banned pool users
-                dictBan.Clear();
-                // Clear the ddos level also
-                PurgeSockets(true);
-                // End of Clear ban
 
                 nLastGrouped = UnixTimeStamp();
                 if (_pool._template.height == 0)
@@ -955,9 +1027,9 @@ namespace Saved.Code
                 if (nBestHeight == 0) return;
 
                 // Set subsidies first
-                for (int iMyHeight = nBestHeight - 205; iMyHeight < nBestHeight - 7; iMyHeight++)
+                for (int iMyHeight = nBestHeight - 200; iMyHeight < nBestHeight - 7; iMyHeight++)
                 {
-                    string sql7 = "Select count(*) ct from Share where paid is null and Subsidy is null and height = '" + iMyHeight.ToString() + "'";
+                    string sql7 = "Select count(*) ct from Share (nolock) where paid is null and Subsidy is null and height = '" + iMyHeight.ToString() + "'";
                     double dCt = gData.GetScalarDouble(sql7, "ct", false);
 
                     if (dCt > 0)
@@ -973,7 +1045,7 @@ namespace Saved.Code
                         if (sRecip != sPoolAddress)
                         {
                             nSubsidy = .02;
-                            string sql3 = "Select * from Share Where Paid is null and height = @height";
+                            string sql3 = "Select * from Share (nolock) Where Paid is null and height = @height";
                             SqlCommand command3 = new SqlCommand(sql3);
                             command3.Parameters.AddWithValue("@height", iMyHeight);
                             DataTable dt4 = gData.GetDataTable(command3, false);
@@ -993,7 +1065,15 @@ namespace Saved.Code
                                 command5.Parameters.AddWithValue("@fxmrc", GetDouble(dt4.Rows[x]["FailXMRC"]));
                                 command5.Parameters.AddWithValue("@bxmr", GetDouble(dt4.Rows[x]["BXMR"]));
                                 command5.Parameters.AddWithValue("@bxmrc", GetDouble(dt4.Rows[x]["BXMRC"]));
-                                gData.ExecCmd(command5);
+                                try
+                                {
+                                    gData.ExecCmd(command5);
+                                }catch(Exception ex2)
+                                {
+                                    Log("GroupShares:" + ex2.Message);
+                                }
+
+
                                 //now delete the source share
                                 sql3 = "Delete from Share where height=@height and bbpaddress=@bbpid";
                                 command5 = new SqlCommand(sql3);
@@ -1021,7 +1101,7 @@ namespace Saved.Code
                 // Set subsidies first
                 for (int iMyHeight = nBestHeight - 205; iMyHeight < nBestHeight - 7; iMyHeight++)
                 {
-                    string sql = "Select shares,sucxmrc,bxmr,bbpaddress from Share WHERE subsidy > 1 and percentage is null and height=@height and paid is null";
+                    string sql = "Select shares,sucxmrc,bxmr,bbpaddress from Share (nolock) WHERE subsidy > 1 and percentage is null and height=@height and paid is null";
                     SqlCommand command = new SqlCommand(sql);
                     command.Parameters.AddWithValue("@height", iMyHeight);
                     DataTable dt1 = gData.GetDataTable(command, false);
@@ -1055,7 +1135,9 @@ namespace Saved.Code
             {
                 Log("Group Shares " + ex.Message);
             }
+            Log("Finished Grouping shares");
 
+            
         }
 
         public static void GetRandomXAudit(string rxheader, string rxkey, ref string rx, ref string rx_root)
@@ -1203,6 +1285,23 @@ namespace Saved.Code
                 sb.Append(hexChar);
             }
             return sb.ToString();
+        }
+
+        public static List<string> randomxhashes = new List<string>();
+        public static bool IsUnique(string bbphash)
+        {
+            try
+            {
+                if (randomxhashes.Contains(bbphash))
+                    return false;
+                randomxhashes.Add(bbphash);
+                return true;
+            }
+            catch (Exception ex)
+            {
+
+            }
+            return true;
         }
 
         private static object cs_stratum = new object();

@@ -24,6 +24,7 @@ namespace Saved.Code
             {
                 if (ex.Message.Contains("was aborted"))
                 {
+
                 }
                 else
                 {
@@ -55,6 +56,11 @@ namespace Saved.Code
                     try
                     {
                         size = client.Receive(data);
+                    }
+                    catch (ThreadAbortException abortException)
+                    {
+                        Log("XMR thread(2) is going down...", true);
+                        return;
                     }
                     catch (Exception ex)
                     {
@@ -165,7 +171,8 @@ namespace Saved.Code
                     {
                         if (ex.Message.Contains("being aborted"))
                         {
-
+                            //PoolCommon.CloseSocket(client);
+                            //return;
                         }
                         else if (!ex.Message.Contains("did not properly respond"))
                         {
@@ -180,6 +187,11 @@ namespace Saved.Code
                     
                     Thread.Sleep(100);
                 }
+            }
+            catch (ThreadAbortException abortException)
+            {
+                Log("minerXMRThread is going down...", true);
+                return;
             }
             catch (Exception ex)
             {
@@ -202,7 +214,7 @@ namespace Saved.Code
             {
                 {
                     IPAddress ipAddress = IPAddress.Parse(GetBMSConfigurationKeyValue("bindip"));
-                    listener = new TcpListener(ipAddress, (int)GetDouble(GetBMSConfigurationKeyValue("XMRPort")));
+                    listener = new TcpListener(IPAddress.Any, (int)GetDouble(GetBMSConfigurationKeyValue("XMRPort")));
                     listener.Start();
                 }
             }
@@ -216,26 +228,35 @@ namespace Saved.Code
                 //  Complimentary outbound socket
                 try
                 {
-                    Socket client = listener.AcceptSocket();
-                    string socketid = client.RemoteEndPoint.ToString();
-                    int z = 0;
-                    double iLevel = PoolCommon.Ban(socketid, .25, out z);
-                    if (iLevel < 256)
+                    Thread.Sleep(10);
+                    if (listener.Pending())
                     {
-                        PoolCommon.iXMRThreadID++;
-                        TcpClient tcp = new TcpClient();
-                        tcp.Connect(GetBMSConfigurationKeyValue("XMRExternalPool"), (int)GetDouble(GetBMSConfigurationKeyValue("XMRExternalPort")));
-                        ThreadStart starter = delegate { minerXMRThread(client, tcp, socketid); };
-                        var childSocketThread = new Thread(starter);
-                        PoolCommon.iXMRThreadCount++;
-                        if (PoolCommon.iXMRThreadCount > PoolCommon.iThreadCount)
-                            PoolCommon.iXMRThreadCount = PoolCommon.iThreadCount;
-                        childSocketThread.Start();
-                    }
-                    else
-                    {
-                        // They are already banned
-                        PoolCommon.CloseSocket(client);
+                        Socket client = listener.AcceptSocket();
+                        client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.DontLinger, false);
+                        client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
+                        //client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 5000);
+                        //client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, 5000);
+
+                        string socketid = client.RemoteEndPoint.ToString();
+                        PoolCommon.WorkerInfo wban = PoolCommon.Ban(socketid, .25, "XMR-Connect");
+                        if (!wban.banned)
+                        {
+                            PoolCommon.iXMRThreadID++;
+                            TcpClient tcp = new TcpClient();
+                            tcp.Connect(GetBMSConfigurationKeyValue("XMRExternalPool"), (int)GetDouble(GetBMSConfigurationKeyValue("XMRExternalPort")));
+                            ThreadStart starter = delegate { minerXMRThread(client, tcp, socketid); };
+                            var childSocketThread = new Thread(starter);
+                            PoolCommon.iXMRThreadCount++;
+                            if (PoolCommon.iXMRThreadCount > PoolCommon.iThreadCount)
+                                PoolCommon.iXMRThreadCount = PoolCommon.iThreadCount;
+                            childSocketThread.Start();
+                        }
+                        else
+                        {
+                            // They are already banned
+                            PoolCommon.CloseSocket(client);
+                        }
                     }
                 }
                 catch (ThreadAbortException abortException)

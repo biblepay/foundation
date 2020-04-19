@@ -22,7 +22,7 @@ namespace Saved.Code
 
         public string sSQLConn()
         {
-            string sCS = "Database=saved; MultipleActiveResultSets=true;Connection Timeout=7;";
+            string sCS = "Database=saved; MultipleActiveResultSets=true;Connection Timeout=7; ";
 
             if (RemoteHostName != "" && RemoteHostName != null)
             {

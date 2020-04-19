@@ -21,7 +21,7 @@ namespace Saved.Code
             WorkerInfo w = GetWorker(socketid);
             w.bbpaddress = "";
             w.receivedtime = 1;
-            dictWorker[socketid] = w;
+            SetWorker(w, socketid);
         }
         private bool Send(Socket oClient, byte[] oData, string socketid)
         {
@@ -62,16 +62,12 @@ namespace Saved.Code
         public static int nBatchCount = 0;
         public static void BatchExec(string sql)
         {
-            //gData.Exec(sql);
-            //return;
-
             mBatch += sql + "\r\n";
             if (nBatchCount > 20)
             {
                 nBatchCount = 0;
                 gData.Exec(mBatch, false, true);
                 mBatch = "";
-                //Log("executed batch " + mBatch);
             }
             nBatchCount++;
         }
@@ -106,17 +102,19 @@ namespace Saved.Code
 
                 w.updated = UnixTimeStamp();
                 w.Broadcast = false;
-                dictWorker[socketid] = w;
+                SetWorker(w, socketid);
 
-                // Insert the Job
-                string sql = "exec insJob @jobid,@bbpid,@diff,@ip";
-                SqlCommand command = new SqlCommand(sql);
-                command.Parameters.AddWithValue("@jobid", jobid);
-                command.Parameters.AddWithValue("@bbpid", bbpaddress);
-                command.Parameters.AddWithValue("@diff", w.difficulty);
-                command.Parameters.AddWithValue("@ip", oClient.RemoteEndPoint.ToString());
-                gData.ExecCmd(command, true, true);
-
+                if (fUseJobsTable)
+                {
+                    // Insert the Job
+                    string sql = "exec insJob @jobid,@bbpid,@diff,@ip";
+                    SqlCommand command = new SqlCommand(sql);
+                    command.Parameters.AddWithValue("@jobid", jobid);
+                    command.Parameters.AddWithValue("@bbpid", bbpaddress);
+                    command.Parameters.AddWithValue("@diff", w.difficulty);
+                    command.Parameters.AddWithValue("@ip", oClient.RemoteEndPoint.ToString());
+                    gData.ExecCmd(command, true, true);
+                }
                 string job_id = jobid.ToString();
                 string prevhash = _template.prevhash;
                 string coinbase = _template.hex;
@@ -139,7 +137,7 @@ namespace Saved.Code
                 bool f2 = Send(oClient, bytes, socketid);
 
                 w.starttime = UnixTimeStamp();
-                dictWorker[socketid] = w;
+                SetWorker(w, socketid);
 
                 return f2;
             }
@@ -175,14 +173,14 @@ namespace Saved.Code
 
             if (w.nextdifficulty < MIN_DIFF)
                 w.nextdifficulty = MIN_DIFF;
-            dictWorker[socketid] = w;
+            SetWorker(w, socketid);
         }
 
         private void PersistWorker(WorkerInfo w)
         {
             string sql = " IF NOT EXISTS (SELECT moneroaddress FROM worker WHERE moneroaddress='"
-                      + w.moneroaddress + "') BEGIN \r\n INSERT INTO Worker (id,added,moneroaddress,bbpaddress) values (newid(),getdate(),'"
-                      + Saved.Code.BMS.PurifySQL(w.moneroaddress,255) + "','" + Saved.Code.BMS.PurifySQL(w.bbpaddress,255) + "') END";
+                      + w.moneroaddress + "') BEGIN \r\n INSERT INTO Worker (id,added,moneroaddress,bbpaddress,ip) values (newid(),getdate(),'"
+                      + Saved.Code.BMS.PurifySQL(w.moneroaddress,255) + "','" + Saved.Code.BMS.PurifySQL(w.bbpaddress,255) + "','" + GetIPOnly(w.IP) + "') END";
             gData.Exec(sql);
         }
 
@@ -231,12 +229,14 @@ namespace Saved.Code
                     WorkerInfo w = GetWorker(socketid);
                     w.bbpaddress = params1[0];
                     w.moneroaddress = params1[1];
-                    dictWorker[socketid] = w;
-                    int z = 0;
+                    SetWorker(w, socketid);
+                    w.IP = GetIPOnly(socketid);
+
                     if (w.bbpaddress != null && w.bbpaddress.Length > 10)
                     {
-                        Ban(socketid, -1,out z);
+                        Ban(socketid, -1, "MINING");
                     }
+                    
                     PersistWorker(w);
 
                     var json = "{ \"id\": " + id.ToString() + ", \"result\": true, \"error\": \"\" }\r\n";
@@ -312,26 +312,29 @@ namespace Saved.Code
                         }
                         int z = 0;
                         fPassed = (revBBPHash == out_rx && nDiff >= w.difficulty);
-                        double iBanlevel = 0;
+                        WorkerInfo wban = new WorkerInfo();
                         if (fPassed)
                         {
-                            iBanlevel = Ban(socketid, -1, out z);
+                            wban = Ban(socketid, -1, "SOLVED");
                         }
                         else
                         {
-                            iBanlevel = Ban(socketid, .25, out z);
+                            wban = Ban(socketid, .25, "BADSHARE");
                         }
                         // If the rx_root matches the current bbphash, we know they solved the share (because the blakehash requires the current bbp prev hash)
                         // And, we also check that they met the difficulty level
                         // Move the record from "job" to "share"
                         int nShareAdj = 0;
                         int nFailAdj = 0;
-                        string sql = "Select count(*) ct from Job (nolock) where BBPHash = @bbphash";
-                        SqlCommand command = new SqlCommand(sql);
-                        command.Parameters.AddWithValue("@bbphash", bbphash);
-                        double nCount = gData.GetScalarDouble(command, "ct", false);
 
-                        if (nCount > 0)
+                        bool fUnique = IsUnique(bbphash);
+
+                        //string sql = "Select count(*) ct from Job (nolock) where BBPHash = @bbphash";
+                        //SqlCommand command = new SqlCommand(sql);
+                        //command.Parameters.AddWithValue("@bbphash", bbphash);
+                        //double nCount = gData.GetScalarDouble(command, "ct", false);
+
+                        if (!fUnique)
                         {
                             fPassed = false;
                         }
@@ -340,17 +343,19 @@ namespace Saved.Code
                         {
                             w.priorsolvetime = w.solvetime;
                             w.solvetime = UnixTimeStamp();
-                            dictWorker[socketid] = w;
+                            SetWorker(w, socketid);
                         }
 
                         // Batch Exec
                         int nVerified = 0;
                         nVerified = fPassed ? 1 : 0;
 
-                        sql = "Update Job set bbphash='" + bbphash + "',Verified='" + nVerified.ToString() + "',solvedtime=getdate(),solvedDiff='" + nDiff.ToString() 
-                            + "',banlevel='" + iBanlevel.ToString() + "' where jobid='" + w.jobid.ToString()  + "'";
-                        
-                        BatchExec(sql);
+                        if (fUseJobsTable)
+                        {
+                            string sql = "Update Job set bbphash='" + bbphash + "',Verified='" + nVerified.ToString() + "',solvedtime=getdate(),solvedDiff='" + nDiff.ToString()
+                                + "',banlevel='" + wban.banlevel.ToString() + "' where jobid='" + w.jobid.ToString() + "'";
+                            BatchExec(sql);
+                        }
 
                         if (fPassed) 
                             nShareAdj = w.difficulty;
@@ -386,8 +391,8 @@ namespace Saved.Code
                             bool fSuccess = SubmitBlock(hex);
                             if (fSuccess)
                             {
-                                sql = "Update Share Set Solved=1 where height=@height";
-                                command = new SqlCommand(sql);
+                                string sql = "Update Share Set Solved=1 where height=@height";
+                                SqlCommand command = new SqlCommand(sql);
                                 //command.Parameters.AddWithValue("@bbpid", jobid);
                                 command.Parameters.AddWithValue("@height", _template.height);
                                 gData.ExecCmd(command, false, false, false);
@@ -417,27 +422,35 @@ namespace Saved.Code
             }
             catch (Exception ex)
             {
-                bool fPrint = !ex.Message.Contains("being aborted");
-                if (fPrint)
-                      Log("POOL DISTRESS, HandleSocket: " + ex.Message+ ", JSON: " + sJson);
                 bool fIllegal = ex.Message.Contains("Unexpected character encountered");
                 if (fIllegal)
                 {
                     try
                     {
-                        oClient.Close();
+                        Log("corrupted message: " + sJson + "::" + ex.Message);
+                        Ban(socketid, 1, "CORRUPTED-HANDLE");
+                        return true;
+                        //                        oClient.Close();
                     }
                     catch (Exception ex3) { }
                     return false;
                 }
 
+                bool fPrint = !ex.Message.Contains("being aborted");
+                if (fPrint)
+                    Log("POOL DISTRESS, HandleSocket: " + ex.Message + ", JSON: " + sJson);
+
+
                 return true;
             }
         }
 
-        private void minerThread(Socket client, int oldthid)
+        private void minerThread(Socket client)
         {
+            retry:
+
             string socketid = client.RemoteEndPoint.ToString();
+            string sData = "";
 
             try
             {
@@ -448,12 +461,18 @@ namespace Saved.Code
                 while (true)
                 {
                     int size = 0;
-                    byte[] data = new byte[65535];
+                    byte[] data = new byte[129000];
 
                     WorkerInfo w1 = GetWorker(socketid);
                     if (w1.Broadcast)
                     {
-                        SendMiningJob(client, w1.bbpaddress, socketid);
+                        try
+                        {
+                            SendMiningJob(client, w1.bbpaddress, socketid);
+                        }catch(Exception ex1)
+                        {
+                            Log("minerThread100" + ex1.Message);
+                        }
                     }
                     try
                     {
@@ -465,14 +484,7 @@ namespace Saved.Code
                         {
                             Console.WriteLine("ConnectionClosed");
                             IncThreadCount(-1);
-                            try
-                            {
-                                dictWorker.Remove(socketid);
-                            }
-                            catch(Exception ex4)
-                            {
-
-                            }
+                            RemoveWorker(socketid);
                             return;
                         }
                         Console.WriteLine("Error occurred while receiving data " + ex.Message);
@@ -482,7 +494,7 @@ namespace Saved.Code
                     if (size > 0)
                     {
                         w1.receivedtime = UnixTimeStamp();
-                        dictWorker[socketid] = w1;
+                        SetWorker(w1, socketid);
                     }
 
                     int nRecElapsed = UnixTimeStamp() - w1.receivedtime;
@@ -490,9 +502,8 @@ namespace Saved.Code
                     {
                         try
                         {
-                            //Log("MinerThread::Closing with Empty BBP Address " + ToString() + " due to inactivity. ");
                             client.Close();
-                            dictWorker.Remove(socketid);
+                            RemoveWorker(socketid);
                         }
                         catch (Exception ex2)
                         {
@@ -502,14 +513,14 @@ namespace Saved.Code
                         return;
 
                     }
-                    if (nRecElapsed > (60 * 30))
+                    if (nRecElapsed > (60 * 10))
                     {
                         // This thread has not done anything for a long time.
                         try
                         {
-                            Log("MinerThread2::Closing " + socketid + " due to inactivity. ");
+                            Log("MinerThread2::Closing " + socketid + " due to inactivity. ", true);
                             client.Close();
-                            dictWorker.Remove(socketid);
+                            RemoveWorker(socketid);
                         }
                         catch (Exception ex2)
                         {
@@ -521,35 +532,57 @@ namespace Saved.Code
 
                     if (size > 0)
                     {
-                        string sData = Encoding.UTF8.GetString(data, 0, data.Length);
-                        sData = sData.Replace("\0", "");
-                        // The Stratum data is first split by \r\n
-                        string[] vData = sData.Split("\n");
-                        for (int i = 0; i < vData.Length; i++)
+                        sData = Encoding.UTF8.GetString(data, 0, size);
+                        if (sData != null && sData.Length > 10)
                         {
-                            string sJson = vData[i];
-                            bool f10 = HandleSocket(sJson, client, socketid);
+                            sData = sData.Replace("\0", "");
+                            // The Stratum data is first split by \r\n
+                            string[] vData = sData.Split("\n");
+                            if (vData.Length > 0)
+                            {
+                                for (int i = 0; i < vData.Length; i++)
+                                {
+                                    string sJson = vData[i];
+                                    if (sJson.Length > 10)
+                                    {
+                                        try
+                                        {
+                                            bool f10 = HandleSocket(sJson, client, socketid);
+                                        }
+                                        catch (Exception ex2)
+                                        {
+                                            Log("MinerThread::HandleSocket " + ex2.Message);
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-                    Thread.Sleep(1000);
+                    Thread.Sleep(500);
                     // keep the port open
                 }
             }
             catch (Exception ex)
             {
-                    if (ex.Message.Contains("bounds of the array"))
-                    {
-                        int z = 0;
-                        Ban(socketid, 1, out z);
-                    }
-                    else if (ex.Message.Contains("being aborted") || ex.Message.Contains("forcibly closed"))
-                    {
-                        // noop
-                    }
-                    else
-                    {
-                        Log("minerThread4 : " + ex.Message);
-                    }
+                if (ex.Message.Contains("bounds of the array"))
+                {
+                    Log("Corrupted packet " + ex.Message + "[" + sData + "]");
+                    Thread.Sleep(1000);
+                    goto retry;
+                }
+                else if (ex.Message.Contains("being aborted"))
+                {
+                    // return;
+                }
+                else if (ex.Message.Contains("forcibly closed"))
+                {
+
+                }
+                else
+                {
+                    // The given key was not present in the dictionary
+                    Log("minerThread4 : " + ex.Message);
+                }
             }
             IncThreadCount(-1);
         }
@@ -573,17 +606,43 @@ namespace Saved.Code
             }
         }
 
+        void SQLExecutor()
+        {
+            while (true)
+            {
+                // This thread executes SQL in a way that prevents deadlocks
+                for (int i = 0; i < lSQL.Count; i++)
+                {
+                    try
+                    {
+                        gData.ExecCmd(lSQL[i]);
+                        lSQL.RemoveAt(i);
+                        i--;
+                    }
+                    catch (Exception ex2)
+                    {
+                        Log("SQLExecutor::" + ex2.Message);
+                    }
+
+                }
+                Thread.Sleep(1000);
+            }
+        }
+
         void InitializePool()
         {
             retry:
 
             TcpListener listener = null;
-
+            int iIterator = 0;
             try
             {
                 Console.WriteLine("Starting Pool...");
                 IPAddress ipAddress = IPAddress.Parse(GetBMSConfigurationKeyValue("bindip"));
-                listener = new TcpListener(ipAddress, (int)GetDouble(GetBMSConfigurationKeyValue("PoolPort")));
+                //listener = new TcpListener(ipAddress, (int)GetDouble(GetBMSConfigurationKeyValue("PoolPort")));
+
+                listener = new TcpListener(IPAddress.Any, (int)GetDouble(GetBMSConfigurationKeyValue("PoolPort")));
+
                 listener.Start();
             }
             catch (Exception ex1)
@@ -594,41 +653,46 @@ namespace Saved.Code
 
             while (true)
             {
+                
                 try
                 {
-                    Socket client = listener.AcceptSocket();
-                    string socketid = client.RemoteEndPoint.ToString();
-                    int iLastReceived = 0;
-                    double iLevel = Ban(socketid, .5, out iLastReceived);
-                    int nElapsed = UnixTimeStamp() - iLastReceived;
-                    if (nElapsed > 5)
+                    Thread.Sleep(10);
+                    if (listener.Pending())
                     {
-                        Ban(socketid, -1, out iLastReceived);
-                    }
+                        
+                        Socket client = listener.AcceptSocket();
 
-                    if (iLevel < 256)
-                    {
-                        iID++;
-                        ThreadStart starter = delegate { minerThread(client, iID); };
-                        var childSocketThread = new Thread(starter);
-                        IncThreadCount(1);
-                        childSocketThread.Start();
-                        //Log("Accept " + socketid);
+                        client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.DontLinger, false);
+                        client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                       
+                        string socketid = client.RemoteEndPoint.ToString();
+                        WorkerInfo connWorker = Ban(socketid, .5, "POOL-CONNECT");
+                        int nElapsed = UnixTimeStamp() - connWorker.lastreceived;
+                        if (nElapsed < (60 * 7) && nElapsed > 29)
+                        {
+                            //Socket has hung up within 7 minutes but has not bothered us in over 30 seconds: (Reduce the ban):
+                            Ban(socketid, -1, "CLEARBAN");
+                        }
 
+                        if (!connWorker.banned)
+                        {
+                            iID++;
+                            ThreadStart starter = delegate { minerThread(client); };
+                            var childSocketThread = new Thread(starter);
+                            IncThreadCount(1);
+                            childSocketThread.Start();
+                        }
+                        else
+                        {
+                            PoolCommon.CloseSocket(client);
+                        }
+                        iIterator++;
                     }
-                    else
-                    {
-                         PoolCommon.CloseSocket(client);
-                         //Ban(socketid, -1);
-                    }
-                    //Thread.Sleep(1000);
                 }
                 catch (ThreadAbortException abortException)
                 {
                     Log("Shutting down pool...");
                     return;
-                    //Thread.ResetAbort();
-                    //goto retry;
                 }
                 catch(Exception ex)
                 {
@@ -638,7 +702,6 @@ namespace Saved.Code
                         Log("  Shutting off pool forcefully...");
                         return;
                     }
-                    //Thread.ResetAbort();
                     Thread.Sleep(5000);
                     goto retry;
                 }
@@ -653,6 +716,8 @@ namespace Saved.Code
             t.Start();
             var t1 = new Thread(PoolService);
             t1.Start();
+            var t2 = new Thread(SQLExecutor);
+            t2.Start();
         }
     }
 }
