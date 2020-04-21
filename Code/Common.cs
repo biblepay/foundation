@@ -118,7 +118,8 @@ namespace Saved.Code
            html += AddMenuOption("Reports", "Accountability.aspx;Viewer.aspx?target=collage", "Accountability;Orphan Collage", "fa-table");
            html += AddMenuOption("Dashboard", "Dashboard.aspx", "Dashboard", "fa-line-chart");
            html += AddMenuOption("Pool", "Leaderboard.aspx;GettingStarted.aspx;PoolAbout.aspx;BlockHistory.aspx;QuizList.aspx;Viewer.aspx?target=" 
-               + System.Web.HttpUtility.UrlEncode("https://minexmr.com/#worker_stats") , "Leaderboard;Getting Started;About;Block History;Quiz List;XMR Inquiry", "fa-sitemap");
+               + System.Web.HttpUtility.UrlEncode("https://minexmr.com/#worker_stats") + ";MiningCalculator.aspx",
+               "Leaderboard;Getting Started;About;Block History;Quiz List;XMR Inquiry;Mining Calculator", "fa-sitemap");
 
            html += AddMenuOption("Account", "https://forum.biblepay.org/sso.php?source=https://foundation.biblepay.org/Default.aspx;Login.aspx?opt=logout;AccountEdit.aspx;Deposit.aspx;Deposit.aspx;FractionalSanctuaries.aspx", 
                "Log In;Log Out;Account Edit;Deposit;Withdrawal;Fractional Sanctuaries", "fa-unlock-alt");

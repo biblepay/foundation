@@ -616,14 +616,13 @@ namespace Saved.Code
                     try
                     {
                         gData.ExecCmd(lSQL[i]);
-                        lSQL.RemoveAt(i);
-                        i--;
                     }
                     catch (Exception ex2)
                     {
                         Log("SQLExecutor::" + ex2.Message);
                     }
-
+                    lSQL.RemoveAt(i);
+                    i--;
                 }
                 Thread.Sleep(1000);
             }

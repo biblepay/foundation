@@ -19,7 +19,7 @@ namespace Saved.Code
         public static Dictionary<string, WorkerInfo> dictBan = new Dictionary<string, WorkerInfo>();
         public static int iThreadCount = 0;
         public static int nGlobalHeight = 0;
-        public static int pool_version = 1006;
+        public static int pool_version = 1007;
         public static int iXMRThreadID = 0;
         public static int iXMRThreadCount = 0;
         public static int iTitheNumber = 0;

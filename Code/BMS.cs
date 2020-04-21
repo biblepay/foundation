@@ -172,6 +172,21 @@ namespace Saved.Code
             }
         }
 
+        public static string XMR_PRICE_QUOTE()
+        {
+            try
+            {
+                double dPrice = GetPriceQuote("XMR/BTC");
+                string sPrice = dPrice.ToString("0." + new string('#', 339));
+                string sResult = "<MIDPOINT>" + sPrice + "</MIDPOINT><EOF>";
+                return sResult;
+            }
+            catch (Exception ex)
+            {
+                return ex.Message;
+            }
+        }
+
         public static string BBP_PRICE_QUOTE()
         {
             try
@@ -445,7 +460,18 @@ namespace Saved.Code
             }
             return ix;
         }
-
+        public static string FaucetID(HttpRequest Request)
+        {
+            string sIP = (HttpContext.Current.Request.UserHostAddress ?? "").ToString();
+            sIP = sIP.Replace("::ffff:", "");
+            string sData = Request.Headers["Action"].ToNonNullString();
+            string sCPK = ExtractXML(sData, "<cpk>", "</cpk>");
+            string s1 = ExtractXML(sData, "<s1>", "</s1>");
+            string sIP2 = sIP.Replace(".", "-");
+            string sResp = sCPK + "-" + s1 + "-" + sIP2;
+            string sResp2 = "<response>" + sResp + "</response><EOF></HTML>";
+            return sResp2;
+        }
         public static string TrackDashPay(HttpRequest Request)
         {
             try

@@ -22,6 +22,13 @@ namespace Saved
                 Response.End();
                 return;
             }
+            else if (sAction == "XMR_PRICE_QUOTE")
+            {
+                string sBPQ = Saved.Code.BMS.XMR_PRICE_QUOTE();
+                Response.Write(sBPQ);
+                Response.End();
+                return;
+            }
             else if (sAction == "DASH_PRICE_QUOTE")
             {
                 string sBPQ = Saved.Code.BMS.DASH_PRICE_QUOTE();
@@ -61,6 +68,13 @@ namespace Saved
             else if (sAction == "KAIROS_CHILDREN")
             {
                 Saved.Code.BMS.KAIROS_CHILDREN(Response);
+                return;
+            }
+            else if (sAction == "FaucetID")
+            {
+                string sResult = Saved.Code.BMS.FaucetID(Request);
+                Response.Write(sResult);
+                Response.End();
                 return;
             }
             else if (sAction == "TrackDashPay")

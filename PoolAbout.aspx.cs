@@ -18,7 +18,6 @@ namespace Saved
         }
 
 
-
         public string RenderControlToHtml(Control ControlToRender)
         {
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
@@ -40,7 +39,6 @@ namespace Saved
             {
                 string sql = "Select * from Bio";
                 DataTable dt = gData.GetDataTable(sql, false);
-
                 int nHour = (DateTime.Now.Hour+DateTime.Now.DayOfYear) % dt.Rows.Count;
                 string url = dt.Rows[nHour]["URL"].ToString();
                 return url;
@@ -64,8 +62,11 @@ namespace Saved
             // html += RenderGauge(250, "Speed", (int)GetDouble(dHR/1000));
 
             html += GetTR("Charity Address", GetBMSConfigurationKeyValue("MoneroAddress"));
-            
             html += GetTR("Contact E-Mail", GetBMSConfigurationKeyValue("OperatorEmailAddress"));
+            html += GetTR("Pool Fees XMR", "10% (Orphan Charity) + 1% (minexmr.com)");
+            html += GetTR("Pool Fees BBP", "0%");
+
+
             html += GetTR("Build Version", PoolCommon.pool_version.ToString());
             html += GetTR("Startup Time", PoolCommon.start_date.ToString());
 

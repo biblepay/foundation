@@ -114,9 +114,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="BMS\FaucetID.aspx" />
     <Content Include="Corruption.aspx" />
     <Content Include="BMS\TrackDashPay.aspx" />
     <Content Include="BMS\DashPay.aspx" />
+    <Content Include="MiningCalculator.aspx" />
     <Content Include="Server.aspx" />
     <Content Include="GaugeServer.aspx" />
     <Content Include="AccountEdit.aspx" />
@@ -202,6 +204,13 @@
     <Content Include="Bundle.config" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BMS\FaucetID.aspx.cs">
+      <DependentUpon>FaucetID.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="BMS\FaucetID.aspx.designer.cs">
+      <DependentUpon>FaucetID.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Code\PoolCommon.cs" />
     <Compile Include="Code\XMR.cs" />
     <Compile Include="Corruption.aspx.cs">
@@ -226,6 +235,13 @@
       <DependentUpon>DashPay.aspx</DependentUpon>
     </Compile>
     <Compile Include="Code\BMS.cs" />
+    <Compile Include="MiningCalculator.aspx.cs">
+      <DependentUpon>MiningCalculator.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="MiningCalculator.aspx.designer.cs">
+      <DependentUpon>MiningCalculator.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Server.aspx.cs">
       <DependentUpon>Server.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
