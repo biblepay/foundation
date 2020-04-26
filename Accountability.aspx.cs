@@ -40,8 +40,11 @@ namespace Saved
 
         public void GenerateTotalReport()
         {
-            string sql = "SELECT newid(),sum(amount) Amount,'' Notes,max(added) Added,Type,Charity FROM (select id,added as a1, FORMAT (added, 'MMMM yyyy') as Added,'DR' as Type,Amount,Charity, '' as Notes from expense "
-                + " union all  select id, added as a1, format(added, 'MMMM yyyy'), 'CR' as Type,Amount, Charity, Notes from Revenue ) b   group by Type,Charity ";
+            string sql = "SELECT newid(),sum(amount) Amount,'' Notes,added,Type,max(Charity) charity,max(Dt1) FROM( "
+                + "select id, added as a1, FORMAT(added, 'MMMM yyyy') as Added, 'DR' as Type, Amount, Charity, '' as Notes, added as dt1 from expense"
+                + "    union all"
+                + " select id, added as a1, format(added, 'MMMM yyyy'), 'CR' as Type, Amount, Charity, Notes, added as dt1 from Revenue"
+                + "  ) b group by added, Type  order by max(dt1)";
 
             string html = GetTableHTML(sql);
             var result = Pdf.From(html).Portrait().Content();

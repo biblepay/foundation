@@ -1,4 +1,5 @@
 ﻿using NBitcoin;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Data;
 using System.Diagnostics;
@@ -7,8 +8,12 @@ using System.IO.Compression;
 using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Web;
 using static Saved.Code.Common;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
 
 namespace Saved.Code
 {
@@ -56,13 +61,43 @@ namespace Saved.Code
 
 
 
+        public static string GetWebJsonApi(string url)
+        {
+            // Use this to automatically deflate or un-gzip a response stream
+            Uri address = new Uri(url);
+            System.Net.HttpWebRequest request = (HttpWebRequest)System.Net.WebRequest.Create(address);
+            request.Accept = "application/json";
+            request.ContentType = "application/json";
+            request.Headers.Add("Content-Encoding", "utf-8");
+            Encoding asciiEncoding = Encoding.ASCII;
+            request.Method = "GET";
+            request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+            using (System.Net.WebResponse response  = request.GetResponse())
+            {
+                System.IO.StreamReader sr =
+                    new System.IO.StreamReader(
+                        response.GetResponseStream());
+                return sr.ReadToEnd();
+            }
+        }
+    
+        
+        public static void GetMoneroHashRate(out int nBlocks, out double nHashRate)
+        {
+            string url = "http://api.minexmr.com/stats";
+            string sData = GetWebJsonApi(url);
+            JObject oData = JObject.Parse(sData);
+            JArray j1 = (JArray)oData["pool"]["blocks"];
+            nBlocks = j1.Count;
+            nHashRate = GetDouble(oData["pool"]["hashrate"]) / 1000000;
+        }
+
         public static string ExecMVCCommand(string URL, int iTimeout = 30)
         {
             BiblePayClient wc = new BiblePayClient();
             try
             {
                 wc.SetTimeout(iTimeout);
-
                 string d = wc.FetchObject(URL).ToString();
                 return d;
             }

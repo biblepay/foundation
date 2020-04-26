@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -15,10 +16,18 @@ namespace Saved
     public partial class FractionalSanctuaries : Page
     {
 
-        double GetEstimatedHODL()
+        protected string GetNonCompounded()
+        {
+            return Math.Round(GetEstimatedHODL(false)*100, 2).ToString();
+        }
+        double GetEstimatedHODL(bool fWithCompounding)
         {
             string sql = "select sum(amount)/3/4500001*365 amt from sanctuaryPayment where added > getdate()-3.15";
             double nROI = gData.GetScalarDouble(sql, "amt");
+            if (fWithCompounding)
+            {
+                nROI = GetCompounded(nROI);
+            }
             return nROI;
         }
 
@@ -26,7 +35,7 @@ namespace Saved
         {
             try
             {
-                string s = RenderGauge(250, "HODL %", (int)(GetEstimatedHODL() * 100));
+                string s = RenderGauge(250, "HODL %", (int)(GetEstimatedHODL(true) * 100));
                 return s;
             }
             catch(Exception ex)
@@ -38,17 +47,8 @@ namespace Saved
         protected string _report = "";
         protected void Page_Load(object sender, EventArgs e)
         {
-            if (false)
-            { 
-               // Coerce the user
-               User u = new User();
-               u.UserName = GetBMSConfigurationKeyValue("administratorusername");
-               u.LoggedIn = true;
-               u.TwoFactorAuthorized = true;
-               u.Require2FA = 1;
-               PersistUser(ref u);
-               Session["CurrentUser"] = u;
-            }
+            if (false && Debugger.IsAttached)
+                CoerceUser(Session);
 
             if (gUser(this).LoggedIn == false)
             {
@@ -77,7 +77,7 @@ namespace Saved
             double nRewards = GetTotalFrom(gUser(this).UserId.ToString(), "Deposit", "Notes like 'sanctuary payment%'");
             txtRewards.Text = nRewards.ToString();
 
-            double nROI = GetEstimatedHODL();
+            double nROI = GetEstimatedHODL(true);
             txtHODLPercent.Text = (nROI*100).ToString() + "%";
         }
         protected string GetBalance()
@@ -183,14 +183,9 @@ namespace Saved
             {
                 IncrementAmountByFloat("SanctuaryInvestments", nReq, gUser(this).UserId);
 
-                string sql = "Insert into Deposit (id, address, txid, userid, added, amount, height, notes) values (newid(), '', @txid, @userid, getdate(), @amount, 0, @notes)";
-                SqlCommand command = new SqlCommand(sql);
-                command.Parameters.AddWithValue("@userid", gUser(this).UserId.ToString());
-                command.Parameters.AddWithValue("@amount", nReq * -1);
-                command.Parameters.AddWithValue("@txid", Guid.NewGuid().ToString());
-
-                command.Parameters.AddWithValue("@notes", "Sanctuary Investment " + nReq.ToString());
-                gData.ExecCmd(command, false, true, true);
+                
+                AdjBalance(-1 * nReq, gUser(this).UserId.ToString(), "Sanctuary Investment " + nReq.ToString());
+                
 
                 string sNarr = "The fractional sanctuary addition was successful <br><br><br>Now you can sit back and relax.  In approximately 24 hours, you will see new transactions in the Fractional Sanctuary report, and your sanctuary reward will automatically be credited to your balance.  <br><br>Thank you for using BiblePay!  ";
                 MsgBox("Success", sNarr, this);
@@ -240,15 +235,9 @@ namespace Saved
             {
                 IncrementAmountByFloat("SanctuaryInvestments", nReq*-1, gUser(this).UserId);
 
-                string sql = "Insert into Deposit (id, address, txid, userid, added, amount, height, notes) values (newid(), '', @txid, @userid, getdate(), @amount, 0, @notes)";
-                SqlCommand command = new SqlCommand(sql);
-                command.Parameters.AddWithValue("@userid", gUser(this).UserId.ToString());
-                command.Parameters.AddWithValue("@amount", nReq);
-                command.Parameters.AddWithValue("@notes", "Sanctuary Liquidation " + nReq.ToString());
-                command.Parameters.AddWithValue("@txid", Guid.NewGuid().ToString());
+                AdjBalance(nReq, gUser(this).UserId.ToString(), "Sanctuary Liquidation " + nReq.ToString());
 
-                gData.ExecCmd(command);
-
+                
                 string sNarr = "The fractional sanctuary removal was successful <br><br><br> Thank you for using BiblePay!  ";
                 MsgBox("Success", sNarr, this);
                 return;

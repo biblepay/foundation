@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Web;
 using System.Web.UI;
@@ -83,6 +84,30 @@ namespace Saved
                 {
                     html += "<br><div><p><span><font color=red>A gospel quiz is available.  </font><small>To try to win, click on your Pool BBP Address.  The winner receives " 
                         + nReward.ToString() + " BBP.</small></span></div>";
+                }
+            }
+            // Offer BBP to people who have 2fa and who haven't watched a video in a while:
+            sql = "Select id, category, notes from Rapture";
+            DataTable dt1 = gData.GetDataTable(sql, false);
+
+            Random r = new Random();
+            int rInt = r.Next(0, dt1.Rows.Count);
+            int nGospelRow = (int)(r.NextDouble() * dt1.Rows.Count);
+            if (nGospelRow <= dt1.Rows.Count)
+            {
+                sql = "select count(*) ct from Tip where UserId=@userid";
+                SqlCommand cmd = new SqlCommand(sql);
+                cmd.Parameters.AddWithValue("@userid", gUser(this).UserId);
+                double nCt = gData.GetScalarDouble(cmd, "ct");
+                if (nCt == 0)
+                {
+                    string sCategory = dt1.Rows[nGospelRow]["category"].ToString();
+                    string sName = dt1.Rows[nGospelRow]["Notes"].ToString();
+                    string sId = dt1.Rows[nGospelRow]["id"].ToString();
+                    double nAmt = 250;
+                    string sAnchor = "<a href='Media?id=" + sId + "'>here</a>";
+                    string sNarr = "A " + sCategory + " video is available.  Click " + sAnchor + " to earn a " + nAmt.ToString() + " BBP reward for watching the video.";
+                    html += "<br><div><span>" + sNarr + "</span></div>";
                 }
             }
 

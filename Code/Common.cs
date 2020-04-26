@@ -84,7 +84,28 @@ namespace Saved.Code
             gData.ExecCmd(command);
         }
 
+        public static void CoerceUser(HttpSessionState Session)
+        {
+             User u = new User();
+             u.UserName = GetBMSConfigurationKeyValue("administratorusername");
+             u.LoggedIn = true;
+             u.TwoFactorAuthorized = true;
+             u.Require2FA = 1;
+             PersistUser(ref u);
+             Session["CurrentUser"] = u;
+        }
 
+        public static void AdjBalance(double nAmount, string sUserId, string sNotes)
+        {
+            string sql = "Insert into Deposit (id, address, txid, userid, added, amount, height, notes) values (newid(), '', @txid, @userid, getdate(), @amount, @height, @notes)";
+            SqlCommand command = new SqlCommand(sql);
+            command.Parameters.AddWithValue("@userid", sUserId);
+            command.Parameters.AddWithValue("@amount", nAmount);
+            command.Parameters.AddWithValue("@txid", Guid.NewGuid().ToString());
+            command.Parameters.AddWithValue("@height", _pool._template.height);
+            command.Parameters.AddWithValue("@notes", sNotes);
+            gData.ExecCmd(command, false, true, true);
+        }
 
         public static string GetSideBar(Page p)
         {
@@ -836,6 +857,18 @@ namespace Saved.Code
             string sAvatar = u.AvatarURL;
             return u;
         }
+
+        public static double GetCompounded(double nROI)
+        {
+            double nBank = 10000;
+            for (int nMonth = 1; nMonth <= 12; nMonth++)
+            {
+                double nReward = nBank * (nROI / 12);
+                nBank += nReward;
+            }
+            double nCompounded = Math.Abs(1 - (nBank / 10000));
+            return nCompounded;
+        }
         public static void GetVideo(string sURL)
         {
             MyWebClient w = new MyWebClient();
@@ -861,6 +894,7 @@ namespace Saved.Code
         protected override System.Net.WebRequest GetWebRequest(Uri uri)
         {
             System.Net.WebRequest w = base.GetWebRequest(uri);
+   
             w.Timeout = 7000;
             return w;
         }

@@ -580,9 +580,7 @@ namespace Saved.Code
                         string sql3 = "Insert Into Deposit (id, address, txid, userid, added, amount, height, notes) values (newid(), @address, @txid, @userid, getdate(), @amount, @height, @notes)";
                         SqlCommand command = new SqlCommand(sql3);
                         command.Parameters.AddWithValue("@address", sAddress);
-
                         command.Parameters.AddWithValue("@txid", sTXID + "-" + j.ToString());
-
                         command.Parameters.AddWithValue("@userid", dt2.Rows[j]["userid"]);
                         double nAmount = GetDouble(dt2.Rows[j]["amount"]);
                         if (nAmount > 0)

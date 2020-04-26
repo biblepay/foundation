@@ -234,10 +234,7 @@ namespace Saved.Code
                         Socket client = listener.AcceptSocket();
                         client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.DontLinger, false);
                         client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-
-                        //client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 5000);
-                        //client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout, 5000);
-
+                        
                         string socketid = client.RemoteEndPoint.ToString();
                         PoolCommon.WorkerInfo wban = PoolCommon.Ban(socketid, .25, "XMR-Connect");
                         if (!wban.banned)

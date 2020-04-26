@@ -310,7 +310,6 @@ namespace Saved.Code
                         {
                             w.difficulty = 1;
                         }
-                        int z = 0;
                         fPassed = (revBBPHash == out_rx && nDiff >= w.difficulty);
                         WorkerInfo wban = new WorkerInfo();
                         if (fPassed)
@@ -430,7 +429,6 @@ namespace Saved.Code
                         Log("corrupted message: " + sJson + "::" + ex.Message);
                         Ban(socketid, 1, "CORRUPTED-HANDLE");
                         return true;
-                        //                        oClient.Close();
                     }
                     catch (Exception ex3) { }
                     return false;
@@ -439,7 +437,6 @@ namespace Saved.Code
                 bool fPrint = !ex.Message.Contains("being aborted");
                 if (fPrint)
                     Log("POOL DISTRESS, HandleSocket: " + ex.Message + ", JSON: " + sJson);
-
 
                 return true;
             }

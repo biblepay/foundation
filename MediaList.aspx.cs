@@ -23,9 +23,9 @@ namespace Saved
             {
                 SavedObject s = RowToObject(dt.Rows[y]);
 
-                string sAnchor = "<a href='Media.aspx?category=" + s.Props.Category.ToString() + "'>"+ s.Props.Category.ToString() + "</a>";
+                string sAnchor = "<a href='Media.aspx?category=" + s.Props.Category.ToString() + "'>" + s.Props.Category.ToString() + "</a>";
 
-                string div = "<tr><td>"+sAnchor + "</td></tr>";
+                string div = "<tr><td>" + sAnchor + "</td></tr>";
                 html += div + "\r\n";
 
             }

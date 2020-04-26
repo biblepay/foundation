@@ -11,9 +11,9 @@
     <tr><td> Your Miner Wattage Consumption:&nbsp;<td>    <asp:TextBox ID="txtWatts" width="500px" runat="server" ></asp:TextBox><font color="red">* Assumption</font></tr>
     
    
-    <tr><td> XMR Blocks Found Per Day:&nbsp;<td>    <asp:TextBox ID="txtXMRBlocksFound" width="500px" runat="server" ></asp:TextBox><font color="red">* ToDo: Dynamically pull this from minexmr.com</font></tr>
+    <tr><td> XMR Blocks Found Per Day:&nbsp;<td>    <asp:TextBox ID="txtXMRBlocksFound" width="500px" runat="server" ></asp:TextBox></tr>
     <tr><td> XMR Price (USD):&nbsp;<td>    <asp:TextBox ID="txtXMRPrice" width="500px" runat="server" ></asp:TextBox></tr>
-    <tr><td> XMR Pool MH/S:&nbsp;<td>    <asp:TextBox ID="txtXMRMHS" width="500px" runat="server" ></asp:TextBox><font color="red">* ToDo: Dynamically pull this from minexmr.com</font></tr>
+    <tr><td> XMR Pool MH/S:&nbsp;<td>    <asp:TextBox ID="txtXMRMHS" width="500px" runat="server" ></asp:TextBox></tr>
    
     <tr><td> BBP Blocks Found Per Day:&nbsp;<td>    <asp:TextBox ID="txtBBPBlocksFound" width="500px" runat="server" ></asp:TextBox></tr>
     <tr><td> BBP Price (USD):&nbsp;<td>    <asp:TextBox ID="txtBBPPrice" width="500px" runat="server" ></asp:TextBox></tr>

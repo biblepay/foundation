@@ -49,9 +49,12 @@ namespace Saved
                 txtBBPPrice.Text = Code.BMS.GetPriceQuote("BBP/USD").ToString();
                 txtXMRPrice.Text = Code.BMS.GetPriceQuote("XMR/USD").ToString();
                 txtCost.Text = "0";
-                // Todo: We need to pull these two figures from minexmr.com otherwise they will get stagnant: try to find an API call for these:
-                txtXMRBlocksFound.Text = "204"; // Scraped from the Minexmr.com website (blocks found per day for this hps)
-                txtXMRMHS.Text = "345.01";  // Scraped from the Minexmr.com website (hps achieved)
+                int nMoneroBlocks = 0;
+                double nMoneroHashRate = 0;
+                BMS.GetMoneroHashRate(out nMoneroBlocks, out nMoneroHashRate);
+                txtXMRMHS.Text = nMoneroHashRate.ToString();
+                txtXMRBlocksFound.Text = nMoneroBlocks.ToString();
+
             }
             btnCalculate_Click(this, null);
 
