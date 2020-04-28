@@ -125,7 +125,7 @@ namespace Saved.Code
             }
         }
 
-        private static int BAN_THRESHHOLD = 256;
+        private static int BAN_THRESHHOLD = 356;
         public static WorkerInfo Ban(string socketid, double iHowMuch, string sWhy)
         {
             string sKey = GetIPOnly(socketid);
@@ -134,14 +134,14 @@ namespace Saved.Code
      
             
             w.banlevel += iHowMuch;
-            if (w.banlevel > 255)
+            if (w.banlevel > BAN_THRESHHOLD)
             {
                 if (!w.logged)
                 {
                     //Log("Banned " + GetIPOnly(socketid));
                     w.logged = true;
                 }
-                w.banlevel = 256;
+                w.banlevel = BAN_THRESHHOLD + 1;
             }
             if (fIsBanned)
             {
@@ -1133,9 +1133,7 @@ namespace Saved.Code
             {
                 Log("Group Shares " + ex.Message);
             }
-            Log("Finished Grouping shares");
-
-            
+            Log("Finished Grouping shares", true);
         }
 
         public static void GetRandomXAudit(string rxheader, string rxkey, ref string rx, ref string rx_root)

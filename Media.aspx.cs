@@ -23,6 +23,12 @@ namespace Saved
             string id = Request.QueryString["id"].ToNonNullString();
             if (id.Length > 1)
             {
+                if (!gUser(this).LoggedIn || gUser(this).UserId=="" || gUser(this).UserId == null)
+                {
+                    MsgBox("Logged Out", "Sorry, you must be logged in to use this feature.", this);
+                    return;
+                }
+
                 string sql = "select count(*) ct from Tip where UserId=@userid and Added > getdate()-1";
                 SqlCommand cmd = new SqlCommand(sql);
                 cmd.Parameters.AddWithValue("@userid", gUser(this).UserId);
@@ -31,12 +37,6 @@ namespace Saved
                 {
                     MsgBox("Budget Depleted", "Sorry, the budget has been depleted for this video.", this);
                     return;
-                }
-                if (!gUser(this).LoggedIn)
-                {
-                    MsgBox("Logged Out", "Sorry, you must be logged in to use this feature.", this);
-                    return;
-
                 }
 
             }

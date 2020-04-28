@@ -195,7 +195,15 @@ namespace Saved.Code
             }
             catch (Exception ex)
             {
-                if (!ex.Message.Contains("being aborted"))
+                if (ex.Message.Contains("was aborted"))
+                {
+                    // Noop
+                }
+                else if (ex.Message.Contains("forcibly closed"))
+                {
+
+                }
+                else if (!ex.Message.Contains("being aborted"))
                 {
                     Log("minerXMRThread2 : " + ex.Message);
                 }

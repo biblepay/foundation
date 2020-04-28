@@ -95,10 +95,14 @@ namespace Saved
             int nGospelRow = (int)(r.NextDouble() * dt1.Rows.Count);
             if (nGospelRow <= dt1.Rows.Count)
             {
-                sql = "select count(*) ct from Tip where UserId=@userid";
-                SqlCommand cmd = new SqlCommand(sql);
-                cmd.Parameters.AddWithValue("@userid", gUser(this).UserId);
-                double nCt = gData.GetScalarDouble(cmd, "ct");
+                double nCt = 0;
+                if (gUser(this).LoggedIn)
+                {
+                    sql = "select count(*) ct from Tip where UserId=@userid";
+                    SqlCommand cmd = new SqlCommand(sql);
+                    cmd.Parameters.AddWithValue("@userid", gUser(this).UserId);
+                    nCt = gData.GetScalarDouble(cmd, "ct");
+                }
                 if (nCt == 0)
                 {
                     string sCategory = dt1.Rows[nGospelRow]["category"].ToString();

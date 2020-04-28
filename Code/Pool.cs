@@ -23,11 +23,23 @@ namespace Saved.Code
             w.receivedtime = 1;
             SetWorker(w, socketid);
         }
-        private bool Send(Socket oClient, byte[] oData, string socketid)
+        private bool Send(Socket oClient, byte[] oData, string socketid, int oSize)
         {
             try
             {
-                oClient.Send(oData);
+                oClient.Send(oData, oSize, SocketFlags.None);
+
+                if (false)
+                {
+                    WorkerInfo w1 = GetWorker(socketid);
+                    bool fDebug = w1.bbpaddress == "TRACE_ADDRESS";
+                    if (fDebug)
+                    {
+                        string sData = Encoding.UTF8.GetString(oData, 0, oSize);
+                        Log("BA: " + sData);
+                    }
+                }
+
                 return true;
             }
             catch (Exception ex)
@@ -118,6 +130,7 @@ namespace Saved.Code
                 string job_id = jobid.ToString();
                 string prevhash = _template.prevhash;
                 string coinbase = _template.hex;
+                coinbase = coinbase.Substring(0, 256);
                 string nbits = _template.bits;
                 string ntime = _template.curtime;
                 string c3 = "";
@@ -125,16 +138,23 @@ namespace Saved.Code
                 string c5 = "";
                 string c8 = "";
                 string prevblocktime = _template.prevblocktime;
+                if (prevblocktime == null || coinbase == null || prevblocktime == "" || coinbase == "" || prevhash == "" || prevhash == null)
+                {
+                    Log("Prevhash==null");
+                    return false;
+                }
                 var json = "{ \"id\": null, \"method\": \"mining.notify\", \"params\": [\"" + job_id + "\",\"" + prevhash + "\",\""
-                    + coinbase + "\",\"" + c3 + "\",\"" + c4 + "\",\"" + c5 + "\",\"" + nbits + "\",\"" + ntime + "\",\"" + c8 + "\",\"" + prevblocktime + "\"]}\r\n";
+                    + coinbase + "\",\"" + c3 + "\",\"" + c4 + "\",\"" + c5 + "\",\"" + nbits + "\",\"" + ntime + "\",\"" 
+                    + c8 + "\",\"" + prevblocktime + "\"]}\r\n";
                 byte[] bytes = Encoding.ASCII.GetBytes(json);
-                bool f1 = Send(oClient, bytes, socketid);
+                bool f1 = Send(oClient, bytes, socketid, bytes.Length);
+
                 if (!f1)
                     return f1;
                 // Set the difficulty
                 json = "{ \"id\":null, \"method\": \"mining.set_difficulty\", \"params\": [\"" + w.difficulty.ToString() + "\",\"512\"]}\r\n";
                 bytes = Encoding.ASCII.GetBytes(json);
-                bool f2 = Send(oClient, bytes, socketid);
+                bool f2 = Send(oClient, bytes, socketid, bytes.Length);
 
                 w.starttime = UnixTimeStamp();
                 SetWorker(w, socketid);
@@ -210,7 +230,7 @@ namespace Saved.Code
                         poolArray = GetBMSConfigurationKeyValue("XMRExternalPool");
                         poolPorts = GetBMSConfigurationKeyValue("XMRPort");
                     }
-                    else 
+                    else
                     {
                         poolArray = GetBMSConfigurationKeyValue("PoolDNS");
                         poolPorts = GetBMSConfigurationKeyValue("XMRPort");
@@ -221,7 +241,7 @@ namespace Saved.Code
                         + poolArray + "\",\"" + poolPorts + "\",\"" + poolPubCharityAddress + "\",\"" + poolName + "\",\"true\"]"
                         + ", \"pools\": \"" + poolArray + "\", \"charityaddress\": \"" + poolPubCharityAddress + "\"}\r\n";
                     byte[] bytes = Encoding.ASCII.GetBytes(json);
-                    bool f4 = Send(oClient, bytes, socketid);
+                    bool f4 = Send(oClient, bytes, socketid, bytes.Length);
                     return f4;
                 }
                 else if (method == "mining.authorize")
@@ -236,12 +256,12 @@ namespace Saved.Code
                     {
                         Ban(socketid, -1, "MINING");
                     }
-                    
+
                     PersistWorker(w);
 
                     var json = "{ \"id\": " + id.ToString() + ", \"result\": true, \"error\": \"\" }\r\n";
                     byte[] bytes = Encoding.ASCII.GetBytes(json);
-                    bool f5 = Send(oClient, bytes, socketid);
+                    bool f5 = Send(oClient, bytes, socketid, bytes.Length);
                     return f5;
                 }
                 else if (method == "mining.subscribe")
@@ -256,7 +276,7 @@ namespace Saved.Code
                         + "\"],[\"mining.notify\",\"" + subid + "\"]],\"" + extranonce1 + "\",\"" + extranonce2size + "\"],\"error\": null}\r\n";
 
                     byte[] bytes = Encoding.ASCII.GetBytes(json);
-                    bool f1 = Send(oClient, bytes, socketid);
+                    bool f1 = Send(oClient, bytes, socketid, bytes.Length);
                     if (!f1)
                         return f1;
 
@@ -356,7 +376,7 @@ namespace Saved.Code
                             BatchExec(sql);
                         }
 
-                        if (fPassed) 
+                        if (fPassed)
                             nShareAdj = w.difficulty;
                         else
                             nFailAdj = 1;
@@ -365,12 +385,13 @@ namespace Saved.Code
                         PoolCommon.InsShare(w.bbpaddress, nShareAdj, nFailAdj, _template.height, 0, 0);
 
                         var sResult = fPassed ? "" : "ERROR";
+                        // Critical
                         var sErr = fPassed ? "null" : "\"ERR1\"";
 
                         var json = "{ \"id\": 100, \"result\": \"" + sResult + "\",\"error\": " + sErr + ", \"method\": \"submitresponse\", \"error2\": " + sErr + " }\r\n";
                         // Return with pass fail
                         byte[] bytes = Encoding.ASCII.GetBytes(json);
-                        bool f11 = Send(oClient, bytes, socketid);
+                        bool f11 = Send(oClient, bytes, socketid, bytes.Length);
                         string revTarget = ReverseHexString(_template.target);
 
                         // Check to see if this share actually solved the block:
@@ -411,7 +432,7 @@ namespace Saved.Code
                 }
                 else
                 {
-                    if (method=="login")
+                    if (method == "login")
                     {
                         return true;
                     }
@@ -421,7 +442,7 @@ namespace Saved.Code
             }
             catch (Exception ex)
             {
-                bool fIllegal = ex.Message.Contains("Unexpected character encountered");
+                bool fIllegal = ex.Message.Contains("Unexpected character encountered") || ex.Message.Contains("Unexpected end of content");
                 if (fIllegal)
                 {
                     try
@@ -510,7 +531,7 @@ namespace Saved.Code
                         return;
 
                     }
-                    if (nRecElapsed > (60 * 10))
+                    if (nRecElapsed > (60 * 30))
                     {
                         // This thread has not done anything for a long time.
                         try
