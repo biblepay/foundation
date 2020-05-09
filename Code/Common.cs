@@ -25,14 +25,19 @@ namespace Saved.Code
 
         public static Pool _pool = null;
         public static XMRPool _xmrpool = null;
+        public static double nCampaignRewardAmount = 10000;
 
         private static string sCachedHomePath = string.Empty;
 
-        public static string GetSiteName()
+        public static string GetSiteName(Page p)
         {
-            return "The BiblePay Foundation";
+            return GetHeaderBanner(p);
         }
 
+        public static string GetLongSiteName(Page p)
+        {
+            return GetBMSConfigurationKeyValue("longsitename");
+        }
 
         public static string GetBioImg(string orphanid)
         {
@@ -134,13 +139,13 @@ namespace Saved.Code
         + "	<ul class='sidebar-menu'>";
        
                 
-           html += AddMenuOption("Doctrine", "Guides.aspx;Study.aspx;Illustrations.aspx;Illustrations.aspx?type=wiki", "Guides for Christians;Theological Studies;Illustrations/Slides;Wiki Theology", "fa-life-ring");
-           html += AddMenuOption("Community", "Default.aspx;PrayerBlog.aspx;PrayerAdd.aspx;MediaList.aspx", "Home;Prayer Requests List Blog;Add New Prayer Request;Video Lists & Media", "fa-ambulance");
+           html += AddMenuOption("Doctrine", "Guides.aspx;Study.aspx;Illustrations.aspx;Illustrations.aspx?type=wiki;;MediaList.aspx", "Guides for Christians;Theological Studies;Illustrations/Slides;Wiki Theology;Video Lists & Media", "fa-life-ring");
+           html += AddMenuOption("Community", "Default.aspx;PrayerBlog.aspx;PrayerAdd.aspx", "Home;Prayer Requests List Blog;Add New Prayer Request", "fa-ambulance");
            html += AddMenuOption("Reports", "Accountability.aspx;Viewer.aspx?target=collage", "Accountability;Orphan Collage", "fa-table");
            html += AddMenuOption("Dashboard", "Dashboard.aspx", "Dashboard", "fa-line-chart");
-           html += AddMenuOption("Pool", "Leaderboard.aspx;GettingStarted.aspx;PoolAbout.aspx;BlockHistory.aspx;QuizList.aspx;Viewer.aspx?target=" 
+           html += AddMenuOption("Pool", "Leaderboard.aspx;GettingStarted.aspx;PoolAbout.aspx;BlockHistory.aspx;Viewer.aspx?target=" 
                + System.Web.HttpUtility.UrlEncode("https://minexmr.com/#worker_stats") + ";MiningCalculator.aspx",
-               "Leaderboard;Getting Started;About;Block History;Quiz List;XMR Inquiry;Mining Calculator", "fa-sitemap");
+               "Leaderboard;Getting Started;About;Block History;XMR Inquiry;Mining Calculator", "fa-sitemap");
 
            html += AddMenuOption("Account", "https://forum.biblepay.org/sso.php?source=https://foundation.biblepay.org/Default.aspx;Login.aspx?opt=logout;AccountEdit.aspx;Deposit.aspx;Deposit.aspx;FractionalSanctuaries.aspx", 
                "Log In;Log Out;Account Edit;Deposit;Withdrawal;Fractional Sanctuaries", "fa-unlock-alt");
@@ -155,14 +160,14 @@ namespace Saved.Code
         private static int item = 0;
         private static string AddMenuOption(string MenuName, string URLs, string LinkNames, string sIcon)
         {
-           
+
+            double nEnabled = GetDouble(GetBMSConfigurationKeyValue(MenuName));
+            if (nEnabled == -1)
+                return "";
+                
             string[] vURLs = URLs.Split(";");
             string[] vLinkNames = LinkNames.Split(";");
 
-            /*var js = "var xp=parseFloat($('#bbpdd" + item.ToString() + "').attr('expanded')); "
-             + "   var xp = parseFloat(localStorage.getItem('bbpdd" + item.ToString() + "')); "
-             + "   var xe = xp==1?0:1; localStorage.setItem('bbpdd" + item.ToString() + "', xe); var disp = xp == 1 ? 'none' : 'block';";
-             */
 
             var js2 = "   var xp = parseFloat(localStorage.getItem('bbpdd" + item.ToString() + "')); "
              + "   var xe = xp==0?1:0; localStorage.setItem('bbpdd" + item.ToString() + "', xe); var disp = xp == 0 ? 'none' : 'block';";
@@ -203,6 +208,15 @@ namespace Saved.Code
                     keypos = 0;
             }
             return outText;
+        }
+
+        public static void IncSysByFloat(string sKey, double nFloat)
+        {
+            string sql = "select Value from System where  systemKey = '" + sKey + "'";
+            double dAmt = gData.GetScalarDouble(sql, "Value");
+            dAmt += nFloat;
+            sql = "Update System set Value='" + dAmt.ToString() + "' where SystemKey = '" + sKey + "'";
+            gData.Exec(sql);
         }
 
         public static void IncrementAmountByFloat(string table, double nincrby, string userid)
@@ -378,16 +392,29 @@ namespace Saved.Code
             p.Session["MSGBOX_BODY"] = sBody;
             p.Response.Redirect("MessagePage.aspx");
         }
-        public static string GetBanner(Page p)
+
+        public static double GetEstimatedHODL(bool fWithCompounding, double nBonusPercent)
         {
-            if (p.Request.Url.OriginalString.ToLower().Contains("saved"))
+            string sql = "select sum(amount)/3/4500001*365 amt from sanctuaryPayment where added > getdate()-3.15";
+            double nROI = gData.GetScalarDouble(sql, "amt");
+            nROI += nBonusPercent;
+            if (fWithCompounding)
             {
-                return "Saved.One - Internet Church";
+                nROI = GetCompounded(nROI);
             }
-            else
-            {
-                return "BiblePay";
-            }
+            return nROI;
+        }
+
+
+        public static string GetFooter(Page p)
+        {
+            string sOverridden = GetBMSConfigurationKeyValue("footer");
+            if (sOverridden.Length > 0)
+                return sOverridden;
+
+            string sFooter = DateTime.Now.Year.ToString() + " - " + GetLongSiteName(p);
+            return sFooter;
+
         }
         public static string GetHeaderImage(Page p)
         {
@@ -409,14 +436,7 @@ namespace Saved.Code
         }
         public static string GetHeaderBanner(Page p)
         {
-            if (p.Request.Url.OriginalString.ToLower().Contains("saved"))
-            {
-                return "Saved One - Online Church";
-            }
-            else
-            {
-                return "Foundation";
-            }
+            return GetBMSConfigurationKeyValue("sitename");
         }
         public static string GetSha256Hash(string rawData)
         {
@@ -441,28 +461,36 @@ namespace Saved.Code
             return isValidated;
         }
         
-        public static void SendMail(MailMessage message)
+        public static bool SendMail(MailMessage message)
         {
-            SmtpClient client = new SmtpClient();
-            client.UseDefaultCredentials = false;
-            client.Credentials = new System.Net.NetworkCredential("1", "2"); // Do not change these values, change the config values.
-            client.Port = 587;        // this is critical
-            client.EnableSsl = true;  // this is critical
-            // smtp.office365.com; sender@domain.org; smtppassword (Works with exchange)
-            client.Host = GetBMSConfigurationKeyValue("smtphost");
-            client.DeliveryMethod = SmtpDeliveryMethod.Network;
-            client.UseDefaultCredentials = false;
-            client.Credentials = new NetworkCredential(GetBMSConfigurationKeyValue("smtpuser"), GetBMSConfigurationKeyValue("smtppassword"));
             try
             {
-                client.Send(message);
-            }
-            catch (Exception e)
+                SmtpClient client = new SmtpClient();
+                client.UseDefaultCredentials = false;
+                client.Credentials = new System.Net.NetworkCredential("1", "2"); // Do not change these values, change the config values.
+                client.Port = 587;        // this is critical
+                client.EnableSsl = true;  // this is critical
+                                          // smtp.office365.com; sender@domain.org; smtppassword (Works with exchange)
+                client.Host = GetBMSConfigurationKeyValue("smtphost");
+                client.DeliveryMethod = SmtpDeliveryMethod.Network;
+                client.UseDefaultCredentials = false;
+                client.Credentials = new NetworkCredential(GetBMSConfigurationKeyValue("smtpuser"), GetBMSConfigurationKeyValue("smtppassword"));
+                try
+                {
+                    client.Send(message);
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Error in Send email: {0}", e.Message);
+                    return false;
+                }
+                message.Dispose();
+            }catch(Exception ex2)
             {
-                Console.WriteLine("Error in Send email: {0}", e.Message);
-                throw;
+                Log("Cannot send Mail: " + ex2.Message);
             }
-            message.Dispose();
+            return false;
         }
 
 

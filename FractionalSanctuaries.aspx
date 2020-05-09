@@ -21,10 +21,11 @@
 
         <tr><td>    Global Sanctuary Investment Amount:          <td>    <asp:TextBox ID="txtGlobalSancInvestments" width="200px" readonly runat="server" ></asp:TextBox></tr>
         <tr><td>    Global Sanctuary Investment Count:          <td>    <asp:TextBox ID="txtGlobalSancInvestmentCount" width="200px" readonly runat="server" ></asp:TextBox></tr>
+        <tr><td>    BONUS %:          <td>    <asp:TextBox ID="txtBonusPercent" width="200px" readonly runat="server" ></asp:TextBox></td></tr>
+   
         <tr><td>    HODL %:          <td>    <asp:TextBox ID="txtHODLPercent" width="200px" readonly runat="server" ></asp:TextBox> 
             &nbsp;[<%=GetNonCompounded()%>% non-compounded]&nbsp;<small><font color="red">* Based on actual chain data over 48 hours</font></small>
         <tr><td colspan="2">Note:  To receive compounded ROI on your HODL, you must transfer your earned BBP rewards into your fractional sanctuary once per month. </td></tr>
-    
     </table>
     <hr />
 

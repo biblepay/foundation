@@ -18,24 +18,25 @@ namespace Saved
 
         protected string GetNonCompounded()
         {
-            return Math.Round(GetEstimatedHODL(false)*100, 2).ToString();
+
+            double nBP = GetBonusPercent();
+            return Math.Round(GetEstimatedHODL(false, nBP)*100, 2).ToString();
         }
-        double GetEstimatedHODL(bool fWithCompounding)
+
+        double GetBonusPercent()
         {
-            string sql = "select sum(amount)/3/4500001*365 amt from sanctuaryPayment where added > getdate()-3.15";
-            double nROI = gData.GetScalarDouble(sql, "amt");
-            if (fWithCompounding)
-            {
-                nROI = GetCompounded(nROI);
-            }
-            return nROI;
+            string sql = "Select BonusPercent from Users where id='" + gUser(this).UserId.ToString() + "'";
+            double nPerc = gData.GetScalarDouble(sql, "bonusPercent");
+            return nPerc;
         }
 
         protected string  GetROIGauge()
         {
             try
             {
-                string s = RenderGauge(250, "HODL %", (int)(GetEstimatedHODL(true) * 100));
+                double nBP = GetBonusPercent();
+
+                string s = RenderGauge(250, "HODL %", (int)(GetEstimatedHODL(true, nBP) * 100));
                 return s;
             }
             catch(Exception ex)
@@ -47,12 +48,15 @@ namespace Saved
         protected string _report = "";
         protected void Page_Load(object sender, EventArgs e)
         {
-            if (false && Debugger.IsAttached)
+            if (Debugger.IsAttached)
                 CoerceUser(Session);
 
             if (gUser(this).LoggedIn == false)
             {
-                MsgBox("Log In Error", "Sorry, you must be logged in first.", this);
+
+                string Promotion = "<br><font color=red>LIMITED TIME PROMOTION:  <br><br>For a limited time, we will be giving away an extra 10% bonus resulting in a <b>52%</b> ROI for new users who set up fractional sanctuaries!<br>To Claim the reward, <ul>Please meet the following conditions: <li>Create an account at forum.biblepay.org after May 6th, 2020.  <li>Create a new Fractional Sanctuary.<li>Your Fractional Sanctuary page will clearly show the BONUS percentage on the page if you qualified.<li>There is no end date yet for this promotion.<li>If you have any questions or need help, please e-mail rob@biblepay.org </ul></font>Thank you for using BiblePay.";
+                
+                MsgBox("Log In Error", "Sorry, you must be logged in first." + Promotion, this);
                 return;
             }
 
@@ -70,14 +74,15 @@ namespace Saved
             double nTotalBalance = GetTotalFrom(gUser(this).UserId.ToString(), "Deposit");
             txtGlobalSancInvestments.Text = GetTotalFrom("", "SanctuaryInvestments").ToString();
             txtGlobalSancInvestmentCount.Text = GetCountFrom("SanctuaryInvestments").ToString();
-
+            txtBonusPercent.Text = (GetBonusPercent() * 100).ToString() + "%";
             txtFractionalSancBalance.Text = nTotalFracSancBalance.ToString();
             txtBalance.Text = nTotalBalance.ToString();
 
             double nRewards = GetTotalFrom(gUser(this).UserId.ToString(), "Deposit", "Notes like 'sanctuary payment%'");
             txtRewards.Text = nRewards.ToString();
 
-            double nROI = GetEstimatedHODL(true);
+            double nBP = GetBonusPercent();
+            double nROI = GetEstimatedHODL(true, nBP);
             txtHODLPercent.Text = (nROI*100).ToString() + "%";
         }
         protected string GetBalance()
@@ -182,11 +187,14 @@ namespace Saved
             if (nTotal >= nReq)
             {
                 IncrementAmountByFloat("SanctuaryInvestments", nReq, gUser(this).UserId);
-
+                // Update the Bonus Percent
                 
                 AdjBalance(-1 * nReq, gUser(this).UserId.ToString(), "Sanctuary Investment " + nReq.ToString());
-                
 
+                string sql = "Update SanctuaryInvestments set bonuspercent = (Select bonuspercent from Users where id='" 
+                    + gUser(this).UserId.ToString() + "') where userid = '" + gUser(this).UserId.ToString() + "'";
+                gData.Exec(sql);
+                
                 string sNarr = "The fractional sanctuary addition was successful <br><br><br>Now you can sit back and relax.  In approximately 24 hours, you will see new transactions in the Fractional Sanctuary report, and your sanctuary reward will automatically be credited to your balance.  <br><br>Thank you for using BiblePay!  ";
                 MsgBox("Success", sNarr, this);
                 return;

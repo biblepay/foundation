@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Net.Mail;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Web.UI.DataVisualization.Charting;
 using static Saved.Code.Common;
 
@@ -28,6 +30,8 @@ namespace Saved.Code
         public static DateTime start_date = DateTime.Now;
         public static int MIN_DIFF = 1;
         public static object cs_p = new object();
+        public static bool fMonero2000 = false;
+
 
         public static void SetWorker(WorkerInfo worker, string sKey)
         {
@@ -219,12 +223,18 @@ namespace Saved.Code
                 command.Parameters.AddWithValue("@fxmrc", 0);
                 command.Parameters.AddWithValue("@bxmr", nBXMR);
                 command.Parameters.AddWithValue("@bxmrc", nBXMRC);
+            if (bbpaddress == "")
+            {
+                Log("bbp address not provided: " + bbpaddress);
+
+            }
                 try
                 {
                     lSQL.Add(command);
                 }
                 catch (Exception ex)
                 {
+
                     Log("insShare: " + ex.Message);
                 }
         }
@@ -576,6 +586,10 @@ namespace Saved.Code
                     DataTable dt2 = gData.GetDataTable(sql2, false);
                     for (int j = 0; j < dt2.Rows.Count; j++)
                     {
+                        double nBonus = GetDouble(dt2.Rows[i]["BonusPercent"]);
+                        if (nBonus > .50)
+                            nBonus = .50;
+
 
                         string sql3 = "Insert Into Deposit (id, address, txid, userid, added, amount, height, notes) values (newid(), @address, @txid, @userid, getdate(), @amount, @height, @notes)";
                         SqlCommand command = new SqlCommand(sql3);
@@ -586,12 +600,17 @@ namespace Saved.Code
                         if (nAmount > 0)
                         {
                             double nReward = nAmount / 4500000 * nSancReward;
+                            double nExtraBonus = nBonus * nSancReward;
+                            nReward += nExtraBonus;
                             command.Parameters.AddWithValue("@amount", nReward);
                             command.Parameters.AddWithValue("@height", nHeight);
-                            command.Parameters.AddWithValue("@notes", "Sanctuary Payment [for " + nAmount.ToString() + "]");
+                            string sNarr = "Sanctuary Payment [for " + Math.Round(nAmount,2).ToString();
+                            if (nExtraBonus > 0) 
+                                sNarr += "+Bonus=" + Math.Round(nExtraBonus,2).ToString();
+                            sNarr += "]";
+                            command.Parameters.AddWithValue("@notes", sNarr);
                             gData.ExecCmd(command, false, false, false);
                         }
-
                     }
 
                     string sql4 = "Update SanctuaryPayment set Paid = getdate() where id = @id";
@@ -632,7 +651,7 @@ namespace Saved.Code
 
                 // Create a batchid
                 string batchid = Guid.NewGuid().ToString();
-                string sql = "Update share set txid=@batchid where Paid is null and subsidy > 1 and updated < getdate() - .25";
+                string sql = "Update share set txid=@batchid where Paid is null and subsidy > 1 and updated < getdate() - .20";
                 SqlCommand command = new SqlCommand(sql);
                 command.Parameters.AddWithValue("@batchid", batchid);
                 gData.ExecCmd(command, false, false, false);
@@ -920,6 +939,55 @@ namespace Saved.Code
             return sOut;
         }
 
+
+        public static void SendMarketingEmail()
+        {
+            // Ensure we comply with this:  https://www.ftc.gov/tips-advice/business-center/guidance/can-spam-act-compliance-guide-business
+            try
+            {
+                string sql = "Select top 100 * from Leads where Advertised is null";
+                DataTable dt = gData.GetDataTable(sql);
+                int nMax = 10;
+                int nSent = 0;
+                if (dt.Rows.Count > 0)
+                {
+                    for (int i = 0; i < dt.Rows.Count; i++)
+                    {
+                        string email = dt.Rows[i]["email"].ToString();
+                        string username = dt.Rows[i]["name"].ToString();
+                        string sPath = "c:\\bbpcampaign1.txt";
+                        string sID = dt.Rows[i]["id"].ToString();
+                        string body = System.IO.File.ReadAllText(sPath);
+                        body = body.Replace("[name]", username);
+                        body = body.Replace("[reward]", "<a href='https://foundation.biblepay.org/LandingPage?id=" + sID + "'>Empower yourself with the free biblepay coins</a>");
+                        body = body.Replace("[Unsubscribe]", "<a href='https://foundation.biblepay.org/LandingPage?id=" + sID + "&action=unsubscribe'>Unsubscribe</a>");
+                        MailAddress r = new MailAddress("rob@saved.one", "BiblePay Team");
+                        MailAddress t = new MailAddress(email, username);
+                        MailMessage m = new MailMessage(r, t);
+                        //m.To.Add(email);
+                        m.Subject = "Sharing the Gospel, Reinventing the Wheel, and BiblePay";
+                        m.IsBodyHtml = true;
+                        m.Body = body;
+                        bool fSent =                         SendMail(m);
+                        if (fSent)
+                        {
+                            sql = "Update Leads set Advertised = getdate() where id = '" + sID + "'";
+                            gData.Exec(sql);
+                        }
+
+                        nSent++;
+                        if (nSent >= nMax)
+                            break;
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                Log("Send Marketing Email Issues: " + ex.Message);
+            }
+        }
+
+        
         static List<string> lBanList = new List<string>();
         public static bool fUseJobsTable = false;
         public static bool fUseBanTable = false;
@@ -932,7 +1000,7 @@ namespace Saved.Code
             nLastBoarded = UnixTimeStamp();
             fUseBanTable = Convert.ToBoolean(GetDouble(GetPoolValue("USEBAN")));
             fUseJobsTable = Convert.ToBoolean(GetDouble(GetPoolValue("USEJOB")));
-
+            
             try
             {
                 // Update the leaderboard
@@ -1004,6 +1072,9 @@ namespace Saved.Code
             }
         }
 
+        
+
+
         private static int nLastGrouped = 0;
         public static void GroupShares()
         {
@@ -1023,9 +1094,10 @@ namespace Saved.Code
 
                 int nBestHeight = _pool._template.height;
                 if (nBestHeight == 0) return;
+                int nLookback = 205;
 
-                // Set subsidies first
-                for (int iMyHeight = nBestHeight - 200; iMyHeight < nBestHeight - 7; iMyHeight++)
+            
+                for (int iMyHeight = nBestHeight - nLookback; iMyHeight < nBestHeight - 7; iMyHeight++)
                 {
                     string sql7 = "Select count(*) ct from Share (nolock) where paid is null and Subsidy is null and height = '" + iMyHeight.ToString() + "'";
                     double dCt = gData.GetScalarDouble(sql7, "ct", false);
@@ -1095,23 +1167,25 @@ namespace Saved.Code
                         gData.ExecCmd(command1);
                     }
                 }
+                        
 
-                // Set subsidies first
-                for (int iMyHeight = nBestHeight - 205; iMyHeight < nBestHeight - 7; iMyHeight++)
+                // Set subsidies next
+                for (int iMyHeight = nBestHeight - nLookback; iMyHeight < nBestHeight - 7; iMyHeight++)
                 {
-                    string sql = "Select shares,sucxmrc,bxmr,bbpaddress from Share (nolock) WHERE subsidy > 1 and percentage is null and height=@height and paid is null";
-                    SqlCommand command = new SqlCommand(sql);
-                    command.Parameters.AddWithValue("@height", iMyHeight);
-                    DataTable dt1 = gData.GetDataTable(command, false);
+                    string sHeightRange = "height = '" + iMyHeight.ToString() + "'";
+                    string sql = "Select shares,sucXMRC,bxmr,bbpaddress from Share (nolock) WHERE subsidy > 1 and percentage is null and "
+                        + sHeightRange + " and paid is null";
+                    //SqlCommand command = new SqlCommand(sql);
+                    //command.Parameters.AddWithValue("@height", iMyHeight);
+                    DataTable dt1 = gData.GetDataTable(sql, false);
                     if (dt1.Rows.Count > 0)
                     {
                         // First get the total shares
                         double nTotalShares = 0;
+                        double nTotalSubsidy = 0;
                         for (int i = 0; i < dt1.Rows.Count; i++)
                         {
                             double nHPS = GetDouble(dt1.Rows[i]["Shares"]) + (GetDouble(dt1.Rows[i]["bxmr"]));
-                            //double nHPS = GetDouble(dt1.Rows[i]["Shares"]);
-
                             nTotalShares += nHPS;
                         }
                         if (nTotalShares == 0) nTotalShares = .01;
@@ -1119,9 +1193,10 @@ namespace Saved.Code
                         {
                             //double nShare = GetDouble(dt1.Rows[i]["Shares"]) / nTotalShares;
                             double nShare = (GetDouble(dt1.Rows[i]["Shares"]) + (GetDouble(dt1.Rows[i]["bxmr"]))) / nTotalShares;
-                            sql = "Update Share Set Percentage=@percentage,Reward=Subsidy * @percentage where height = @height and bbpaddress=@bbpaddress";
-                            command = new SqlCommand(sql);
+                            sql = "Update Share Set Percentage=@percentage,Reward=@percentage * Subsidy where " + sHeightRange + " and bbpaddress=@bbpaddress";
+                            SqlCommand command = new SqlCommand(sql);
                             command.Parameters.AddWithValue("@percentage", Math.Round(nShare, 4));
+                           // command.Parameters.AddWithValue("@reward", Math.Round(nTotalSubsidy, 2) * Math.Round(nShare, 4));
                             command.Parameters.AddWithValue("@height", iMyHeight);
                             command.Parameters.AddWithValue("@bbpaddress", dt1.Rows[i]["bbpaddress"]);
                             gData.ExecCmd(command);
@@ -1133,8 +1208,30 @@ namespace Saved.Code
             {
                 Log("Group Shares " + ex.Message);
             }
-            Log("Finished Grouping shares", true);
+            Log("Finished Grouping shares v2.0", false);
         }
+        public static void SQLExecutor()
+        {
+            while (true)
+            {
+                // This thread executes SQL in a way that prevents deadlocks
+                for (int i = 0; i < lSQL.Count; i++)
+                {
+                    try
+                    {
+                        gData.ExecCmd(lSQL[i]);
+                    }
+                    catch (Exception ex2)
+                    {
+                        Log("SQLExecutor::" + ex2.Message);
+                    }
+                    lSQL.RemoveAt(i);
+                    i--;
+                }
+                Thread.Sleep(100);
+            }
+        }
+
 
         public static void GetRandomXAudit(string rxheader, string rxkey, ref string rx, ref string rx_root)
         {
@@ -1338,6 +1435,6 @@ namespace Saved.Code
                 }
             }
         }
-        //Todo: Put an index on Share (bbpaddress, height).  Delete old share data older than 2 weeks, etc.
+        
     }
 }

@@ -119,6 +119,8 @@
     <Content Include="Corruption.aspx" />
     <Content Include="BMS\TrackDashPay.aspx" />
     <Content Include="BMS\DashPay.aspx" />
+    <Content Include="LP.aspx" />
+    <Content Include="LandingPage.aspx" />
     <Content Include="MiningCalculator.aspx" />
     <Content Include="Server.aspx" />
     <Content Include="GaugeServer.aspx" />
@@ -236,6 +238,20 @@
       <DependentUpon>DashPay.aspx</DependentUpon>
     </Compile>
     <Compile Include="Code\BMS.cs" />
+    <Compile Include="LP.aspx.cs">
+      <DependentUpon>LP.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="LP.aspx.designer.cs">
+      <DependentUpon>LP.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="LandingPage.aspx.cs">
+      <DependentUpon>LandingPage.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="LandingPage.aspx.designer.cs">
+      <DependentUpon>LandingPage.aspx</DependentUpon>
+    </Compile>
     <Compile Include="MiningCalculator.aspx.cs">
       <DependentUpon>MiningCalculator.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>

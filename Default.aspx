@@ -28,7 +28,7 @@ function doSlideshow()
 
 
     <div>
-          Welcome to the <%=Saved.Code.Common.GetSiteName() %>
+          Welcome to <%=Saved.Code.Common.GetLongSiteName(this) %>
       
     </div>
     <br />

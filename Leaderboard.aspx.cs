@@ -74,44 +74,53 @@ namespace Saved
             // Check for quizzes
             html += "</table>";
 
-            sql = "Select id,reward from Quiz where solved is null";
-            dt = gData.GetDataTable(sql, false);
-            if (dt.Rows.Count > 0)
+            double nQuizReward = GetDouble(GetBMSConfigurationKeyValue("quizreward"));
+            if (nQuizReward == 1)
             {
-                string id = dt.Rows[0]["id"].ToString();
-                double nReward = GetDouble(dt.Rows[0]["Reward"]);
-                if (id != "" && nReward > 0)
+                sql = "Select id,reward from Quiz where solved is null";
+                dt = gData.GetDataTable(sql, false);
+                if (dt.Rows.Count > 0)
                 {
-                    html += "<br><div><p><span><font color=red>A gospel quiz is available.  </font><small>To try to win, click on your Pool BBP Address.  The winner receives " 
-                        + nReward.ToString() + " BBP.</small></span></div>";
+                    string id = dt.Rows[0]["id"].ToString();
+                    double nReward = GetDouble(dt.Rows[0]["Reward"]);
+                    if (id != "" && nReward > 0)
+                    {
+                        html += "<br><div><p><span><font color=red>A gospel quiz is available.  </font><small>To try to win, click on your Pool BBP Address.  The winner receives "
+                            + nReward.ToString() + " BBP.</small></span></div>";
+                    }
                 }
             }
-            // Offer BBP to people who have 2fa and who haven't watched a video in a while:
-            sql = "Select id, category, notes from Rapture";
-            DataTable dt1 = gData.GetDataTable(sql, false);
 
-            Random r = new Random();
-            int rInt = r.Next(0, dt1.Rows.Count);
-            int nGospelRow = (int)(r.NextDouble() * dt1.Rows.Count);
-            if (nGospelRow <= dt1.Rows.Count)
+            double nVideoReward = GetDouble(GetBMSConfigurationKeyValue("videoreward"));
+
+            if (nVideoReward == 1)
             {
-                double nCt = 0;
-                if (gUser(this).LoggedIn)
+                // Offer BBP to people who have 2fa and who haven't watched a video in a while:
+                sql = "Select id, category, notes from Rapture";
+                DataTable dt1 = gData.GetDataTable(sql, false);
+                Random r = new Random();
+                int rInt = r.Next(0, dt1.Rows.Count);
+                int nGospelRow = (int)(r.NextDouble() * dt1.Rows.Count);
+                if (nGospelRow <= dt1.Rows.Count)
                 {
-                    sql = "select count(*) ct from Tip where UserId=@userid";
-                    SqlCommand cmd = new SqlCommand(sql);
-                    cmd.Parameters.AddWithValue("@userid", gUser(this).UserId);
-                    nCt = gData.GetScalarDouble(cmd, "ct");
-                }
-                if (nCt == 0)
-                {
-                    string sCategory = dt1.Rows[nGospelRow]["category"].ToString();
-                    string sName = dt1.Rows[nGospelRow]["Notes"].ToString();
-                    string sId = dt1.Rows[nGospelRow]["id"].ToString();
-                    double nAmt = 250;
-                    string sAnchor = "<a href='Media?id=" + sId + "'>here</a>";
-                    string sNarr = "A " + sCategory + " video is available.  Click " + sAnchor + " to earn a " + nAmt.ToString() + " BBP reward for watching the video.";
-                    html += "<br><div><span>" + sNarr + "</span></div>";
+                    double nCt = 0;
+                    if (gUser(this).LoggedIn)
+                    {
+                        sql = "select count(*) ct from Tip where UserId=@userid and added > getdate()-1";
+                        SqlCommand cmd = new SqlCommand(sql);
+                        cmd.Parameters.AddWithValue("@userid", gUser(this).UserId);
+                        nCt = gData.GetScalarDouble(cmd, "ct");
+                    }
+                    if (nCt == 0)
+                    {
+                        string sCategory = dt1.Rows[nGospelRow]["category"].ToString();
+                        string sName = dt1.Rows[nGospelRow]["Notes"].ToString();
+                        string sId = dt1.Rows[nGospelRow]["id"].ToString();
+                        double nAmt = 250;
+                        string sAnchor = "<a href='Media?id=" + sId + "'>here</a>";
+                        string sNarr = "A " + sCategory + " video is available.  Click " + sAnchor + " to earn a " + nAmt.ToString() + " BBP reward for watching the video.";
+                        html += "<br><div><span>" + sNarr + "</span></div>";
+                    }
                 }
             }
 

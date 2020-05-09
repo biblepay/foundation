@@ -479,7 +479,7 @@ namespace Saved.Code
                 while (true)
                 {
                     int size = 0;
-                    byte[] data = new byte[129000];
+                    byte[] data = new byte[32767];
 
                     WorkerInfo w1 = GetWorker(socketid);
                     if (w1.Broadcast)
@@ -569,6 +569,11 @@ namespace Saved.Code
                                         }
                                         catch (Exception ex2)
                                         {
+                                            if (ex2.Message.Contains("being aborted"))
+                                            {
+                                                IncThreadCount(-1);
+                                                return;
+                                            }
                                             Log("MinerThread::HandleSocket " + ex2.Message);
                                         }
                                     }
@@ -621,28 +626,6 @@ namespace Saved.Code
                 Leaderboard();
                 Pay();
                 PurgeSockets(false);
-            }
-        }
-
-        void SQLExecutor()
-        {
-            while (true)
-            {
-                // This thread executes SQL in a way that prevents deadlocks
-                for (int i = 0; i < lSQL.Count; i++)
-                {
-                    try
-                    {
-                        gData.ExecCmd(lSQL[i]);
-                    }
-                    catch (Exception ex2)
-                    {
-                        Log("SQLExecutor::" + ex2.Message);
-                    }
-                    lSQL.RemoveAt(i);
-                    i--;
-                }
-                Thread.Sleep(1000);
             }
         }
 

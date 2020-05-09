@@ -36,7 +36,7 @@
     
     <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
 
-    <title><%: Page.Title %> - <%=Saved.Code.Common.GetBanner(this.Page)%></title>
+    <title><%: Page.Title %> - <%=Saved.Code.Common.GetLongSiteName(this.Page)%></title>
 
     <asp:PlaceHolder runat="server">
         <%: Scripts.Render("~/bundles/modernizr") %>
@@ -126,7 +126,7 @@
          <div class="footer_wrapper hidden" >
             <div class="footer">  
                 <table width="100%"><tr>
-                    <td width='95%' align="center"> &nbsp;&nbsp;&nbsp; &copy; <%: DateTime.Now.Year %> - <%=Saved.Code.Common.GetBanner(this.Page) %> </td>
+                    <td width='95%' align="center"> &nbsp;&nbsp;&nbsp; &copy;<%=Saved.Code.Common.GetFooter(this.Page) %> </td>
                 </tr></table>
              </div>
         </div>  

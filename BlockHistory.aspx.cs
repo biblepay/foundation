@@ -33,21 +33,21 @@ namespace Saved
             return td;
         }
 
-        public static int lastBH = 0;
-        public static string lastReport = "";
-        protected string GetBH()
+        public string GetReport()
         {
-            int elapsed = UnixTimeStamp() - lastBH;
-            if (elapsed < (60 * 17))
-            {
-                return lastReport;
-            }
-            int nHeight = _pool._template.height;
-            lastBH = UnixTimeStamp();
-            string sql = "Select Height, bbpaddress, percentage, reward, subsidy, txid from Share (nolock) where subsidy > 1 and reward > .01 and updated > getdate()-2 and height > " 
-                + (nHeight-(300)).ToString() + "order by height desc, bbpaddress";
+            return _report;
+        }
 
+        private string _report = "";
+        protected void btnRunBlockHistory_Click(object sender, EventArgs e)
+        {
+
+            int nHeight = _pool._template.height;
+            string sql = "Select Height, bbpaddress, percentage, reward, subsidy, txid "
+                + " FROM Share(nolock) where subsidy > 1 and reward > .01 and updated > getdate() - 2 "
+                +" and bbpaddress like '%" + BMS.PurifySQL(txtAddress.Text, 100) + "%' and height > " + nHeight.ToString() + "-400 order by height desc, bbpaddress";
             
+
             DataTable dt = gData.GetDataTable(sql);
             string html = "<table class=saved><tr><th width=20%>Height</th><th>BBP Address<th>Percentage<th>Reward<th>Block Subsidy<th>TXID</tr>";
 
@@ -74,8 +74,7 @@ namespace Saved
 
             }
             html += "</table>";
-            lastReport = html;
-            return html;
+            _report = html;
         }
     }
 }

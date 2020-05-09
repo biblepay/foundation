@@ -33,6 +33,15 @@ namespace Saved
         protected global::System.Web.UI.WebControls.TextBox txtGlobalSancInvestmentCount;
 
         /// <summary>
+        /// txtBonusPercent control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox txtBonusPercent;
+
+        /// <summary>
         /// txtHODLPercent control.
         /// </summary>
         /// <remarks>

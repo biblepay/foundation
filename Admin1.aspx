@@ -15,6 +15,7 @@
     <br />    
     
     <asp:Button ID="btnConvert" runat="server" Text="Convert Unconverted Videos" OnClick="btnConvert_Click" />
+    <asp:Button ID="btnLoad" runat="server" Text="Load BiblePay Campaign" OnClick="btnCampaign_Click" />
     
      
     <asp:Button ID="btnPDF" runat="server" OnClick="btnPDF_Click" Text="PDF-Test" />

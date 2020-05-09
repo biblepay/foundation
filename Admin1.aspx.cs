@@ -19,6 +19,64 @@ namespace Saved
         {
         }
 
+        private string FleeceCommas(string data)
+        {
+            string data1 = "";
+            bool insidestr = false;
+            for (int i = 0; i < data.Length; i++)
+            {
+                string ch = data.Substring(i, 1);
+                if (ch == "\"")
+                {
+                    insidestr = !insidestr;
+                }
+
+                if (insidestr && ch == ",")
+                    ch = "";
+
+                if (ch != "" && ch!= "\"")
+                {
+                    data1 += ch;
+                }
+            }
+            return data1;
+        }
+        protected void btnCampaign_Click(object sender, EventArgs e)
+        {
+            // Read the 800,000 users for our first Church Campaign
+            string sFile = "c:\\bbp.csv";
+            System.IO.StreamReader file = new System.IO.StreamReader(sFile);
+            string data = file.ReadToEnd();
+            string[] vBBP = data.Split("\r\n");
+            for (int i = 1; i < vBBP.Length; i++)
+            {
+                string data1 = FleeceCommas(vBBP[i]);
+                string[] vRow = data1.Split(",");
+                if (vRow.Length > 10)
+                {
+                    string sCompany = vRow[0];
+                    string sEmail = vRow[11];
+                    string Title = vRow[9];
+                    string sName = vRow[8];
+                    if (!sEmail.Contains("@"))
+                    {
+                        string mytest = "";
+                    }
+                    else
+                    {
+                        string sql = "Insert into Leads (id, company, email, title, name, added) values (newid(), '" + sCompany + "','" + sEmail + "','" + Title + "','" + sName + "',getdate())";
+                        gData.Exec(sql);
+                    }
+                    
+
+                }
+            }
+            string test = "";
+
+
+
+        }
+
         protected void btnConvert_Click(object sender, EventArgs e)
         {
             // Convert unconverted RequestVideo to Rapture videos

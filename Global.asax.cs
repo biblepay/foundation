@@ -1,6 +1,7 @@
 ﻿using Saved.Code;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Web;
 using System.Web.Optimization;
@@ -20,6 +21,14 @@ namespace Saved
             Saved.Code.Common._pool = new Pool();
             if (Pool.fUseLocalXMR)
                 Saved.Code.Common._xmrpool = new XMRPool();
+
+            // Mission Critical
+            if (!Debugger.IsAttached)
+            {
+                PoolCommon.fMonero2000 = false;
+            }
+
+
         }
     }
 }
