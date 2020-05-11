@@ -139,7 +139,7 @@ namespace Saved.Code
         + "	<ul class='sidebar-menu'>";
        
                 
-           html += AddMenuOption("Doctrine", "Guides.aspx;Study.aspx;Illustrations.aspx;Illustrations.aspx?type=wiki;;MediaList.aspx", "Guides for Christians;Theological Studies;Illustrations/Slides;Wiki Theology;Video Lists & Media", "fa-life-ring");
+           html += AddMenuOption("Doctrine", "Guides.aspx;Study.aspx;Illustrations.aspx;Illustrations.aspx?type=wiki;MediaList.aspx", "Guides for Christians;Theological Studies;Illustrations/Slides;Wiki Theology;Video Lists & Media", "fa-life-ring");
            html += AddMenuOption("Community", "Default.aspx;PrayerBlog.aspx;PrayerAdd.aspx", "Home;Prayer Requests List Blog;Add New Prayer Request", "fa-ambulance");
            html += AddMenuOption("Reports", "Accountability.aspx;Viewer.aspx?target=collage", "Accountability;Orphan Collage", "fa-table");
            html += AddMenuOption("Dashboard", "Dashboard.aspx", "Dashboard", "fa-line-chart");
