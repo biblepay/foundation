@@ -4,12 +4,12 @@
 
 
     <script>
-//Array of images which you want to show: Use path you want.
-var images=new Array('../Images/GloriousLion.jpg','../Images/RockMarriage.jpg','../Images/GloriousLion.jpg','../Images/Armageddon.jpg');
+        //Array of images which you want to show: Use path you want.
+        var images = new Array('../Images/hellfire.jpg', '../Images/jc2.png', '../Images/jc3.jpg',
+            '../Images/Maranatha.jpg', '../Images/TheChurchAge1.gif', '../Images/bbphoriz.png');
         var nextimage = 0;
-
         var slide = 0;
-doSlideshow();
+        doSlideshow();
       
 function doSlideshow()
 {
@@ -21,7 +21,7 @@ function doSlideshow()
         setTimeout(doSlideshow, 100);
     }
     else {
-        setTimeout(doSlideshow, 15000);
+        setTimeout(doSlideshow, 12000);
     }
 }
 </script>
@@ -33,12 +33,27 @@ function doSlideshow()
     </div>
     <br />
 
-    <div class="container global-header" style="min-width:100%;min-height:600px;width:100%;height:450px">
-        <br /><br />
-
-        &nbsp;
+    <div class="container global-header" style="min-width:50%;min-height:200px;width:95%;height:500px">
+        <br />
     </div>
 
+    <div id="AboutBiblePay1">
+        <b>
+            Launched in July 2017 with no premine and no ICO, BiblePay describes itself as a decentralized autonomous cryptocurrency that tithes 10% to orphan-charity (with Sanctuary governance).
+              The project is passionate about spreading the gospel of Jesus, having the entire KJV bible compiled in its wallet utilizing RandomX.
+            <br> BiblePay (BBP) is deflationary, decreasing its emissions by 19.5% per year. <br>
+            <br>The project views itself as a utility that provides an alternative method for giving to charity.
+             With Generic Smart Contracts, the project seeks to become the go-to wallet for Christians.In the future, the team intends to lease file space on its Sanctuaries and release corporate integration features, such as c# access to the blockchain. 
+               The BiblePay platform is a derivative of Dash-Evolution. BiblePay is an international decentralized autonomous organizationon.  The Team seeks to help orphans globally. <br>
+     </div>
 
+    <br />
+    <h4><a href="Partners.aspx">See our Partners</a></h4>
+    
+    <!--<div id="tweets">
+        <br><br><b>Twitter:</b><br><div style='width:100%; height:500; text-align:center; overflow:auto;'>
+            <a class='twitter-timeline' href='https://twitter.com/BiblePay?ref_src=twsrc%5Etfw'>Tweets by BiblePay</a> 
+            <script src='https://platform.twitter.com/widgets.js' charset='utf-8'></script><script>window.onerror = function () { return false; };</script></div>
+                     </div>-->
     
 </asp:Content>

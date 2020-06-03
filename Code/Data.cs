@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MySql.Data.MySqlClient;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -8,6 +9,51 @@ using static Saved.Code.Common;
 
 namespace Saved.Code
 {
+
+    public class MySQLData
+    {
+        private static string MySqlConn()
+        {
+            string connStr = "server=" + GetBMSConfigurationKeyValue("mysqlhost") + ";user=" + GetBMSConfigurationKeyValue("mysqluser") + ";database=" 
+                + GetBMSConfigurationKeyValue("mysqldatabase") + ";port=3306;password=" + GetBMSConfigurationKeyValue("mysqlpassword");
+            return connStr;
+        }
+
+        public static string GetScalarString(string sql, int ordinal)
+        {
+            try
+            {
+                MySqlDataReader dr = MySQLData.GetMySqlDataReader(sql);
+                while (dr.Read())
+                {
+                    return dr[ordinal].ToString();
+                }
+            }
+            catch(Exception ex)
+            {
+                Log(ex.Message);
+            }
+            return "";
+        }
+
+        public static MySqlDataReader GetMySqlDataReader(string sql)
+        { 
+            MySqlConnection conn = new MySqlConnection(MySqlConn());
+            MySqlDataReader rdr = null;
+            try
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                rdr = cmd.ExecuteReader();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+            return rdr;
+        }
+    }
+
     public class Data
     {
         public enum SecurityType

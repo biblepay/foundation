@@ -20,5 +20,21 @@
      
     <asp:Button ID="btnPDF" runat="server" OnClick="btnPDF_Click" Text="PDF-Test" />
     
+
+      <div>
+         <h3> File Upload:</h3>
+         <br />
+         <asp:FileUpload ID="FileUpload1" runat="server" />
+         <br /><br />
+         <asp:Button ID="btnSave" runat="server" onclick="btnSave_Click"  Text="Save" style="width:85px" />
+         <br /><br />
+         <asp:Label ID="lblmessage" runat="server" />
+         <asp:Button ID="btnCopyToAWS" runat="server" onclick="btnCopyToAWS_Click"  Text="Copy-to-aws" style="width:85px" />
+         <asp:Button ID="btnRemoveBounce" runat="server" onclick="btnRemoveBounce_Click"  Text="Remove Bounce" style="width:85px" />
+         <asp:Button ID="btnDSQL" runat="server" onclick="btnDSQL_Click"  Text="Test DSQL" style="width:85px" />
+
+      </div>
+
+
      
 </asp:Content>

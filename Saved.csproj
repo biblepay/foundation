@@ -44,8 +44,18 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AWSSDK.Core, Version=3.3.0.0, Culture=neutral, PublicKeyToken=885c28607f98e604, processorArchitecture=MSIL">
+      <HintPath>packages\AWSSDK.Core.3.5.0-beta\lib\net45\AWSSDK.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="AWSSDK.S3, Version=3.3.0.0, Culture=neutral, PublicKeyToken=885c28607f98e604, processorArchitecture=MSIL">
+      <HintPath>packages\AWSSDK.S3.3.5.0-beta\lib\net45\AWSSDK.S3.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="MySql.Data, Version=6.6.4.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>MySQL\MySql.Data.dll</HintPath>
+    </Reference>
     <Reference Include="OpenHtmlToPdf">
       <HintPath>Code\OpenHtmlToPdf.dll</HintPath>
     </Reference>
@@ -115,10 +125,19 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="BMS\LAST_MANDATORY_VERSION.aspx" />
+    <Content Include="DonateNow.aspx" />
+    <Content Include="DonorMatchList.aspx" />
+    <Content Include="SponsorOrphanList.aspx" />
+    <Content Include="TweetView.aspx" />
+    <Content Include="TweetList.aspx" />
+    <Content Include="TweetAdd.aspx" />
+    <Content Include="UnchainedUpload.aspx" />
     <Content Include="BMS\FaucetID.aspx" />
     <Content Include="Corruption.aspx" />
     <Content Include="BMS\TrackDashPay.aspx" />
     <Content Include="BMS\DashPay.aspx" />
+    <Content Include="Partners.aspx" />
     <Content Include="LP.aspx" />
     <Content Include="LandingPage.aspx" />
     <Content Include="MiningCalculator.aspx" />
@@ -207,6 +226,62 @@
     <Content Include="Bundle.config" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BMS\LAST_MANDATORY_VERSION.aspx.cs">
+      <DependentUpon>LAST_MANDATORY_VERSION.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="BMS\LAST_MANDATORY_VERSION.aspx.designer.cs">
+      <DependentUpon>LAST_MANDATORY_VERSION.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="DonateNow.aspx.cs">
+      <DependentUpon>DonateNow.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="DonateNow.aspx.designer.cs">
+      <DependentUpon>DonateNow.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="DonorMatchList.aspx.cs">
+      <DependentUpon>DonorMatchList.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="DonorMatchList.aspx.designer.cs">
+      <DependentUpon>DonorMatchList.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="SponsorOrphanList.aspx.cs">
+      <DependentUpon>SponsorOrphanList.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="SponsorOrphanList.aspx.designer.cs">
+      <DependentUpon>SponsorOrphanList.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="TweetView.aspx.cs">
+      <DependentUpon>TweetView.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="TweetView.aspx.designer.cs">
+      <DependentUpon>TweetView.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="TweetList.aspx.cs">
+      <DependentUpon>TweetList.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="TweetList.aspx.designer.cs">
+      <DependentUpon>TweetList.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="TweetAdd.aspx.cs">
+      <DependentUpon>TweetAdd.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="TweetAdd.aspx.designer.cs">
+      <DependentUpon>TweetAdd.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="UnchainedUpload.aspx.cs">
+      <DependentUpon>UnchainedUpload.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="UnchainedUpload.aspx.designer.cs">
+      <DependentUpon>UnchainedUpload.aspx</DependentUpon>
+    </Compile>
     <Compile Include="BMS\FaucetID.aspx.cs">
       <DependentUpon>FaucetID.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -215,6 +290,7 @@
       <DependentUpon>FaucetID.aspx</DependentUpon>
     </Compile>
     <Compile Include="Code\PoolCommon.cs" />
+    <Compile Include="Code\Unchained.cs" />
     <Compile Include="Code\XMR.cs" />
     <Compile Include="Corruption.aspx.cs">
       <DependentUpon>Corruption.aspx</DependentUpon>
@@ -238,6 +314,13 @@
       <DependentUpon>DashPay.aspx</DependentUpon>
     </Compile>
     <Compile Include="Code\BMS.cs" />
+    <Compile Include="Partners.aspx.cs">
+      <DependentUpon>Partners.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Partners.aspx.designer.cs">
+      <DependentUpon>Partners.aspx</DependentUpon>
+    </Compile>
     <Compile Include="LP.aspx.cs">
       <DependentUpon>LP.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -515,6 +598,9 @@
     <Compile Include="Site.Master.designer.cs">
       <DependentUpon>Site.Master</DependentUpon>
     </Compile>
+    <Compile Include="Web.ashx.cs">
+      <DependentUpon>Web.ashx</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
@@ -523,6 +609,7 @@
     <None Include="packages.config" />
     <Content Include="Scripts\jquery-3.4.1.slim.min.map" />
     <Content Include="Scripts\jquery-3.4.1.min.map" />
+    <Content Include="Web.ashx" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
@@ -543,6 +630,9 @@
       <Project>{faf1696f-aa44-4902-84e4-705f5595d06d}</Project>
       <Name>NBitcoin</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Analyzer Include="packages\AWSSDK.S3.3.5.0-beta\analyzers\dotnet\cs\AWSSDK.S3.CodeAnalysis.dll" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

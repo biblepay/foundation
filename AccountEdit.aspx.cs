@@ -2,6 +2,7 @@
 using System;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Web.UI;
 using static Saved.Code.Common;
 
@@ -14,7 +15,10 @@ namespace Saved
         public static string _picture = null;
         protected void Page_Load(object sender, EventArgs e)
         {
-            
+
+            if (false && Debugger.IsAttached)
+                CoerceUser(Session);
+
             if (true)
             {
                 if (!gUser(this).LoggedIn)
@@ -35,9 +39,8 @@ namespace Saved
             {
                 if (!this.IsPostBack)
                 {
-                    txtEmailAddress.Text = dr1["EmailAddress"].ToString();
+                    txtRandomXAddress.Text = dr1["RandomXBBPAddress"].ToString();
                     txtUserName.Text = dr1["UserName"].ToString();
-                    
                 }
                 _id = dr1["id"].ToString();
                 _picture = NotNull(dr1["picture"]);
@@ -104,15 +107,18 @@ namespace Saved
         protected void btnSave_Click(object sender, EventArgs e)
         {
 
-            string sql = "Update Users set emailaddress=@ea where id=@id";
+            string sql = "Update Users set randomxbbpaddress=@rx where id=@id";
 
             SqlCommand command = new SqlCommand(sql);
+            /*
             if (!IsEmailValid(txtEmailAddress.Text))
             {
                 MsgBox("E-Mail invalid", "Sorry, the e-mail address is invalid, please try again.", this);
                 return;
             }
-            command.Parameters.AddWithValue("@ea", txtEmailAddress.Text);
+            */
+            command.Parameters.AddWithValue("@rx", txtRandomXAddress.Text);
+
             command.Parameters.AddWithValue("@id", _id);
             gData.ExecCmd(command);
             MsgBox("Account Updated", "Your Account has been updated.", this);

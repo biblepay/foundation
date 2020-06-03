@@ -1,5 +1,7 @@
 ﻿using Google.Authenticator;
 using Microsoft.VisualBasic;
+using NBitcoin;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -9,8 +11,10 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Mail;
+using System.Runtime.InteropServices;
 using System.Security.Authentication;
 using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -33,7 +37,13 @@ namespace Saved.Code
         {
             return GetHeaderBanner(p);
         }
-
+        public static DateTime UnixTimeStampToDateTime(double unixTimeStamp)
+        {
+            // Unix timestamp is seconds past epoch
+            System.DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
+            dtDateTime = dtDateTime.AddSeconds(unixTimeStamp).ToLocalTime();
+            return dtDateTime;
+        }
         public static string GetLongSiteName(Page p)
         {
             return GetBMSConfigurationKeyValue("longsitename");
@@ -100,6 +110,132 @@ namespace Saved.Code
              Session["CurrentUser"] = u;
         }
 
+        public static bool runCmd(string path, string command)
+        {
+            ProcessStartInfo cmdsi = new ProcessStartInfo("cmd.exe");
+            cmdsi.Arguments = @"" + command;
+            cmdsi.WorkingDirectory = path;
+            Process cmd = Process.Start(cmdsi);
+            int nTimeout = 9000;
+            bool fSuccess =             cmd.WaitForExit(nTimeout); //wait indefinitely for the associated process to exit.
+            return fSuccess;
+        }
+
+        public static string run_cmd(string cmd, string args)
+        {
+            string result = "";
+
+            try
+            {
+                ProcessStartInfo start = new ProcessStartInfo();
+                //Found in "where python"
+                start.FileName = GetBMSConfigurationKeyValue("pypath");
+                start.Arguments = string.Format("{0} {1}", cmd, args);
+                start.UseShellExecute = false;
+                start.RedirectStandardOutput = true;
+                using (Process process = Process.Start(start))
+                {
+                    using (StreamReader reader = process.StandardOutput)
+                    {
+                        result = reader.ReadToEnd();
+                    }
+                }
+                return result;
+            }
+            catch(Exception ex)
+            {
+                Log("Run cmd failed " + ex.Message + " " + ex.StackTrace);
+            }
+            return result;
+        }
+
+        public static string run_cmd2(string cmd, string args)
+        {
+            string result = "";
+
+            if (ImpersonateUser(GetBMSConfigurationKeyValue("impersonationuser"), GetBMSConfigurationKeyValue("impersonationdomain"), GetBMSConfigurationKeyValue("impersonationpassword")))
+            {
+                ProcessStartInfo start = new ProcessStartInfo();
+                //Found in "where python"
+                start.FileName = GetBMSConfigurationKeyValue("pypath");
+                start.Arguments = string.Format("{0} {1}", cmd, args);
+                start.UseShellExecute = false;
+                start.RedirectStandardOutput = true;
+                using (Process process = Process.Start(start))
+                {
+                    using (StreamReader reader = process.StandardOutput)
+                    {
+                        result = reader.ReadToEnd();
+                    }
+                }
+                UndoImpersonation();
+                return result;
+            }
+            else
+            {
+                //Your impersonation failed. Therefore, include a fail-safe mechanism here.
+                Log("Impersonation failed-most likely the password is bad.");
+            }
+            return result;
+
+        }
+
+        public static int B2N(bool bIn)
+        {
+            return bIn ? 1 : 0;
+        }
+
+        public static string VerifyEmailAddress(string sEmail, string sID)
+        {
+            string sKey = GetBMSConfigurationKeyValue("thechecker");
+            string sURL = "https://api.thechecker.co/v2/verify?email=" + sEmail + "&api_key=" + sKey;
+            string sOut = BMS.GetWebJsonApi(sURL, "", "");
+            if (sOut != "")
+            {
+                JObject oData = JObject.Parse(sOut);
+                string sResult = oData["result"].ToString();
+                bool bDisposable = Convert.ToBoolean(oData["disposable"].ToString());
+                string reason = oData["reason"].ToString();
+                bool bFree = Convert.ToBoolean(oData["free"].ToString());
+                bool bAcceptAll = Convert.ToBoolean(oData["accept_all"].ToString());
+                if (sID != "")
+                {
+                    string sql = "Update Leads set Verification='" + sResult + "', VerificationReason = '" + reason + "', Free='" + B2N(bFree).ToString()
+                        + "',Acceptall='" + B2N(bAcceptAll).ToString() + "',Disposable='" + B2N(bDisposable).ToString() + "' where id = '" + sID + "'";
+                    gData.Exec(sql);
+                }
+                return sResult;
+            }
+            return "";
+        }
+
+
+
+        /*
+        public static string CommitToObjectStorage(string sPath)
+        {
+            // Commit to STORJ network, and to VultrObjects for redundancy (and speed)
+            // Storj uses a satellite uplink (defined here): https://documentation.tardigrade.io/api-reference/uplink-cli
+            string s3cmd = "\\s3cmd-master\\s3cmd";
+            string sFileName = System.IO.Path.GetFileName(sPath);
+            string s3args = "put -P " + sPath + " s3://san1/" + sFileName + " --config=c:\\inetpub\\wwwroot\\vultrobjectsconfig.conf --no-check-certificate";
+            string res = run_cmd(s3cmd, s3args);
+             bool fSuc = res.Contains("ewr1.vultrobjects.com");
+             string result = fSuc ? "//san1/" + sFileName : "";
+             return result;
+        }
+        */
+
+
+        public static string RenderControlToHtml(Control ControlToRender)
+        {
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            System.IO.StringWriter stWriter = new System.IO.StringWriter(sb);
+            System.Web.UI.HtmlTextWriter htmlWriter = new System.Web.UI.HtmlTextWriter(stWriter);
+            ControlToRender.RenderControl(htmlWriter);
+            return sb.ToString();
+        }
+
         public static void AdjBalance(double nAmount, string sUserId, string sNotes)
         {
             string sql = "Insert into Deposit (id, address, txid, userid, added, amount, height, notes) values (newid(), '', @txid, @userid, getdate(), @amount, @height, @notes)";
@@ -112,9 +248,24 @@ namespace Saved.Code
             gData.ExecCmd(command, false, true, true);
         }
 
+        public static string GetGlobalAlert(Page p)
+        {
+            if (GetDouble(p.Session["Tweet"]) == 1)
+                return "";
+            string sql = "Select top 1 * from Tweet where added > getdate()-1";
+            string sAlertNarr = gData.GetScalarString(sql, "Subject");
+            if (sAlertNarr == "")
+                return "";
+            string sRedir = "MessagePage?Title=Tweet&Body=Tweet_Closed";
+            p.Session["Tweet"] = 1;
+            string sAlert = "<div id=\"divAlert\" style=\"text-align:left;padding-left:250px;background-color:yellow;color:black;\">"
+            + "<span><a href=" + sRedir + ">" + sAlertNarr + "</a></span></div>";
+            return sAlert;
+        }
+
+
         public static string GetSideBar(Page p)
         {
-
 
             item = 0;
 
@@ -141,7 +292,7 @@ namespace Saved.Code
                 
            html += AddMenuOption("Doctrine", "Guides.aspx;Study.aspx;Illustrations.aspx;Illustrations.aspx?type=wiki;MediaList.aspx", "Guides for Christians;Theological Studies;Illustrations/Slides;Wiki Theology;Video Lists & Media", "fa-life-ring");
            html += AddMenuOption("Community", "Default.aspx;PrayerBlog.aspx;PrayerAdd.aspx", "Home;Prayer Requests List Blog;Add New Prayer Request", "fa-ambulance");
-           html += AddMenuOption("Reports", "Accountability.aspx;Viewer.aspx?target=collage", "Accountability;Orphan Collage", "fa-table");
+           html += AddMenuOption("Reports", "Accountability.aspx;Viewer.aspx?target=collage;Partners.aspx", "Accountability;Orphan Collage;Partners", "fa-table");
            html += AddMenuOption("Dashboard", "Dashboard.aspx", "Dashboard", "fa-line-chart");
            html += AddMenuOption("Pool", "Leaderboard.aspx;GettingStarted.aspx;PoolAbout.aspx;BlockHistory.aspx;Viewer.aspx?target=" 
                + System.Web.HttpUtility.UrlEncode("https://minexmr.com/#worker_stats") + ";MiningCalculator.aspx",
@@ -297,6 +448,7 @@ namespace Saved.Code
                 u.UserName = d1["UserName"].ToString() ?? "";
                 u.AvatarURL = d1["Picture"].ToString() ?? "";
                 u.Require2FA = GetDouble(d1["twofactor"].ToString());
+                u.RandomXBBPAddress = d1["RandomXBBPAddress"].ToNonNullString();
                 if (u.Require2FA != 1)
                 {
                     u.LoggedIn = true;
@@ -383,6 +535,53 @@ namespace Saved.Code
             HTML += "<tr><TD>TOTAL CREDITS:<td><td>" + DoFormat(nCR) + "</tr>";
             HTML += "</body></html>";
             return HTML;
+        }
+
+        public static string Sign(string sPrivKey, string sMessage, bool fProd)
+        {
+            if (sPrivKey == null || sMessage == String.Empty || sMessage == null)
+                return string.Empty;
+
+            BitcoinSecret bsSec;
+            if (fProd)
+            {
+                bsSec=Network.BiblepayMain.CreateBitcoinSecret(sPrivKey);
+            }
+            else
+            {
+                bsSec = Network.BiblepayTest.CreateBitcoinSecret(sPrivKey);
+            }
+            string sSig = bsSec.PrivateKey.SignMessage(sMessage);
+            string sPK = bsSec.GetAddress().ToString();
+            var fSuc = VerifySignature(sPK, sMessage, sSig);
+            return sSig;
+        }
+
+        public static bool VerifySignature(string BBPAddress, string sMessage, string sSig)
+        {
+            if (BBPAddress == null || sSig == String.Empty)
+                return false;
+            try
+            {
+                // Determine the network:
+                BitcoinPubKeyAddress bpk;
+                if (BBPAddress.StartsWith("y"))
+                {
+                    bpk = new BitcoinPubKeyAddress(BBPAddress, Network.BiblepayTest);
+                }
+                else
+                {
+                    bpk = new BitcoinPubKeyAddress(BBPAddress, Network.BiblepayMain);
+                }
+
+                bool b1 = bpk.VerifyMessage(sMessage, sSig);
+                return b1;
+            }
+            catch (Exception ex)
+            {
+                Log("VerifySignature::" + ex.Message + " for key " + BBPAddress);
+                return false;
+            }
         }
 
 
@@ -571,6 +770,12 @@ namespace Saved.Code
                 return 0;
             }
         }
+        public static string GetFolderUnchained(string sType)
+        {
+            string sPath = "c:\\inetpub\\wwwroot\\Saved\\Unchained\\" + sType;
+            return sPath;
+        }
+        
         public static string GetFolderUploads(string sType)
         {
             string sPath = "c:\\inetpub\\wwwroot\\Saved\\Uploads\\" + sType;
@@ -766,8 +971,16 @@ namespace Saved.Code
             {
                 u.UserId = dt.Rows[0]["Id"].ToString();
                 u.Require2FA = GetDouble(dt.Rows[0]["TwoFactor"]);
+                u.RandomXBBPAddress = dt.Rows[0]["RandomXBBPAddress"].ToNonNullString();
             }
 
+        }
+
+        public static double GetHPS(string bbp)
+        {
+            string sql = "Select sum(Hashrate) hr from leaderboard where bbpaddress = '" + bbp + "'";
+            double dR = gData.GetScalarDouble(sql, "hr");
+            return dR;
         }
 
         public static string GetBMSConfigurationKeyValue(string _Key)
@@ -864,7 +1077,7 @@ namespace Saved.Code
             public string UserId;
             public bool TwoFactorAuthorized;
             public double Require2FA;
-            //public string ;
+            public string RandomXBBPAddress;
             public string AvatarURL;
             public string UserName;
         }
@@ -913,6 +1126,62 @@ namespace Saved.Code
             Process p = Process.Start(psi);
             p.WaitForExit(60000 * 15);
         }
+
+
+        public const int LOGON32_LOGON_INTERACTIVE = 2;
+        public const int LOGON32_PROVIDER_DEFAULT = 0;
+
+        public static  WindowsImpersonationContext impersonationContext;
+
+        [DllImport("advapi32.dll")]
+        public static extern int LogonUserA(String lpszUserName,        String lpszDomain,        String lpszPassword,        int dwLogonType,        int dwLogonProvider,        ref IntPtr phToken);
+        [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern int DuplicateToken(IntPtr hToken,        int impersonationLevel,        ref IntPtr hNewToken);
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern bool RevertToSelf();
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+        public static extern bool CloseHandle(IntPtr handle);
+
+
+        public static bool ImpersonateUser(String userName, String domain, String password)
+        {
+            WindowsIdentity tempWindowsIdentity;
+            IntPtr token = IntPtr.Zero;
+            IntPtr tokenDuplicate = IntPtr.Zero;
+
+            if (RevertToSelf())
+            {
+                if (LogonUserA(userName, domain, password, LOGON32_LOGON_INTERACTIVE,
+                LOGON32_PROVIDER_DEFAULT, ref token) != 0)
+                {
+                    if (DuplicateToken(token, 2, ref tokenDuplicate) != 0)
+                    {
+                        tempWindowsIdentity = new WindowsIdentity(tokenDuplicate);
+                        impersonationContext = tempWindowsIdentity.Impersonate();
+                        if (impersonationContext != null)
+                        {
+                            CloseHandle(token);
+                            CloseHandle(tokenDuplicate);
+                            return true;
+                        }
+                    }
+                }
+            }
+            if (token != IntPtr.Zero)
+                CloseHandle(token);
+            if (tokenDuplicate != IntPtr.Zero)
+                CloseHandle(tokenDuplicate);
+            return false;
+        }
+
+        public static void UndoImpersonation()
+        {
+            impersonationContext.Undo();
+        }
+
+
 
     }
 

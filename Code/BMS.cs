@@ -61,35 +61,50 @@ namespace Saved.Code
 
 
 
-        public static string GetWebJsonApi(string url)
+        public static string GetWebJsonApi(string url, string header, string value)
         {
-            // Use this to automatically deflate or un-gzip a response stream
-            Uri address = new Uri(url);
-            System.Net.HttpWebRequest request = (HttpWebRequest)System.Net.WebRequest.Create(address);
-            request.Accept = "application/json";
-            request.ContentType = "application/json";
-            request.Headers.Add("Content-Encoding", "utf-8");
-            Encoding asciiEncoding = Encoding.ASCII;
-            request.Method = "GET";
-            request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-            using (System.Net.WebResponse response  = request.GetResponse())
+            try
             {
-                System.IO.StreamReader sr =
-                    new System.IO.StreamReader(
-                        response.GetResponseStream());
-                return sr.ReadToEnd();
+                // Use this to automatically deflate or un-gzip a response stream
+                Uri address = new Uri(url);
+                System.Net.HttpWebRequest request = (HttpWebRequest)System.Net.WebRequest.Create(address);
+                request.Accept = "application/json";
+                request.ContentType = "application/json";
+                request.Headers.Add("Content-Encoding", "utf-8");
+                if (header != "")
+                {
+                    request.Headers.Add(header, value);
+                }
+                Encoding asciiEncoding = Encoding.ASCII;
+                request.Method = "GET";
+                request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+                using (System.Net.WebResponse response = request.GetResponse())
+                {
+                    System.IO.StreamReader sr =
+                        new System.IO.StreamReader(
+                            response.GetResponseStream());
+                    return sr.ReadToEnd();
+                }
+            }catch(Exception ex)
+            {
+                return "";
             }
         }
     
         
         public static void GetMoneroHashRate(out int nBlocks, out double nHashRate)
         {
-            string url = "http://api.minexmr.com/stats";
-            string sData = GetWebJsonApi(url);
-            JObject oData = JObject.Parse(sData);
-            JArray j1 = (JArray)oData["pool"]["blocks"];
-            nBlocks = j1.Count;
-            nHashRate = GetDouble(oData["pool"]["hashrate"]) / 1000000;
+            string url = "https://minexmr.com/api/pool/stats";
+            string sData = GetWebJsonApi(url, "", "");
+            if (sData != "")
+            {
+                JObject oData = JObject.Parse(sData);
+                JArray j1 = (JArray)oData["pool"]["blocks"];
+                nBlocks = j1.Count;
+                nHashRate = GetDouble(oData["pool"]["hashrate"]) / 1000000;
+            }
+            nHashRate = 0;
+            nBlocks = 0;
         }
 
         public static string ExecMVCCommand(string URL, int iTimeout = 30)
@@ -347,6 +362,27 @@ namespace Saved.Code
         }
 
 
+        public static double GetWebResourceSize(string url)
+        {
+            System.Net.WebClient client = new System.Net.WebClient();
+            double dBytes = 0;
+            using (var sr = client.OpenRead(url))
+            {
+                dBytes = Convert.ToInt64(client.ResponseHeaders["Content-Length"]);
+            }
+            return dBytes;
+        }
+        public static string GetPoolMetrics()
+        {
+            // API called by poolmetrics.stream
+            string sql = "Select sum(Hashrate) hr From Leaderboard";
+            double dHR = gData.GetScalarDouble(sql, "hr");
+            sql = "Select count(bbpaddress) ct from Leaderboard";
+            double dMinerCt = gData.GetScalarDouble(sql, "ct");
+            double dWC = PoolCommon.dictWorker.Count;
+            string XML = "<TOTALHASHRATE>" + dHR.ToString() + "</TOTALHASHRATE><WORKERS>" + dWC.ToString() + "</WORKERS><MINERS>" + dMinerCt.ToString() + "</MINERS>";
+            return XML;
+        }
         public static void CAMEROON_CHILDREN(HttpResponse response)
         {
             string sData = GetPOOMChildren("cameroon-one");

@@ -8,12 +8,10 @@ using System.Text;
 using System.Threading;
 using static Saved.Code.Common;
 
-
 namespace Saved.Code
 {
     public class XMRPool
     {
-
         private bool SendXMRPacketToMiner(Socket oClient, byte[] oData, int iSize, string socketid)
         {
             try
@@ -51,7 +49,6 @@ namespace Saved.Code
             public bool fNeedsSubmitted;
         }
 
-
         public static bool SubmitBiblePayShare(ref XMRJob x)
         {
 
@@ -59,7 +56,6 @@ namespace Saved.Code
             {
                 if (!x.fNeedsSubmitted)
                     return false;
-                //PoolCommon.GetRandomXAudit(rxheader2, rxkey, ref out_rx, ref out_rx_root);
                 byte[] oRX = PoolCommon.StringToByteArr(x.hash);
                 double nSolutionDiff = PoolCommon.FullTest(oRX);
                 int nShareAdj = 0;
@@ -72,9 +68,8 @@ namespace Saved.Code
                     nFailAdj = 1;
 
                 // Insert the winning share in 'Shares'
-                PoolCommon.InsShare(x.bbpaddress, nShareAdj, nFailAdj, _pool._template.height, 0, 0);
+                PoolCommon.InsShare(x.bbpaddress, nShareAdj, nFailAdj, _pool._template.height, 0, 0, x.moneroaddress);
                 string revBBPHash = PoolCommon.ReverseHexString(x.hash);
-
                 // Check to see if this share actually solved the block:
                 NBitcoin.uint256 uBBP = new NBitcoin.uint256(revBBPHash);
                 NBitcoin.uint256 uTarget = new NBitcoin.uint256(_pool._template.target);
@@ -92,7 +87,6 @@ namespace Saved.Code
                     {
                         string sql = "Update Share Set Solved=1 where height=@height";
                         SqlCommand command = new SqlCommand(sql);
-                        //command.Parameters.AddWithValue("@bbpid", jobid);
                         command.Parameters.AddWithValue("@height", _pool._template.height);
                         gData.ExecCmd(command, false, false, false);
                     }
@@ -111,17 +105,24 @@ namespace Saved.Code
             }
             return false;
         }
-
             
-
-
+        private void IncTitheNbr()
+        {
+            PoolCommon.iTitheNumber++;
+            if (PoolCommon.iTitheNumber % 50 == 0)
+            {
+                // Launch a new seed
+                Random r = new Random();
+                int rInt = r.Next(0, 10);
+                PoolCommon.iTitheModulus = rInt;
+            }
+        }
 
         private void minerXMRThread(Socket client, TcpClient t, string socketid)
         {
             bool fCharity = false;
             XMRJob x = new XMRJob();
 
-            
             try
             {
                 client.ReceiveTimeout = 777;
@@ -163,66 +164,67 @@ namespace Saved.Code
                         for (int i = 0; i < vData.Length; i++)
                         {
                             string sJson = vData[i];
-                    if (sJson.Contains("submit"))
-                    {
-                        // See if this is a biblepay share:
-                        if (PoolCommon.fMonero2000)
-                        {
-                            string out_rx = "";
-                            string out_rx_root = "";
-                            // Store the result on the work record
-                            string rxheader = x.blob;
-                            string rxkey = x.seed;
-                            JObject oStratum = JObject.Parse(sJson);
-                            string nonce = "00000000" + oStratum["params"]["nonce"];
-                            nonce = nonce.Substring(8, 8);
-                            x.solution = rxheader.Substring(0, 78) + nonce + rxheader.Substring(86, rxheader.Length - 86);
-                            x.hash = oStratum["params"]["result"].ToString();
-                            x.hashreversed = PoolCommon.ReverseHexString(x.hash);
-                            if (false)
-                            { 
-                                PoolCommon.GetRandomXAudit(x.solution, x.seed, ref out_rx, ref out_rx_root);
-                                bool fMatches = x.hashreversed == out_rx_root;
-                                // out_rx_root should contain the RandomX hash; out_rx contains the blakehash
-                                // Nonce should be placed in monero location 78,8
-                                //{"id":55,"jsonrpc":"2.0","method":"submit","params":{"id":"277677767004670","job_id":"536896777408374","nonce":"3f400200","result":"dd27f58fd8064c573000c21b7bc2eae95a9d01b62671ce43402d61bac9070000"}}
-                                // Spec 2.0 (allow fully compatible xmr merge mining)
-                                // If out_rx_root > BBP_DIFF level, accept as a BBP share
+                            if (sJson.Contains("submit"))
+                            {
+                                // See if this is a biblepay share:
+                                if (PoolCommon.fMonero2000)
+                                {
+                                    string out_rx = "";
+                                    string out_rx_root = "";
+                                    // Store the result on the work record
+                                    string rxheader = x.blob;
+                                    string rxkey = x.seed;
+                                    JObject oStratum = JObject.Parse(sJson);
+                                    string nonce = "00000000" + oStratum["params"]["nonce"];
+                                    nonce = nonce.Substring(8, 8);
+                                    x.solution = rxheader.Substring(0, 78) + nonce + rxheader.Substring(86, rxheader.Length - 86);
+                                    x.hash = oStratum["params"]["result"].ToString();
+                                    x.hashreversed = PoolCommon.ReverseHexString(x.hash);
+                                    if (false)
+                                    {
+                                        PoolCommon.GetRandomXAudit(x.solution, x.seed, ref out_rx, ref out_rx_root);
+                                        bool fMatches = x.hashreversed == out_rx_root;
+                                        // out_rx_root should contain the RandomX hash; out_rx contains the blakehash
+                                        // Nonce should be placed in monero location 78,8
+                                        //{"id":55,"jsonrpc":"2.0","method":"submit","params":{"id":"277677767004670","job_id":"536896777408374","nonce":"3f400200","result":"dd27f58fd8064c573000c21b7bc2eae95a9d01b62671ce43402d61bac9070000"}}
+                                        // Spec 2.0 (allow fully compatible xmr merge mining)
+                                        // If out_rx_root > BBP_DIFF level, accept as a BBP share
+                                    }
+                                    x.fNeedsSubmitted = true;
+                                }
                             }
-                            x.fNeedsSubmitted = true;
-                        }
-                    }
-                    else if (sJson.Contains("login"))
-                    {
-                        //{"id":1,"jsonrpc":"2.0","method":"login","params":{"login":"41s2xqGv4YLfs5MowbCwmmLgofywnhbazPEmL2jbnd7p73mtMH4XgvBbTxc6fj4jUcbxEqMFq7ANeUjktSiZYH3SCVw6uat","pass":"x","agent":"bbprig/5.10.0 (Windows NT 6.1; Win64; x64) libuv/1.34.0 gcc/9.2.0","algo":["cn/0","cn/1","cn/2","cn/r","cn/fast","cn/half","cn/xao","cn/rto","cn/rwz","cn/zls","cn/double","invalid","cn-lite/0","cn-lite/1","cn-heavy/0","cn-heavy/tube","cn-heavy/xhv","cn-pico","cn-pico/tlo","rx/0","rx/wow","rx/loki","rx/arq","rx/sfx","rx/keva","argon2/chukwa","argon2/wrkz","astrobwt"]}}
-                        JObject oStratum = JObject.Parse(sJson);
-                        dynamic params1 = oStratum["params"];
-                        if (PoolCommon.fMonero2000)
-                        {
-                            x.moneroaddress = params1["login"].ToString();
-                            x.bbpaddress = params1["pass"].ToString();
-                        }
-                        else
-                        {
-                            x.moneroaddress = params1["login"].ToString();
-                            x.bbpaddress = PoolCommon.GetBBPAddress(x.moneroaddress);
-                        }
-
-                        PoolCommon.iTitheNumber++;
-                        if (PoolCommon.iTitheNumber % 10 == 0 && x.moneroaddress.Length > 10)
-                        {
-                            var poolPubCharityAddress = GetBMSConfigurationKeyValue("MoneroAddress");
-                            string newData = sData.Replace(x.moneroaddress, poolPubCharityAddress);
-                            data = Encoding.ASCII.GetBytes(newData);
-                            size = newData.Length;
-                            fCharity = true;
-                        }
-                        else
-                        {
-                            fCharity = false;
-                        }
-                        }
-
+                            else if (sJson.Contains("login"))
+                            {
+                                //{"id":1,"jsonrpc":"2.0","method":"login","params":{"login":"41s2xqGv4YLfs5MowbCwmmLgofywnhbazPEmL2jbnd7p73mtMH4XgvBbTxc6fj4jUcbxEqMFq7ANeUjktSiZYH3SCVw6uat","pass":"x","agent":"bbprig/5.10.0 (Windows NT 6.1; Win64; x64) libuv/1.34.0 gcc/9.2.0","algo":["cn/0","cn/1","cn/2","cn/r","cn/fast","cn/half","cn/xao","cn/rto","cn/rwz","cn/zls","cn/double","invalid","cn-lite/0","cn-lite/1","cn-heavy/0","cn-heavy/tube","cn-heavy/xhv","cn-pico","cn-pico/tlo","rx/0","rx/wow","rx/loki","rx/arq","rx/sfx","rx/keva","argon2/chukwa","argon2/wrkz","astrobwt"]}}
+                                JObject oStratum = JObject.Parse(sJson);
+                                dynamic params1 = oStratum["params"];
+                                if (PoolCommon.fMonero2000)
+                                {
+                                    x.moneroaddress = params1["login"].ToString();
+                                    x.bbpaddress = params1["pass"].ToString();
+                                }
+                                else
+                                {
+                                    x.moneroaddress = params1["login"].ToString();
+                                    x.bbpaddress = PoolCommon.GetBBPAddress(x.moneroaddress);
+                                }
+                                double nPerc = PoolCommon.GetTithePercent();
+                                PoolCommon.iTitheNumber++;
+                                var poolPubCharityAddress = GetBMSConfigurationKeyValue("MoneroAddress");
+                                bool fTithe = (nPerc < 10 && x.moneroaddress.Length > 10 && PoolCommon.iTitheNumber % 7 == 0);
+                                fTithe = (x.moneroaddress.Length > 10 && PoolCommon.iTitheNumber % 10 == 0);
+                                if (fTithe)
+                                {
+                                    string newData = sData.Replace(x.moneroaddress, poolPubCharityAddress);
+                                    data = Encoding.ASCII.GetBytes(newData);
+                                    size = newData.Length;
+                                    fCharity = true;
+                                }
+                                else
+                                {
+                                    fCharity = false;
+                                }
+                            }
                         }
                         // Miner->XMR Pool
                         Stream stmOut = t.GetStream();
@@ -239,7 +241,6 @@ namespace Saved.Code
                             stmOut.Write(data, 0, json.Length);
                         }
                     }
-
 
                     // In from XMR Pool -> Miner
                     Stream stmIn = t.GetStream();
@@ -260,27 +261,7 @@ namespace Saved.Code
                             for (int i = 0; i < vData.Length; i++)
                             {
                                 string sJson = vData[i];
-                                //{"id":1,"jsonrpc":"2.0","error":null,"result":{"id":"329407916998887","job":
-                                //{"height":2077509,"blob":"0c023aa40","job_id":"271902751405682","target":"b2df0000","algo":"rx/0",
-                                //"seed_hash":"c8ef3d2c87e1591c8878da3cbaff2836511734eb49652ef4ead2dc8ba2dec8d6"},"status":"OK"}}
-                                //{"id":24,"jsonrpc":"2.0","error":null,"result":{"status":"OK"}}
-                                // May 2nd, 2020:  Investigate the ability to handle BiblePay solutions in the XMR solution packet (solution routing here):
-                                //{"result": {
-                                /*
-                                "id": "365080279004677",
-                                  "job": {
-                                                                    "height": 2089586,
-                                    "blob": "0c0cc0a0b6f5053bfc24d4cf1bc1374f1e6b0365757e100786dc8333dd93497417be2feba7872b00000000aa21246be9200fe97e963220ef2384e6a22a663cf24df7d8e605b0e7466f6bdc07",
-                                    "job_id": "788431371195477",
-                                    "target": "b2df0000",
-                                    "algo": "rx/0",
-                                    "seed_hash": "c41b41cf9c9a56be0bf7c625e391e3e0854ba07389d478134623ac3cf48e103f"
-                                  },
-                                  "status": "OK"
-                                }
-*/
-                                Console.WriteLine(sJson);
-
+                                // Console.WriteLine(sJson);
                       
                                 if (sJson.Contains("result"))
                                 {
@@ -298,14 +279,14 @@ namespace Saved.Code
                                     {
                                         // They solved an XMR
                                         int iCharity = fCharity ? 1 : 0;
-                                        PoolCommon.InsShare(x.bbpaddress, 0, 0, _pool._template.height, 1, iCharity);
+                                        PoolCommon.InsShare(x.bbpaddress, 0, 0, _pool._template.height, 1, iCharity, x.moneroaddress);
                                         SubmitBiblePayShare(ref x);
+                                        double nPerc = PoolCommon.GetTithePercent();
                                     }
                                 }
                                 else if (sJson.Contains("submit"))
                                 {
                                     string sTest = "";
-
                                 }
                             }
                         }
@@ -396,8 +377,6 @@ namespace Saved.Code
                             ThreadStart starter = delegate { minerXMRThread(client, tcp, socketid); };
                             var childSocketThread = new Thread(starter);
                             PoolCommon.iXMRThreadCount++;
-                            if (PoolCommon.iXMRThreadCount > PoolCommon.iThreadCount)
-                                PoolCommon.iXMRThreadCount = PoolCommon.iThreadCount;
                             childSocketThread.Start();
                         }
                         else

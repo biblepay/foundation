@@ -40,7 +40,7 @@ namespace Saved
 
         public void GenerateTotalReport()
         {
-            string sql = "SELECT newid(),sum(amount) Amount,'' Notes,added,Type,max(Charity) charity,max(Dt1) FROM( "
+            string sql = "SELECT newid(),sum(amount) Amount,'' Notes,added,Type, 'Various' Charity, max(Dt1) FROM( "
                 + "select id, added as a1, FORMAT(added, 'MMMM yyyy') as Added, 'DR' as Type, Amount, Charity, '' as Notes, added as dt1 from expense"
                 + "    union all"
                 + " select id, added as a1, format(added, 'MMMM yyyy'), 'CR' as Type, Amount, Charity, Notes, added as dt1 from Revenue"

@@ -22,17 +22,6 @@
 
     </p>
     <hr />
-    <font color="red">
-
-        <br />
-
-        ** Note: I.  You must use the official mining software to mine biblepay located <a href=https://wiki.biblepay.org/Upgrade_to_RandomX>here</a> (Otherwise you will not be compensated for BiblePay shares).
-           (We now automatically hold back 10% of the XMR shares for orphan charity).  II:  In order for your BiblePay shares to count for rewards, you must mine an equal amount or more XMR shares.
-           Each XMR share mined will validate one biblepay share in the leaderboard.  (See the leaderboard for your official share count).   
-        
-        Thank you.
-
-    </font>
 
     <hr />
     <%=GetPoolAboutMetrics() %>

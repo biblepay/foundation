@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -382,7 +383,7 @@ namespace Saved.Code
                             nFailAdj = 1;
 
                         // Insert the winning share in 'Shares'
-                        PoolCommon.InsShare(w.bbpaddress, nShareAdj, nFailAdj, _template.height, 0, 0);
+                        PoolCommon.InsShare(w.bbpaddress, nShareAdj, nFailAdj, _template.height, 0, 0, w.moneroaddress);
 
                         var sResult = fPassed ? "" : "ERROR";
                         // Critical
@@ -622,10 +623,13 @@ namespace Saved.Code
                     iStart++;
                 }
                 Thread.Sleep(60000);
-                GroupShares();
-                Leaderboard();
-                Pay();
-                PurgeSockets(false);
+                if (!Debugger.IsAttached)
+                {
+                    GroupShares();
+                    Leaderboard();
+                    Pay();
+                    PurgeSockets(false);
+                }
             }
         }
 

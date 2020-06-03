@@ -113,6 +113,11 @@
                     </div>
                 </div>
             </div>
+
+            <%=Saved.Code.Common.GetGlobalAlert(this.Page) %>
+
+
+
         </div>
 
             <%=Saved.Code.Common.GetSideBar(this.Page) %>

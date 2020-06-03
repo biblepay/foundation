@@ -13,7 +13,7 @@
         <p>
 
         </p>
-        <p>Download the miner from <a href="https://github.com/biblepay/xmrig/raw/master/binaries/bbprig.zip">here.</a>
+        <p>Download the miner from <a href="https://github.com/xmrig/xmrig/releases">here.</a>
         </p>
         <p></p>
         <p></p>
@@ -24,15 +24,12 @@
                 <tr><td>Username:<td>Your BiblePay Wallet Address                </tr>
                 <tr><td>Password:<td>Your Monero Wallet Address</tr>
                 <tr><td>Algorithm:<td>RandomX</tr>
-                <tr><td>URL:<td>stratum+tcp://<%=Saved.Code.Common.GetBMSConfigurationKeyValue("PoolDNS")%>:3001</tr>
+                <tr><td>URL:<td><%=Saved.Code.Common.GetBMSConfigurationKeyValue("PoolDNS")%>:3001</tr>
                 <tr><td>&nbsp;</td></tr>
-                <tr><td>Example:<td style="background-color:yellow;">./xmrig -o <%=Saved.Code.Common.GetBMSConfigurationKeyValue("PoolDNS")%>:3001 --user=your_bbp_address --password=your_monero_address.your_worker_name</tr>
+                <tr><td>Example:<td style="background-color:yellow;">./xmrig -o <%=Saved.Code.Common.GetBMSConfigurationKeyValue("PoolDNS")%>:3001 --user=your_monero_address.your_worker_name --password=your_bbp_address</tr>
                 <tr><td>Note:<td>your_worker_name is optional, but if provided it adds your cpu information per worker to xmrig.                    </tr>
             </table>
-
         </p>
-
-
     </div>
 
 

@@ -19,14 +19,6 @@ namespace Saved
 
 
 
-        public string RenderControlToHtml(Control ControlToRender)
-        {
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
-            System.IO.StringWriter stWriter = new System.IO.StringWriter(sb);
-            System.Web.UI.HtmlTextWriter htmlWriter = new System.Web.UI.HtmlTextWriter(stWriter);
-            ControlToRender.RenderControl(htmlWriter);
-            return sb.ToString();
-        }
 
         private string GetTd(DataRow dr, string colname, string sAnchor)
         {

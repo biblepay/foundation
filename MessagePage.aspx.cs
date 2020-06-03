@@ -16,8 +16,14 @@ namespace Saved
 
         public string GetMessagePage()
         {
-            string sTitle = Session["MSGBOX_TITLE"].ToString();
-            string sMessageBody = Session["MSGBOX_BODY"].ToString();
+            string sTitle = Request.QueryString["Title"] ?? "";
+            string sMessageBody = Request.QueryString["Body"] ?? "";
+
+            if (sTitle == "")
+            {
+                sTitle = Session["MSGBOX_TITLE"].ToString();
+                sMessageBody = Session["MSGBOX_BODY"].ToString();
+            }
             string sHTML = "<br><h2>" + sTitle + "</h2><hr><br><br><p><span>" + sMessageBody + "</span>";
             return sHTML;
         }

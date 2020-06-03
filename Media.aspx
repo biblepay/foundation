@@ -3,16 +3,22 @@
 <asp:Content ID="BodyContent" ContentPlaceHolderID="MainContent" runat="server">
 
     <script>
-        window.onload = function (evt) {
-            var i = 0;
-
-            $("video.connect-bg source").each(function () {
-                var sourceFile = $(this).attr("src");
-                $(this).attr("src", sourceFile);
-                var video = this.parentElement;
-                i++;
+        
+        function beacon() {
+            queryString = window.location.search;
+           
+            $.ajax({
+                type: 'GET',
+                async: false,
+                url: 'Media.aspx' + queryString + '&watching=1'
             });
+            setInterval('beacon()', 30000);
         }
+
+        function startIt() {
+            beacon();
+        }
+        window.onload = startIt();
 
         </script>
 

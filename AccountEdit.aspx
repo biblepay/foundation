@@ -23,28 +23,25 @@
                 </div>
              
             </td>
- 
-
-
         </tr>
 
        
-
         <tr><td>&nbsp;</td></tr>
-        <tr><td>E-Mail Address (optional):</asp:Label></td>
-           <td>    <asp:TextBox ID="txtEmailAddress" width="500px" runat="server" ></asp:TextBox></td></tr>
+        <tr><td>RandomX BBP Mining Address:</asp:Label></td>
+           <td><asp:TextBox ID="txtRandomXAddress" width="500px" runat="server" ></asp:TextBox></td></tr>
+
 
 
        <tr><td>User Name:</asp:Label></td>
-           <td>    <asp:TextBox ID="txtUserName" readonly runat="server"></asp:TextBox></td></tr>
+           <td><asp:TextBox ID="txtUserName" readonly runat="server"></asp:TextBox></td></tr>
 
 
         <tr><td>Account 2FA Enabled:</asp:Label></td>
-           <td>    <asp:TextBox ID="txtTwoFactorEnabled" readonly runat="server"></asp:TextBox></td></tr>
+           <td><asp:TextBox ID="txtTwoFactorEnabled" readonly runat="server"></asp:TextBox></td></tr>
  
 
        <tr><td>2FA Code:</asp:Label></td>
-           <td>    <asp:TextBox ID="txttwofactorcode" runat="server"></asp:TextBox></td></tr>
+           <td><asp:TextBox ID="txttwofactorcode" runat="server"></asp:TextBox></td></tr>
  
         <tr><td>&nbsp;</td></tr>
         <tr><td>&nbsp;</td></tr>

@@ -17,14 +17,6 @@ namespace Saved
         {
         }
         
-        public string RenderControlToHtml(Control ControlToRender)
-        {
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
-            System.IO.StringWriter stWriter = new System.IO.StringWriter(sb);
-            System.Web.UI.HtmlTextWriter htmlWriter = new System.Web.UI.HtmlTextWriter(stWriter);
-            ControlToRender.RenderControl(htmlWriter);
-            return sb.ToString();
-        }
 
         private string GetTd(DataRow dr, string colname, string sAnchor)
         {
@@ -45,7 +37,7 @@ namespace Saved
             int nHeight = _pool._template.height;
             string sql = "Select Height, bbpaddress, percentage, reward, subsidy, txid "
                 + " FROM Share(nolock) where subsidy > 1 and reward > .01 and updated > getdate() - 2 "
-                +" and bbpaddress like '%" + BMS.PurifySQL(txtAddress.Text, 100) + "%' and height > " + nHeight.ToString() + "-400 order by height desc, bbpaddress";
+                +" and bbpaddress like '" + BMS.PurifySQL(txtAddress.Text, 100) + "%' and height > " + nHeight.ToString() + "-205 order by height desc, bbpaddress";
             
 
             DataTable dt = gData.GetDataTable(sql);

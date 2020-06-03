@@ -70,6 +70,13 @@ namespace Saved
                 Saved.Code.BMS.KAIROS_CHILDREN(Response);
                 return;
             }
+            else if (sAction == "PoolMetrics")
+            {
+                string XML = BMS.GetPoolMetrics();
+                Response.Write(XML);
+                Response.End();
+                return;
+            }
             else if (sAction == "FaucetID")
             {
                 string sResult = Saved.Code.BMS.FaucetID(Request);

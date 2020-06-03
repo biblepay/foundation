@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MySql.Data.MySqlClient;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -16,23 +17,28 @@ namespace Saved.Code
 
     public static class PoolCommon
     {
-
         public static Dictionary<string, WorkerInfo> dictWorker = new Dictionary<string, WorkerInfo>();
         public static Dictionary<string, WorkerInfo> dictBan = new Dictionary<string, WorkerInfo>();
         public static int iThreadCount = 0;
         public static int nGlobalHeight = 0;
-        public static int pool_version = 1007;
+        public static int pool_version = 1008;
         public static int iXMRThreadID = 0;
         public static int iXMRThreadCount = 0;
         public static int iTitheNumber = 0;
-
+        public static int iTitheModulus = 0;
+        public static int BXMRC = 0;
+        public static int SHARES = 0;
         public static List<SqlCommand> lSQL = new List<SqlCommand>();
         public static DateTime start_date = DateTime.Now;
         public static int MIN_DIFF = 1;
         public static object cs_p = new object();
-        public static bool fMonero2000 = false;
+        public static bool fMonero2000 = true;
 
-
+        public static double GetTithePercent()
+        {
+            double nPerc = Math.Round((PoolCommon.BXMRC / (PoolCommon.SHARES + .01)) * 100, 4);
+            return nPerc;
+        }
         public static void SetWorker(WorkerInfo worker, string sKey)
         {
                 try
@@ -209,7 +215,7 @@ namespace Saved.Code
         }
 
 
-        public static void InsShare(string bbpaddress, int nShareAdj, int nFailAdj, int height, int nBXMR, int nBXMRC)
+        public static void InsShare(string bbpaddress, int nShareAdj, int nFailAdj, int height, int nBXMR, int nBXMRC, string moneroaddress)
         {
                 string sql = "exec insShare @bbpid,@shareAdj,@failAdj,@height,@sxmr,@fxmr,@sxmrc,@fxmrc,@bxmr,@bxmrc";
                 SqlCommand command = new SqlCommand(sql);
@@ -225,8 +231,9 @@ namespace Saved.Code
                 command.Parameters.AddWithValue("@bxmrc", nBXMRC);
             if (bbpaddress == "")
             {
-                Log("bbp address not provided: " + bbpaddress);
-
+                if (moneroaddress == GetBMSConfigurationKeyValue("moneroaddress"))
+                    return;
+                return;
             }
                 try
                 {
@@ -625,8 +632,7 @@ namespace Saved.Code
                 Log("Pay sanctuary investors " + ex.Message);
             }
         }
-
-
+        
 
 
         static int nLastPaid = 0;
@@ -641,6 +647,8 @@ namespace Saved.Code
                 GetSancTXIDList();
                 PaySanctuaryInvestors();
                 RecordParticipants();
+                randomxhashes.Clear();
+                SyncUsers();
             }
             catch (Exception ex2)
             {
@@ -964,7 +972,6 @@ namespace Saved.Code
                         MailAddress r = new MailAddress("rob@saved.one", "BiblePay Team");
                         MailAddress t = new MailAddress(email, username);
                         MailMessage m = new MailMessage(r, t);
-                        //m.To.Add(email);
                         m.Subject = "Sharing the Gospel, Reinventing the Wheel, and BiblePay";
                         m.IsBodyHtml = true;
                         m.Body = body;
@@ -987,7 +994,64 @@ namespace Saved.Code
             }
         }
 
-        
+        public static void TallyBXMRC()
+        {
+            string sql = "select sum(bxmrc) bxmrc,sum(bxmr)-sum(bxmrc) shrs from Share (nolock) where updated > getdate() - .07";
+            PoolCommon.BXMRC = (int)gData.GetScalarDouble(sql, "bxmrc");
+            PoolCommon.SHARES = (int)gData.GetScalarDouble(sql, "shrs");
+        }
+
+
+        public static void SyncUsers()
+        {
+            try
+            {
+                string sql5 = "Select count(*) ct from smf_members";
+                double dSMFCt = GetDouble(MySQLData.GetScalarString(sql5, 0));
+
+                string sql6 = "Select Value from System where SystemKey='SMF_CT'";
+                double dMSCt = gData.GetScalarDouble(sql6, "Value");
+                if (dSMFCt == dMSCt)
+                    return;
+
+                sql6 = "Delete from System where SystemKey='SMF_CT'\r\nInsert into System (id,SystemKey,Value,updated) values (newid(),'SMF_CT','" + dSMFCt.ToString() + "',getdate())";
+                gData.Exec(sql6);
+
+                string sql = "SELECT member_name,real_name,email_address,date_registered,posts,member_ip,member_ip2 From smf_members";
+                MySqlDataReader dr = MySQLData.GetMySqlDataReader(sql);
+               
+                while (dr.Read())
+                {
+                    string member_name = dr[0].ToString();
+                    string real_name = dr[1].ToString();
+
+                    string email_address = dr[2].ToString();
+                    string drr = dr[3].ToString();
+                    DateTime dtDr = UnixTimeStampToDateTime(GetDouble(drr));
+
+                    string sql2 = "Select * from Users where Username='" + real_name + "'";
+                    string id = gData.GetScalarString(sql2, "id");
+
+                    if (id.Length > 0)
+                    {
+                        string sql3 = "Update Users set EmailAddress='" + email_address + "',updated='" + dtDr.ToString() + "' where id = '" + id + "'";
+                        gData.Exec(sql3);
+                    }
+                    else
+                    {
+                        string sql4 = "Insert into Users (id,Username,EmailAddress,Added,Updated,Admin) values (newid(),'" + member_name + "','" + email_address + "','" + dtDr.ToString() + "','" + dtDr.ToString() + "',0)";
+                        gData.Exec(sql4);
+                    }
+                }
+                dr.Close();
+            }
+            catch(Exception ex)
+            {
+                Log("Err SyncUsers " + ex.Message);
+            }
+        }
+
+
         static List<string> lBanList = new List<string>();
         public static bool fUseJobsTable = false;
         public static bool fUseBanTable = false;
@@ -1007,6 +1071,8 @@ namespace Saved.Code
                 string sql = "exec updLeaderboard";
                 SqlCommand command = new SqlCommand(sql);
                 lSQL.Add(command);
+                TallyBXMRC();
+
 
                 GetChartOfWorkers();
                 GetChartOfHashRate();
@@ -1138,7 +1204,8 @@ namespace Saved.Code
                                 try
                                 {
                                     gData.ExecCmd(command5);
-                                }catch(Exception ex2)
+                                }
+                                catch(Exception ex2)
                                 {
                                     Log("GroupShares:" + ex2.Message);
                                 }

@@ -18,15 +18,6 @@ namespace Saved
         }
 
 
-        public string RenderControlToHtml(Control ControlToRender)
-        {
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
-            System.IO.StringWriter stWriter = new System.IO.StringWriter(sb);
-            System.Web.UI.HtmlTextWriter htmlWriter = new System.Web.UI.HtmlTextWriter(stWriter);
-            ControlToRender.RenderControl(htmlWriter);
-            return sb.ToString();
-        }
-
         public string GetTR(string key, string value)
         {
             string tr = "<TR><TD width='55%'>" + key + ":</TD><TD>" + value + "</TD></TR>\r\n";
@@ -59,21 +50,16 @@ namespace Saved
             html += GetTR("Miners", dCt.ToString());
             string KH = (dHR / 1000).ToString() + " KH/S";
             html += GetTR("Speed", KH);
-            // html += RenderGauge(250, "Speed", (int)GetDouble(dHR/1000));
 
             html += GetTR("Charity Address", GetBMSConfigurationKeyValue("MoneroAddress"));
             html += GetTR("Contact E-Mail", GetBMSConfigurationKeyValue("OperatorEmailAddress"));
             html += GetTR("Pool Fees XMR", "10% (Orphan Charity) + 1% (minexmr.com)");
             html += GetTR("Pool Fees BBP", "0%");
 
-
             html += GetTR("Build Version", PoolCommon.pool_version.ToString());
             html += GetTR("Startup Time", PoolCommon.start_date.ToString());
 
             html += GetTR("Height", PoolCommon.nGlobalHeight.ToString());
-            html += GetTR("Worker Count", PoolCommon.dictWorker.Count.ToString());
-            html += GetTR("Thread Count", PoolCommon.iThreadCount.ToString());
-            html += GetTR("Tithe Modulus", PoolCommon.iTitheNumber.ToString());
             html += GetTR("XMR Thread Count", PoolCommon.iXMRThreadCount.ToString());
 
             sql = "Select sum(shares) suc, sum(fails) fail from Share (nolock) where updated > getdate()-1";
