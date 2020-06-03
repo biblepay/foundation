@@ -202,6 +202,12 @@ namespace Saved.Code
                                 {
                                     x.moneroaddress = params1["login"].ToString();
                                     x.bbpaddress = params1["pass"].ToString();
+                                    if (x.bbpaddress.Length != 34)
+                                    {
+                                        PoolCommon.iXMRThreadCount--;
+                                        client.Close();
+                                        return;
+                                    }
                                 }
                                 else
                                 {

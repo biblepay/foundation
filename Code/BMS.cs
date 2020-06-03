@@ -97,11 +97,18 @@ namespace Saved.Code
             string url = "https://minexmr.com/api/pool/stats";
             string sData = GetWebJsonApi(url, "", "");
             if (sData != "")
-            {
+            { //pool.stats.miners
                 JObject oData = JObject.Parse(sData);
                 JArray j1 = (JArray)oData["pool"]["blocks"];
-                nBlocks = j1.Count;
-                nHashRate = GetDouble(oData["pool"]["hashrate"]) / 1000000;
+                try
+                {
+                    nBlocks = j1.Count;
+                    nHashRate = GetDouble(oData["pool"]["hashrate"]) / 1000000;
+                    return;
+                }catch(Exception ex)
+                {
+                    Log(ex.Message);
+                }
             }
             nHashRate = 0;
             nBlocks = 0;
