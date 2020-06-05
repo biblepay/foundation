@@ -70,31 +70,22 @@ namespace Saved
                 _report = "";
             }
 
-            double nTotalFracSancBalance = GetTotalFrom(gUser(this).UserId.ToString(), "SanctuaryInvestments");
-            double nTotalBalance = GetTotalFrom(gUser(this).UserId.ToString(), "Deposit");
-            txtGlobalSancInvestments.Text = GetTotalFrom("", "SanctuaryInvestments").ToString();
+            double nTotalFracSancBalance = Common.GetTotalFrom(gUser(this).UserId.ToString(), "SanctuaryInvestments");
+            double nTotalBalance = Common.GetTotalFrom(gUser(this).UserId.ToString(), "Deposit");
+            txtGlobalSancInvestments.Text = Common.GetTotalFrom("", "SanctuaryInvestments").ToString();
             txtGlobalSancInvestmentCount.Text = GetCountFrom("SanctuaryInvestments").ToString();
             txtBonusPercent.Text = (GetBonusPercent() * 100).ToString() + "%";
             txtFractionalSancBalance.Text = nTotalFracSancBalance.ToString();
             txtBalance.Text = nTotalBalance.ToString();
 
-            double nRewards = GetTotalFrom(gUser(this).UserId.ToString(), "Deposit", "Notes like 'sanctuary payment%'");
+            double nRewards = Common.GetTotalFrom(gUser(this).UserId.ToString(), "Deposit", "Notes like 'sanctuary payment%'");
             txtRewards.Text = nRewards.ToString();
 
             double nBP = GetBonusPercent();
             double nROI = GetEstimatedHODL(true, nBP);
             txtHODLPercent.Text = (nROI*100).ToString() + "%";
         }
-        protected string GetBalance()
-        {
-            return GetTotalFrom(gUser(this).UserId.ToString(), "Deposit").ToString();
-        }
-
-        protected string GetTotalSancInvestment()
-        {
-            return GetTotalFrom(gUser(this).UserId.ToString(), "SanctuaryInvestments").ToString();
-        }
-
+        
 
         protected string FractionalSancReport()
         {
@@ -118,21 +109,6 @@ namespace Saved
         }
 
 
-        public double GetTotalFrom(string userid, string table)
-        {
-            string sql = "Select sum(amount) amount from " + table + " where userid=@userid and amount is not null";
-
-            if (userid == "")
-            {
-                sql = "Select sum(amount) amount from " + table + " where amount is not null";
-            }
-
-            SqlCommand command = new SqlCommand(sql);
-            command.Parameters.AddWithValue("@userid", userid);
-            double nBalance = gData.GetScalarDouble(command, "amount");
-            return nBalance;
-        }
-
         public double GetCountFrom(string table)
         {
             string sql = "Select count(userid) ct from " + table + " where amount is not null";
@@ -141,14 +117,6 @@ namespace Saved
         }
 
 
-        public double GetTotalFrom(string userid, string table, string where)
-        {
-            string sql = "Select sum(amount) amount from " + table + " where userid=@userid and amount is not null and " + where;
-            SqlCommand command = new SqlCommand(sql);
-            command.Parameters.AddWithValue("@userid", userid);
-            double nBalance = gData.GetScalarDouble(command, "amount");
-            return nBalance;
-        }
 
         protected void btnFracReport_Click(object sender, EventArgs e)
         {

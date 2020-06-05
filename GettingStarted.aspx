@@ -21,8 +21,8 @@
         <p>
 
             <table>
-                <tr><td>Username:<td>Your BiblePay Wallet Address                </tr>
-                <tr><td>Password:<td>Your Monero Wallet Address</tr>
+                <tr><td>Username:<td>Your Monero Wallet Address                </tr>
+                <tr><td>Password:<td>Your BiblePay Wallet Address</tr>
                 <tr><td>Algorithm:<td>RandomX</tr>
                 <tr><td>URL:<td><%=Saved.Code.Common.GetBMSConfigurationKeyValue("PoolDNS")%>:3001</tr>
                 <tr><td>&nbsp;</td></tr>
@@ -31,8 +31,5 @@
             </table>
         </p>
     </div>
-
-
-
 
 </asp:Content>

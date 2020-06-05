@@ -107,7 +107,7 @@ namespace Saved.Code
                     return;
                 }catch(Exception ex)
                 {
-                    Log(ex.Message);
+                    Log("GMHRA:" + ex.Message);
                 }
             }
             nHashRate = 0;

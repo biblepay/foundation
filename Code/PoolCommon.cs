@@ -11,19 +11,18 @@ using System.Threading;
 using System.Web.UI.DataVisualization.Charting;
 using static Saved.Code.Common;
 
-
 namespace Saved.Code
 {
-
     public static class PoolCommon
     {
         public static Dictionary<string, WorkerInfo> dictWorker = new Dictionary<string, WorkerInfo>();
         public static Dictionary<string, WorkerInfo> dictBan = new Dictionary<string, WorkerInfo>();
+        public static Dictionary<double, XMRJob> dictJobs = new Dictionary<double, XMRJob>();
         public static int iThreadCount = 0;
         public static int nGlobalHeight = 0;
-        public static int pool_version = 1008;
+        public static int pool_version = 1009;
         public static int iXMRThreadID = 0;
-        public static int iXMRThreadCount = 0;
+        public static double iXMRThreadCount = 0;
         public static int iTitheNumber = 0;
         public static int iTitheModulus = 0;
         public static int BXMRC = 0;
@@ -33,6 +32,22 @@ namespace Saved.Code
         public static int MIN_DIFF = 1;
         public static object cs_p = new object();
         public static bool fMonero2000 = true;
+
+        public struct XMRJob
+        {
+            public string blob;
+            public double jobid;
+            public int timestamp;
+            public string target;
+            public string seed;
+            public string solution;
+            public string nonce;
+            public string hash;
+            public string hashreversed;
+            public string bbpaddress;
+            public string moneroaddress;
+            public bool fNeedsSubmitted;
+        }
 
         public static double GetTithePercent()
         {
@@ -215,7 +230,7 @@ namespace Saved.Code
         }
 
 
-        public static void InsShare(string bbpaddress, int nShareAdj, int nFailAdj, int height, int nBXMR, int nBXMRC, string moneroaddress)
+        public static void InsShare(string bbpaddress, double nShareAdj, double nFailAdj, int height, int nBXMR, int nBXMRC, string moneroaddress)
         {
                 string sql = "exec insShare @bbpid,@shareAdj,@failAdj,@height,@sxmr,@fxmr,@sxmrc,@fxmrc,@bxmr,@bxmrc";
                 SqlCommand command = new SqlCommand(sql);
@@ -769,7 +784,7 @@ namespace Saved.Code
             }
             catch (Exception ex)
             {
-                Log(ex.Message);
+                Log("GetRawTransaction: " + ex.Message);
                 return "";
             }
         }
@@ -1072,15 +1087,11 @@ namespace Saved.Code
                 SqlCommand command = new SqlCommand(sql);
                 lSQL.Add(command);
                 TallyBXMRC();
-
-
                 GetChartOfWorkers();
                 GetChartOfHashRate();
                 GetDepositTXIDList();
                 GetChartOfBlocks();
                 Code.BMS.LaunchInterfaceWithWCG();
-
-
                 // Clear banned pool users
                 try
                 {
@@ -1094,16 +1105,11 @@ namespace Saved.Code
                         if (dt.Rows[i]["ip"].ToString().Length > 1)
                             lBanList.Add(dt.Rows[i]["ip"].ToString());
                     }
-                    // Clear the ddos level also
-                    PurgeSockets(true);
-                    // End of Clear ban
                 }
                 catch (Exception ex)
                 {
                     Log("Clearing ban " + ex.Message);
                 }
-
-
             }
             catch (Exception ex)
             {
@@ -1403,6 +1409,11 @@ namespace Saved.Code
         {
             try
             {
+                if (hex == null)
+                {
+                    byte[] b1 = new byte[0];
+                    return b1;
+                }
                 if (hex.Length % 2 == 1)
                     throw new Exception("The binary key cannot have an odd number of digits");
 
@@ -1467,14 +1478,15 @@ namespace Saved.Code
         private static object cs_stratum = new object();
         public static void GetBlockForStratum()
         {
+            int nAge = UnixTimeStamp() - _pool._template.updated;
+            if (nAge < 60)
+                return;
+
             lock (cs_stratum)
             {
                 try
                 {
                     // When it expires, get new template
-                    int nAge = UnixTimeStamp() - _pool._template.updated;
-                    if (nAge < 60)
-                        return;
                     NBitcoin.RPC.RPCClient n = GetLocalRPCClient();
 
                     string poolAddress = GetBMSConfigurationKeyValue("PoolAddress");

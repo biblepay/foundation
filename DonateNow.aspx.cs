@@ -19,13 +19,6 @@ namespace Saved
 
 
 
-        private string GetTd(DataRow dr, string colname, string sAnchor)
-        {
-            string val = dr[colname].ToString();
-            string td = "<td>" + sAnchor + val + "</a></td>";
-            return td;
-        }
-
         private string FormatTwoPlaces(double nAmt)
         {
             return string.Format("{0:#.00}", nAmt);

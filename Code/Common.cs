@@ -226,6 +226,12 @@ namespace Saved.Code
         }
         */
 
+        public static string GetTd(DataRow dr, string colname, string sAnchor)
+        {
+            string val = dr[colname].ToString();
+            string td = "<td>" + sAnchor + val + "</a></td>";
+            return td;
+        }
 
         public static string RenderControlToHtml(Control ControlToRender)
         {
@@ -292,6 +298,7 @@ namespace Saved.Code
                 
            html += AddMenuOption("Doctrine", "Guides.aspx;Study.aspx;Illustrations.aspx;Illustrations.aspx?type=wiki;MediaList.aspx", "Guides for Christians;Theological Studies;Illustrations/Slides;Wiki Theology;Video Lists & Media", "fa-life-ring");
            html += AddMenuOption("Community", "Default.aspx;PrayerBlog.aspx;PrayerAdd.aspx", "Home;Prayer Requests List Blog;Add New Prayer Request", "fa-ambulance");
+           html += AddMenuOption("Orphans", "SponsorOrphanList.aspx;DonorMatchList.aspx", "Sponsor An Orphan;Donor Match List", "fa-child");
            html += AddMenuOption("Reports", "Accountability.aspx;Viewer.aspx?target=collage;Partners.aspx", "Accountability;Orphan Collage;Partners", "fa-table");
            html += AddMenuOption("Dashboard", "Dashboard.aspx", "Dashboard", "fa-line-chart");
            html += AddMenuOption("Pool", "Leaderboard.aspx;GettingStarted.aspx;PoolAbout.aspx;BlockHistory.aspx;Viewer.aspx?target=" 
@@ -856,7 +863,7 @@ namespace Saved.Code
             {
                 try
                 {
-                    var nbal=                    _rpcclient.GetBalance();
+                    var nbal=  _rpcclient.GetBalance();
                     var n0 = 0;
                 }
                 catch(Exception ex)
@@ -868,6 +875,42 @@ namespace Saved.Code
             }
         }
 
+        public static double GetTotalFrom(string userid, string table, string where)
+        {
+            string sql = "Select sum(amount) amount from " + table + " where userid=@userid and amount is not null and " + where;
+            SqlCommand command = new SqlCommand(sql);
+            command.Parameters.AddWithValue("@userid", userid);
+            double nBalance = gData.GetScalarDouble(command, "amount");
+            return nBalance;
+        }
+
+
+        public static double GetTotalFrom(string userid, string table)
+        {
+            string sql = "Select sum(amount) amount from " + table + " where userid=@userid and amount is not null";
+
+            if (userid == "")
+            {
+                sql = "Select sum(amount) amount from " + table + " where amount is not null";
+            }
+
+            SqlCommand command = new SqlCommand(sql);
+            command.Parameters.AddWithValue("@userid", userid);
+            double nBalance = gData.GetScalarDouble(command, "amount");
+            return nBalance;
+        }
+
+
+        public static string GetUserBalance(Page p)
+        {
+            return GetTotalFrom(gUser(p).UserId.ToString(), "Deposit").ToString();
+        }
+
+        public static string GetTotalSancInvestment(Page p)
+        {
+            return GetTotalFrom(gUser(p).UserId.ToString(), "SanctuaryInvestments").ToString();
+        }
+       
 
         public static string GetNewDepositAddress()
         {

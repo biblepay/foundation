@@ -58,12 +58,11 @@
     You will see the detailed transactions in the Fractional Sanctuary report, available here.
     <br />
     
-    You may add up to: <%=GetBalance() %>.
+    You may add up to: <%=Saved.Code.Common.GetUserBalance(this) %>.
     
     <br />
+
     <table>
-
-
     <tr><td>Add Fractional Sanctuary Amount: &nbsp;<td>    <asp:TextBox ID="txtAmount" width="200px" runat="server" ></asp:TextBox></tr>
     </table>
     <asp:Button ID="btnAddFractionalSanctuary" runat="server" Text="Add Fractional Sanctuary" OnClick="btnAddFractionalSanctuary_Click" />
@@ -77,7 +76,7 @@
     Note: This option allows you to cash out, or liquidate, part of or all of your fractional sanctuary.  This will transfer the fractional balance back to your free BBP balance.
     But it will also cause you to stop earning rewards.  Note that you should not try to switch in and out of fractional sanctuaries, as we may put a hold on your balance for 24 hours.
     <br />
-    You may remove up to: <%=GetTotalSancInvestment() %>.
+    You may remove up to: <%=Saved.Code.Common.GetTotalSancInvestment(this) %>.
 
     <br />
 

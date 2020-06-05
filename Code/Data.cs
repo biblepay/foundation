@@ -31,7 +31,7 @@ namespace Saved.Code
             }
             catch(Exception ex)
             {
-                Log(ex.Message);
+                Log("GSS:" + ex.Message);
             }
             return "";
         }

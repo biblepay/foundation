@@ -60,7 +60,8 @@ namespace Saved
             html += GetTR("Startup Time", PoolCommon.start_date.ToString());
 
             html += GetTR("Height", PoolCommon.nGlobalHeight.ToString());
-            html += GetTR("XMR Thread Count", PoolCommon.iXMRThreadCount.ToString());
+            html += GetTR("Job Count", PoolCommon.dictJobs.Count().ToString());
+            html += GetTR("Worker Count", PoolCommon.dictWorker.Count().ToString());
 
             sql = "Select sum(shares) suc, sum(fails) fail from Share (nolock) where updated > getdate()-1";
             double ts24 = gData.GetScalarDouble(sql, "suc");

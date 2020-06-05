@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
 using System.Net;
@@ -7,11 +8,30 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using static Saved.Code.Common;
+using static Saved.Code.PoolCommon;
 
 namespace Saved.Code
 {
     public class XMRPool
     {
+        private XMRJob RetrieveXMRJob(double jobid)
+        {
+            if (dictJobs.ContainsKey(jobid))
+            {
+                return dictJobs[jobid];
+            }
+            XMRJob x = new XMRJob();
+            x.timestamp = UnixTimeStamp();
+            x.jobid = jobid;
+            return x;
+        }
+
+        private void PutXMRJob(XMRJob x)
+        {
+            if (x.jobid == 0)
+                return;
+            dictJobs[x.jobid] = x;
+        }
         private bool SendXMRPacketToMiner(Socket oClient, byte[] oData, int iSize, string socketid)
         {
             try
@@ -34,41 +54,17 @@ namespace Saved.Code
                 return false;
             }
         }
-
-        public struct XMRJob
+        public bool SubmitBiblePayShare(double nJobID)
         {
-            public string blob;
-            public string jobid;
-            public string target;
-            public string seed;
-            public string solution;
-            public string hash;
-            public string hashreversed;
-            public string bbpaddress;
-            public string moneroaddress;
-            public bool fNeedsSubmitted;
-        }
-
-        public static bool SubmitBiblePayShare(ref XMRJob x)
-        {
-
             try
             {
-                if (!x.fNeedsSubmitted)
+                XMRJob x = RetrieveXMRJob(nJobID);
+                if (x.hash == null || x.hash == "")
                     return false;
+
                 byte[] oRX = PoolCommon.StringToByteArr(x.hash);
                 double nSolutionDiff = PoolCommon.FullTest(oRX);
-                int nShareAdj = 0;
-                int nFailAdj = 0;
-                bool fPassed = nSolutionDiff >= 1 && PoolCommon.IsUnique(x.hash);
-
-                if (fPassed)
-                    nShareAdj = (int)nSolutionDiff;
-                else
-                    nFailAdj = 1;
-
-                // Insert the winning share in 'Shares'
-                PoolCommon.InsShare(x.bbpaddress, nShareAdj, nFailAdj, _pool._template.height, 0, 0, x.moneroaddress);
+                bool fUnique = PoolCommon.IsUnique(x.hash);
                 string revBBPHash = PoolCommon.ReverseHexString(x.hash);
                 // Check to see if this share actually solved the block:
                 NBitcoin.uint256 uBBP = new NBitcoin.uint256(revBBPHash);
@@ -76,9 +72,15 @@ namespace Saved.Code
                 NBitcoin.arith256 aBBP = new NBitcoin.arith256(uBBP);
                 NBitcoin.arith256 aTarget = new NBitcoin.arith256(uTarget);
                 int nTest = aBBP.CompareTo(aTarget);
-                x.fNeedsSubmitted = false;
+
                 if (aBBP.CompareTo(aTarget) == -1)
                 {
+                    if (false)
+                    {
+                        Log("Submitting JOBID " + x.jobid + " with jobidsubmit " + x.jobid.ToString() + " with nonce " +
+                            x.nonce + " at height " + _pool._template.height.ToString() + " seed " + x.seed + " with target " + _pool._template.target + " and solution " + x.solution);
+                        Log("Submitting RXHash " + revBBPHash);
+                    }
                     // We solved the block
                     string poolAddress = GetBMSConfigurationKeyValue("PoolAddress");
                     string hex = PoolCommon.GetBlockForStratumHex(poolAddress, x.seed, x.solution);
@@ -89,17 +91,36 @@ namespace Saved.Code
                         SqlCommand command = new SqlCommand(sql);
                         command.Parameters.AddWithValue("@height", _pool._template.height);
                         gData.ExecCmd(command, false, false, false);
+                        Log("SUBMIT_SUCCESS: Success for nonce " + x.nonce + " at height " + _pool._template.height.ToString() + " hex " + hex);
                     }
-                    Thread.Sleep(5000);  // Give some time for blockchain to advance
+                    else
+                    {
+                        Log("SUBMITBLOCK: Tried to submit the block for nonce " + x.nonce + " and target " + _pool._template.target + " with seed " + x.seed + " and solution " + x.solution + " with hex " + hex + " and failed");
+                    }
+                    try
+                    {
+                        dictJobs.Remove(x.jobid);
+                        if (dictJobs.Count > 10000)
+                        {
+                            dictJobs.Clear();
+                        }
+                    }
+                    catch(Exception ex1)
+                    {
+                        Log("cant find the job " + x.jobid.ToString());
+                    }
+
+                    Thread.Sleep(1000);  // Give some time for blockchain to advance
                     _pool._template.updated = 0; // Forces us to get a new block
                     PoolCommon.GetBlockForStratum();
                 }
-                else if (!fPassed)
+                else
                 {
                     PoolCommon.GetBlockForStratum();
                 }
                 return true;
-            }catch(Exception ex)
+            }
+            catch(Exception ex)
             {
                 Log("Unable to submit bbp share:  " + ex.Message);
             }
@@ -118,20 +139,38 @@ namespace Saved.Code
             }
         }
 
+        private void PersistWorker(WorkerInfo w)
+        {
+            try
+            {
+                if (w.IP == null || w.IP == "")
+                    return;
+                string sql = " IF NOT EXISTS (SELECT moneroaddress FROM worker WHERE moneroaddress='"
+                          + w.moneroaddress + "') BEGIN \r\n INSERT INTO Worker (id,added,moneroaddress,bbpaddress,ip) values (newid(),getdate(),'"
+                          + Saved.Code.BMS.PurifySQL(w.moneroaddress, 255) + "','" + Saved.Code.BMS.PurifySQL(w.bbpaddress, 255) + "','" + GetIPOnly(w.IP) + "') END";
+                gData.Exec(sql);
+            }
+            catch(Exception ex)
+            {
+                Log("Exception PW " + ex.Message);
+            }
+        }
+
+
         private void minerXMRThread(Socket client, TcpClient t, string socketid)
         {
             bool fCharity = false;
-            XMRJob x = new XMRJob();
-
+            string bbpaddress = "";
+            string moneroaddress = "";
             try
             {
-                client.ReceiveTimeout = 777;
+                client.ReceiveTimeout = 7777;
                 client.SendTimeout = 5000;
 
                 while (true)
                 {
                     int size = 0;
-                    byte[] data = new byte[32767];
+                    byte[] data = new byte[256000];
 
                     try
                     {
@@ -172,56 +211,74 @@ namespace Saved.Code
                                     string out_rx = "";
                                     string out_rx_root = "";
                                     // Store the result on the work record
-                                    string rxheader = x.blob;
-                                    string rxkey = x.seed;
                                     JObject oStratum = JObject.Parse(sJson);
-                                    string nonce = "00000000" + oStratum["params"]["nonce"];
-                                    nonce = nonce.Substring(8, 8);
-                                    x.solution = rxheader.Substring(0, 78) + nonce + rxheader.Substring(86, rxheader.Length - 86);
-                                    x.hash = oStratum["params"]["result"].ToString();
-                                    x.hashreversed = PoolCommon.ReverseHexString(x.hash);
-                                    if (false)
+                                    string nonce = "00000000" + oStratum["params"]["nonce"].ToString();
+                                    double nJobID = GetDouble(oStratum["params"]["job_id"].ToString());
+                                    string hash = oStratum["params"]["result"].ToString();
+                                    XMRJob xmrJob = RetrieveXMRJob(nJobID);
+                                    
+                                    string rxheader = xmrJob.blob;
+                                    string rxkey = xmrJob.seed;
+                                    if (rxheader == null)
                                     {
-                                        PoolCommon.GetRandomXAudit(x.solution, x.seed, ref out_rx, ref out_rx_root);
-                                        bool fMatches = x.hashreversed == out_rx_root;
-                                        // out_rx_root should contain the RandomX hash; out_rx contains the blakehash
-                                        // Nonce should be placed in monero location 78,8
-                                        //{"id":55,"jsonrpc":"2.0","method":"submit","params":{"id":"277677767004670","job_id":"536896777408374","nonce":"3f400200","result":"dd27f58fd8064c573000c21b7bc2eae95a9d01b62671ce43402d61bac9070000"}}
-                                        // Spec 2.0 (allow fully compatible xmr merge mining)
-                                        // If out_rx_root > BBP_DIFF level, accept as a BBP share
+                                        Log("cant even find the job " + nJobID.ToString());
                                     }
-                                    x.fNeedsSubmitted = true;
+                                    if (rxheader != null)
+                                    {
+
+                                        nonce = nonce.Substring(8, 8);
+                                        xmrJob.solution = rxheader.Substring(0, 78) + nonce + rxheader.Substring(86, rxheader.Length - 86);
+                                        xmrJob.hash = oStratum["params"]["result"].ToString();
+                                        xmrJob.hashreversed = PoolCommon.ReverseHexString(hash);
+                                        xmrJob.nonce = nonce;
+                                        xmrJob.bbpaddress = bbpaddress;
+                                        xmrJob.moneroaddress = moneroaddress;
+                                       
+                                        if (false)
+                                        {
+                                            PoolCommon.GetRandomXAudit(xmrJob.solution, xmrJob.seed, ref out_rx, ref out_rx_root);
+                                            bool fMatches = xmrJob.hashreversed == out_rx_root;
+                                            // out_rx_root should contain the RandomX hash; out_rx contains the blakehash
+                                            // Nonce should be placed in monero location 78,8
+                                            //{"id":55,"jsonrpc":"2.0","method":"submit","params":{"id":"277677767004670","job_id":"536896777408374","nonce":"3f400200","result":"dd27f58fd8064c573000c21b7bc2eae95a9d01b62671ce43402d61bac9070000"}}
+                                            // Spec 2.0 (allow fully compatible xmr merge mining)
+                                            // If out_rx_root > BBP_DIFF level, accept as a BBP share
+                                        }
+                                        PutXMRJob(xmrJob);
+                                        SubmitBiblePayShare(xmrJob.jobid);
+                                    }
                                 }
                             }
                             else if (sJson.Contains("login"))
                             {
-                                //{"id":1,"jsonrpc":"2.0","method":"login","params":{"login":"41s2xqGv4YLfs5MowbCwmmLgofywnhbazPEmL2jbnd7p73mtMH4XgvBbTxc6fj4jUcbxEqMFq7ANeUjktSiZYH3SCVw6uat","pass":"x","agent":"bbprig/5.10.0 (Windows NT 6.1; Win64; x64) libuv/1.34.0 gcc/9.2.0","algo":["cn/0","cn/1","cn/2","cn/r","cn/fast","cn/half","cn/xao","cn/rto","cn/rwz","cn/zls","cn/double","invalid","cn-lite/0","cn-lite/1","cn-heavy/0","cn-heavy/tube","cn-heavy/xhv","cn-pico","cn-pico/tlo","rx/0","rx/wow","rx/loki","rx/arq","rx/sfx","rx/keva","argon2/chukwa","argon2/wrkz","astrobwt"]}}
+                                //{"id":1,"jsonrpc":"2.0","method":"login","params":{"login":"41s2xqGv4YLfs5MowbCwmmLgofywnhbazPEmL2jbnd7p73mtMH4XgvBbTxc6fj4jUcbxEqMFq7ANeUjktSiZYH3SCVw6uat","pass":"x","agent":"bbprig/5.10.0 (Windows NT 6.1; Win64; x64) libuv/1.34.0 gcc/9.2.0","algo":["cn/0","cn/1","cn/2","cn/r","cn/fast","cn/half","cn/xao","cn/rto","cn/rwz","cn/zls","cn/double","","cn-lite/0","cn-lite/1","cn-heavy/0","cn-heavy/tube","cn-heavy/xhv","cn-pico","cn-pico/tlo","rx/0","rx/wow","rx/loki","rx/arq","rx/sfx","rx/keva","argon2/chukwa","argon2/wrkz","astrobwt"]}}
                                 JObject oStratum = JObject.Parse(sJson);
                                 dynamic params1 = oStratum["params"];
                                 if (PoolCommon.fMonero2000)
                                 {
-                                    x.moneroaddress = params1["login"].ToString();
-                                    x.bbpaddress = params1["pass"].ToString();
-                                    if (x.bbpaddress.Length != 34)
+                                    moneroaddress = params1["login"].ToString();
+                                    bbpaddress = params1["pass"].ToString();
+                                    if (bbpaddress.Length != 34 || moneroaddress.Length < 95)
                                     {
                                         PoolCommon.iXMRThreadCount--;
                                         client.Close();
+                                        PoolCommon.WorkerInfo wban = PoolCommon.Ban(socketid, 1, "BAD-CONFIG");
                                         return;
                                     }
-                                }
-                                else
-                                {
-                                    x.moneroaddress = params1["login"].ToString();
-                                    x.bbpaddress = PoolCommon.GetBBPAddress(x.moneroaddress);
+                                    WorkerInfo w = PoolCommon.GetWorker(socketid);
+                                    w.moneroaddress = moneroaddress;
+                                    w.bbpaddress = bbpaddress;
+                                    w.IP = GetIPOnly(socketid);
+                                    PoolCommon.SetWorker(w, socketid);
+                                    PersistWorker(w);
                                 }
                                 double nPerc = PoolCommon.GetTithePercent();
                                 PoolCommon.iTitheNumber++;
                                 var poolPubCharityAddress = GetBMSConfigurationKeyValue("MoneroAddress");
-                                bool fTithe = (nPerc < 10 && x.moneroaddress.Length > 10 && PoolCommon.iTitheNumber % 7 == 0);
-                                fTithe = (x.moneroaddress.Length > 10 && PoolCommon.iTitheNumber % 10 == 0);
+                                bool fTithe = (moneroaddress.Length > 10 && PoolCommon.iTitheNumber % 10 == 0);
                                 if (fTithe)
                                 {
-                                    string newData = sData.Replace(x.moneroaddress, poolPubCharityAddress);
+                                    string newData = sData.Replace(moneroaddress, poolPubCharityAddress);
                                     data = Encoding.ASCII.GetBytes(newData);
                                     size = newData.Length;
                                     fCharity = true;
@@ -231,7 +288,12 @@ namespace Saved.Code
                                     fCharity = false;
                                 }
                             }
+                            else if (sJson != "")
+                            {
+                                Console.WriteLine(sJson);
+                            }
                         }
+                        
                         // Miner->XMR Pool
                         Stream stmOut = t.GetStream();
                         stmOut.Write(data, 0, size);
@@ -250,15 +312,15 @@ namespace Saved.Code
 
                     // In from XMR Pool -> Miner
                     Stream stmIn = t.GetStream();
-                    byte[] bIn = new byte[65535];
+                    byte[] bIn = new byte[128000];
                     int bytesIn = 0;
 
                     try
                     {
-                        t.ReceiveTimeout = 777;
+                        t.ReceiveTimeout = 4777;
                         t.SendTimeout = 5000;
 
-                        bytesIn = stmIn.Read(bIn, 0, 65535);
+                        bytesIn = stmIn.Read(bIn, 0, 127999);
                         if (bytesIn > 0)
                         {
                             string sData = Encoding.UTF8.GetString(bIn, 0, bytesIn);
@@ -267,32 +329,52 @@ namespace Saved.Code
                             for (int i = 0; i < vData.Length; i++)
                             {
                                 string sJson = vData[i];
-                                // Console.WriteLine(sJson);
-                      
                                 if (sJson.Contains("result"))
                                 {
+
+                                    WorkerInfo w = PoolCommon.GetWorker(socketid);
+                                    PoolCommon.SetWorker(w, socketid);
                                     JObject oStratum = JObject.Parse(sJson);
                                     string status = oStratum["result"]["status"].ToString();
                                     int id = (int)GetDouble(oStratum["id"]);
                                     if (id == 1 && status == "OK")
                                     {
+                                        // BiblePay Pool to Miner
+                                        double nJobId = GetDouble(oStratum["result"]["job"]["job_id"].ToString());
+                                        XMRJob x = RetrieveXMRJob(nJobId);
                                         x.blob = oStratum["result"]["job"]["blob"].ToString();
-                                        x.jobid = oStratum["result"]["job"]["job_id"].ToString();
                                         x.target = oStratum["result"]["job"]["target"].ToString();
                                         x.seed = oStratum["result"]["job"]["seed_hash"].ToString();
+                                        PutXMRJob(x);
                                     }
                                     else if (id > 1 && status == "OK")
                                     {
                                         // They solved an XMR
                                         int iCharity = fCharity ? 1 : 0;
-                                        PoolCommon.InsShare(x.bbpaddress, 0, 0, _pool._template.height, 1, iCharity, x.moneroaddress);
-                                        SubmitBiblePayShare(ref x);
-                                        double nPerc = PoolCommon.GetTithePercent();
+                                        PoolCommon.InsShare(bbpaddress, 1, 0, _pool._template.height, 1, iCharity, moneroaddress);
+                                    }
+                                    else if (id > 1 && status != "OK" && status != "KEEPALIVED")
+                                    {
+                                        PoolCommon.InsShare(bbpaddress, 0, 1, _pool._template.height, 0, 0, moneroaddress);
                                     }
                                 }
                                 else if (sJson.Contains("submit"))
                                 {
-                                    string sTest = "";
+                                    // Noop
+                                }
+                                else if (sJson.Contains("\"method\":\"job\""))
+                                {
+                                    JObject oStratum = JObject.Parse(sJson);
+                                    double nJobId = GetDouble(oStratum["params"]["job_id"].ToString());
+                                    XMRJob x = RetrieveXMRJob(nJobId);
+                                    x.blob = oStratum["params"]["blob"].ToString();
+                                    x.target = oStratum["params"]["target"].ToString();
+                                    x.seed = oStratum["params"]["seed_hash"].ToString();
+                                    PutXMRJob(x);
+                                }
+                                else if (sJson != "")
+                                {
+                                    Console.WriteLine(sJson);
                                 }
                             }
                         }
@@ -339,7 +421,7 @@ namespace Saved.Code
                 }
             }
 
-            PoolCommon.iXMRThreadCount--;
+            PoolCommon.iXMRThreadCount = iXMRThreadCount - .91;
 
         }
 
