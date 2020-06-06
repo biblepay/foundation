@@ -20,7 +20,7 @@ namespace Saved.Code
         public static Dictionary<double, XMRJob> dictJobs = new Dictionary<double, XMRJob>();
         public static int iThreadCount = 0;
         public static int nGlobalHeight = 0;
-        public static int pool_version = 1009;
+        public static int pool_version = 1010;
         public static int iXMRThreadID = 0;
         public static double iXMRThreadCount = 0;
         public static int iTitheNumber = 0;

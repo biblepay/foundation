@@ -31,7 +31,9 @@ namespace Saved.Code
             }
             catch(Exception ex)
             {
-                Log("GSS:" + ex.Message);
+                // No need to spam the satellite pool(s):
+                if (false)
+                    Log("GSS:" + ex.Message);
             }
             return "";
         }

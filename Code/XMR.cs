@@ -99,13 +99,13 @@ namespace Saved.Code
                     }
                     try
                     {
-                        dictJobs.Remove(x.jobid);
                         if (dictJobs.Count > 10000)
                         {
                             dictJobs.Clear();
                         }
+                        dictJobs.Remove(nJobID);
                     }
-                    catch(Exception ex1)
+                    catch (Exception ex1)
                     {
                         Log("cant find the job " + x.jobid.ToString());
                     }
@@ -162,6 +162,7 @@ namespace Saved.Code
             bool fCharity = false;
             string bbpaddress = "";
             string moneroaddress = "";
+            double nTrace = 0;
             try
             {
                 client.ReceiveTimeout = 7777;
@@ -175,6 +176,7 @@ namespace Saved.Code
                     try
                     {
                         size = client.Receive(data);
+                        nTrace = 1;
                     }
                     catch (ThreadAbortException abortException)
                     {
@@ -196,6 +198,7 @@ namespace Saved.Code
                     }
                     if (size > 0)
                     {
+                        nTrace = 2;
                         string sData = Encoding.UTF8.GetString(data, 0, data.Length);
                         sData = sData.Replace("\0", "");
                         // The Stratum data is first split by \r\n
@@ -210,22 +213,23 @@ namespace Saved.Code
                                 {
                                     string out_rx = "";
                                     string out_rx_root = "";
+                                    nTrace = 3;
                                     // Store the result on the work record
                                     JObject oStratum = JObject.Parse(sJson);
                                     string nonce = "00000000" + oStratum["params"]["nonce"].ToString();
                                     double nJobID = GetDouble(oStratum["params"]["job_id"].ToString());
                                     string hash = oStratum["params"]["result"].ToString();
                                     XMRJob xmrJob = RetrieveXMRJob(nJobID);
-                                    
                                     string rxheader = xmrJob.blob;
                                     string rxkey = xmrJob.seed;
                                     if (rxheader == null)
                                     {
-                                        Log("cant even find the job " + nJobID.ToString());
+                                        //Log("cant even find the job " + nJobID.ToString());
+                                        PoolCommon.WorkerInfo wban = PoolCommon.Ban(socketid, 1, "CANT-FIND-JOB");
                                     }
                                     if (rxheader != null)
                                     {
-
+                                        nTrace = 4;
                                         nonce = nonce.Substring(8, 8);
                                         xmrJob.solution = rxheader.Substring(0, 78) + nonce + rxheader.Substring(86, rxheader.Length - 86);
                                         xmrJob.hash = oStratum["params"]["result"].ToString();
@@ -244,14 +248,18 @@ namespace Saved.Code
                                             // Spec 2.0 (allow fully compatible xmr merge mining)
                                             // If out_rx_root > BBP_DIFF level, accept as a BBP share
                                         }
+                                        nTrace = 5;
                                         PutXMRJob(xmrJob);
+                                        nTrace = 6;
                                         SubmitBiblePayShare(xmrJob.jobid);
+                                        nTrace = 7;
                                     }
                                 }
                             }
                             else if (sJson.Contains("login"))
                             {
                                 //{"id":1,"jsonrpc":"2.0","method":"login","params":{"login":"41s2xqGv4YLfs5MowbCwmmLgofywnhbazPEmL2jbnd7p73mtMH4XgvBbTxc6fj4jUcbxEqMFq7ANeUjktSiZYH3SCVw6uat","pass":"x","agent":"bbprig/5.10.0 (Windows NT 6.1; Win64; x64) libuv/1.34.0 gcc/9.2.0","algo":["cn/0","cn/1","cn/2","cn/r","cn/fast","cn/half","cn/xao","cn/rto","cn/rwz","cn/zls","cn/double","","cn-lite/0","cn-lite/1","cn-heavy/0","cn-heavy/tube","cn-heavy/xhv","cn-pico","cn-pico/tlo","rx/0","rx/wow","rx/loki","rx/arq","rx/sfx","rx/keva","argon2/chukwa","argon2/wrkz","astrobwt"]}}
+                                nTrace = 8;
                                 JObject oStratum = JObject.Parse(sJson);
                                 dynamic params1 = oStratum["params"];
                                 if (PoolCommon.fMonero2000)
@@ -270,18 +278,21 @@ namespace Saved.Code
                                     w.bbpaddress = bbpaddress;
                                     w.IP = GetIPOnly(socketid);
                                     PoolCommon.SetWorker(w, socketid);
+                                    nTrace = 9;
                                     PersistWorker(w);
                                 }
-                                double nPerc = PoolCommon.GetTithePercent();
+                                nTrace = 10;
                                 PoolCommon.iTitheNumber++;
                                 var poolPubCharityAddress = GetBMSConfigurationKeyValue("MoneroAddress");
                                 bool fTithe = (moneroaddress.Length > 10 && PoolCommon.iTitheNumber % 10 == 0);
+                                nTrace = 11;
                                 if (fTithe)
                                 {
                                     string newData = sData.Replace(moneroaddress, poolPubCharityAddress);
                                     data = Encoding.ASCII.GetBytes(newData);
                                     size = newData.Length;
                                     fCharity = true;
+                                    nTrace = 12;
                                 }
                                 else
                                 {
@@ -293,16 +304,19 @@ namespace Saved.Code
                                 Console.WriteLine(sJson);
                             }
                         }
-                        
+
                         // Miner->XMR Pool
+                        nTrace = 13;
                         Stream stmOut = t.GetStream();
                         stmOut.Write(data, 0, size);
+                        nTrace = 14;
                     }
                     else
                     {
                         if (true)
                         {
                             // Keepalive (prevents the pool from hanging up on the miner)
+                            nTrace = 15;
                             var json = "{ \"id\": 0, \"method\": \"keepalived\", \"arg\": \"na\" }\r\n";
                             data = Encoding.ASCII.GetBytes(json);
                             Stream stmOut = t.GetStream();
@@ -311,18 +325,22 @@ namespace Saved.Code
                     }
 
                     // In from XMR Pool -> Miner
+                    nTrace = 16;
                     Stream stmIn = t.GetStream();
+                    nTrace = 17;
                     byte[] bIn = new byte[128000];
+                    nTrace = 18;
                     int bytesIn = 0;
 
                     try
                     {
                         t.ReceiveTimeout = 4777;
                         t.SendTimeout = 5000;
-
+                        nTrace = 19;
                         bytesIn = stmIn.Read(bIn, 0, 127999);
                         if (bytesIn > 0)
                         {
+                            nTrace = 20;
                             string sData = Encoding.UTF8.GetString(bIn, 0, bytesIn);
                             sData = sData.Replace("\0", "");
                             string[] vData = sData.Split("\n");
@@ -331,15 +349,16 @@ namespace Saved.Code
                                 string sJson = vData[i];
                                 if (sJson.Contains("result"))
                                 {
-
+                                    nTrace = 21;
                                     WorkerInfo w = PoolCommon.GetWorker(socketid);
                                     PoolCommon.SetWorker(w, socketid);
                                     JObject oStratum = JObject.Parse(sJson);
                                     string status = oStratum["result"]["status"].ToString();
                                     int id = (int)GetDouble(oStratum["id"]);
-                                    if (id == 1 && status == "OK")
+                                    if (id == 1 && status == "OK" && sJson.Contains("blob"))
                                     {
                                         // BiblePay Pool to Miner
+                                        nTrace = 22;
                                         double nJobId = GetDouble(oStratum["result"]["job"]["job_id"].ToString());
                                         XMRJob x = RetrieveXMRJob(nJobId);
                                         x.blob = oStratum["result"]["job"]["blob"].ToString();
@@ -351,10 +370,12 @@ namespace Saved.Code
                                     {
                                         // They solved an XMR
                                         int iCharity = fCharity ? 1 : 0;
+                                        nTrace = 24;
                                         PoolCommon.InsShare(bbpaddress, 1, 0, _pool._template.height, 1, iCharity, moneroaddress);
                                     }
                                     else if (id > 1 && status != "OK" && status != "KEEPALIVED")
                                     {
+                                        nTrace = 25;
                                         PoolCommon.InsShare(bbpaddress, 0, 1, _pool._template.height, 0, 0, moneroaddress);
                                     }
                                 }
@@ -364,7 +385,9 @@ namespace Saved.Code
                                 }
                                 else if (sJson.Contains("\"method\":\"job\""))
                                 {
+                                    nTrace = 26;
                                     JObject oStratum = JObject.Parse(sJson);
+                                    nTrace = 27;
                                     double nJobId = GetDouble(oStratum["params"]["job_id"].ToString());
                                     XMRJob x = RetrieveXMRJob(nJobId);
                                     x.blob = oStratum["params"]["blob"].ToString();
@@ -388,7 +411,7 @@ namespace Saved.Code
                         }
                         else if (!ex.Message.Contains("did not properly respond"))
                         {
-                            Log("minerXMRThread:" + ex.Message);
+                            Log("minerXMRThread[0]: Trace=" + nTrace.ToString() + ":" + ex.Message);
                         }
                     }
                     if (bytesIn > 0)
