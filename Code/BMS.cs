@@ -159,7 +159,7 @@ namespace Saved.Code
         {
             int age = 0;
             double dCachedQuote = GetCachedQuote(ticker, out age);
-            if (dCachedQuote > 0 && age < (60 * 60 * 16))
+            if (dCachedQuote > 0 && age < (60 * 60 * 1))
                 return dCachedQuote;
 
             string sURL = "https://www.southxchange.com/api/price/" + ticker;
@@ -178,7 +178,10 @@ namespace Saved.Code
             string ask = ExtractXML(sData, "Ask\":", ",").ToString();
             double dbid = GetDouble(bid);
             double dask = GetDouble(ask);
-            double dmid = (dbid + dask) / 2;
+            double dTotal = dbid + dask;
+
+            double dmid = dTotal / 2;
+
             if (nAssessmentType == 1)
                 dmid = dbid;
             if (dmid > 0)
@@ -248,7 +251,7 @@ namespace Saved.Code
         {
             try
             {
-                double dPrice = GetPriceQuote("BBP/BTC", 1);
+                double dPrice = GetPriceQuote("BBP/BTC");
                 string sPrice = dPrice.ToString("0." + new string('#', 339));
                 string sResult = "<MIDPOINT>" + sPrice + "</MIDPOINT><EOF>";
                 return sResult;
@@ -1071,7 +1074,7 @@ namespace Saved.Code
                             sw.Write(sData);
                             iRC++;
                         }
-                        else if (dRac > 256)
+                        else if (dRac > 90)
                         {
                             // if not in BBP & GRC, we just store:  CPID, ID, RAC (expavg_credit)
                             sData = "<user><id>" + nID.ToString() + "</id>" + "<expavg_credit>"
@@ -1095,6 +1098,11 @@ namespace Saved.Code
                 // Add the boinchash
                 string sBoincHash = "\r\n<boinchash>" + GetSha256Hash(iRC.ToString()) + "</boinchash>";
                 sw.Write(sBoincHash);
+                // Pad
+                for (int i = 0; i < 70; i++)
+                {
+                    sw.Write("<padding>" + i.ToString() + "</padding>");
+                }
 
                 file.Close(); // the source file that was decrompressed
                 sw.Write("\r\n<EOF></HTML>\r\n");
@@ -1146,8 +1154,7 @@ namespace Saved.Code
 
                 }
                 */
-
-
+                
                 Console.WriteLine("Researcher count: " + iRC.ToString());
                 if (iRC > 10000)
                 {

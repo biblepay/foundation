@@ -17,8 +17,7 @@ namespace Saved
         {
         }
 
-
-
+        
 
 
         protected string GetPrayerBlogs()

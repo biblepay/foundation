@@ -20,7 +20,7 @@ namespace Saved.Code
         public static Dictionary<double, XMRJob> dictJobs = new Dictionary<double, XMRJob>();
         public static int iThreadCount = 0;
         public static int nGlobalHeight = 0;
-        public static int pool_version = 1010;
+        public static int pool_version = 1015;
         public static int iXMRThreadID = 0;
         public static double iXMRThreadCount = 0;
         public static int iTitheNumber = 0;
@@ -56,18 +56,18 @@ namespace Saved.Code
         }
         public static void SetWorker(WorkerInfo worker, string sKey)
         {
-                try
+            try
+            {
+                if (!dictWorker.ContainsKey(sKey))
                 {
-                    if (!dictWorker.ContainsKey(sKey))
-                    {
-                        worker = GetWorker(sKey);
-                    }
-                    dictWorker[sKey] = worker;
+                    worker = GetWorker(sKey);
                 }
-                catch (Exception ex)
-                {
-                    Log("SetWorker" + ex.Message);
-                }
+                dictWorker[sKey] = worker;
+            }
+            catch (Exception ex)
+            {
+                Log("SetWorker" + ex.Message);
+            }
         }
         public static WorkerInfo GetWorker(string socketid)
         {
@@ -82,7 +82,7 @@ namespace Saved.Code
                 w = dictWorker[socketid];
                 return w;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 // This is not supposed to happen, but I see this error in the log... 
                 WorkerInfo w = new WorkerInfo();
@@ -99,14 +99,14 @@ namespace Saved.Code
         }
         public static void RemoveWorker(string socketid)
         {
-                try
-                {
-                    dictWorker.Remove(socketid);
-                }
-                catch (Exception ex)
-                {
-                    Log("Rem w" + ex.Message);
-                }
+            try
+            {
+                dictWorker.Remove(socketid);
+            }
+            catch (Exception ex)
+            {
+                Log("Rem w" + ex.Message);
+            }
         }
         public static WorkerInfo GetWorkerBan(string socketid)
         {
@@ -144,7 +144,7 @@ namespace Saved.Code
                 string sql = "Insert into BanDetails (id,IP,Notes,Added,Level) values (newid(), '" + IP + "','" + sWHY + "',getdate(),'" + iLevel.ToString() + "')";
                 gData.Exec(sql);
             }
-            catch(Exception x)
+            catch (Exception x)
             {
                 string test = x.Message;
             }
@@ -156,8 +156,8 @@ namespace Saved.Code
             string sKey = GetIPOnly(socketid);
             bool fIsBanned = lBanList.Contains(sKey);
             WorkerInfo w = GetWorkerBan(sKey);
-     
-            
+
+
             w.banlevel += iHowMuch;
             if (w.banlevel > BAN_THRESHHOLD)
             {
@@ -193,97 +193,177 @@ namespace Saved.Code
             return fullendpoint;
         }
 
-        public static void PurgeSockets(bool fClearBans)
+        private static ReaderWriterLockSlim dictLock = new ReaderWriterLockSlim();
+        public static XMRJob RetrieveXMRJob(double jobid)
         {
+            try
+            {
+                dictLock.EnterReadLock();
+                if (dictJobs.ContainsKey(jobid))
+                {
+                    return dictJobs[jobid];
+                }
+                XMRJob x = new XMRJob();
+                x.timestamp = UnixTimeStamp();
+                x.jobid = jobid;
+                return x;
+            }
+            finally
+            {
+                dictLock.ExitReadLock();
+            }
+        }
+
+        public static void PutXMRJob(XMRJob x)
+        {
+            if (x.jobid == 0)
+                return;
+            dictLock.EnterWriteLock();
+            try
+            {
+                dictJobs[x.jobid] = x;
+            }
+            finally
+            {
+                dictLock.ExitWriteLock();
+            }
+        }
+
+        public static void PurgeJobs()
+        {
+            lock (cs_stratum)
+            {
+
                 try
                 {
-                    foreach (KeyValuePair<string, WorkerInfo> entry in dictWorker.ToArray())
+                    dictLock.EnterWriteLock();
+
+                    foreach (KeyValuePair<double, XMRJob> entry in dictJobs.ToArray())
                     {
-                        if (entry.Key != null)
+                        if (dictJobs.ContainsKey(entry.Key))
                         {
-                            if (dictWorker.ContainsKey(entry.Key))
+                            XMRJob w1 = dictJobs[entry.Key];
+                            int nElapsed = UnixTimeStamp() - w1.timestamp;
+                            bool fRemove = (nElapsed > (60 * 15) && w1.timestamp > 0);
+                            if (fRemove)
                             {
-                                WorkerInfo w1 = GetWorker(entry.Key);
-                                int nElapsed = UnixTimeStamp() - w1.receivedtime;
-                                bool fRemove = false;
-                                fRemove = (nElapsed > (60 * 15) && w1.receivedtime > 0)
-                                    || (nElapsed > (60 * 15) && (w1.bbpaddress == null || w1.bbpaddress == ""));
-
-                                if (fClearBans)
+                                try
                                 {
-                                    w1.banlevel = 0;
-                                    SetWorker(w1, entry.Key);
+                                    dictJobs.Remove(entry.Key);
                                 }
-
-                                if (fRemove)
+                                catch (Exception ex)
                                 {
-                                    RemoveWorker(entry.Key);
+                                    Log("PJ " + ex.Message);
                                 }
                             }
                         }
+                        if (dictJobs.Count < 1000)
+                            return;
                     }
                 }
                 catch (Exception ex)
                 {
-                    Log("Purge Sockets: " + ex.Message);
+                    Log("Purge Jobs: " + ex.Message);
                 }
+                finally
+                {
+                    dictLock.ExitWriteLock();
+                }
+            }
+        }
+
+
+        public static void PurgeSockets(bool fClearBans)
+        {
+            try
+            {
+                foreach (KeyValuePair<string, WorkerInfo> entry in dictWorker.ToArray())
+                {
+                    if (entry.Key != null)
+                    {
+                        if (dictWorker.ContainsKey(entry.Key))
+                        {
+                            WorkerInfo w1 = GetWorker(entry.Key);
+                            int nElapsed = UnixTimeStamp() - w1.receivedtime;
+                            bool fRemove = false;
+                            fRemove = (nElapsed > (60 * 15) && w1.receivedtime > 0)
+                                || (nElapsed > (60 * 15) && (w1.bbpaddress == null || w1.bbpaddress == ""));
+
+                            if (fClearBans)
+                            {
+                                w1.banlevel = 0;
+                                SetWorker(w1, entry.Key);
+                            }
+
+                            if (fRemove)
+                            {
+                                RemoveWorker(entry.Key);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log("Purge Sockets: " + ex.Message);
+            }
         }
 
 
         public static void InsShare(string bbpaddress, double nShareAdj, double nFailAdj, int height, int nBXMR, int nBXMRC, string moneroaddress)
         {
-                string sql = "exec insShare @bbpid,@shareAdj,@failAdj,@height,@sxmr,@fxmr,@sxmrc,@fxmrc,@bxmr,@bxmrc";
-                SqlCommand command = new SqlCommand(sql);
-                command.Parameters.AddWithValue("@bbpid", bbpaddress);
-                command.Parameters.AddWithValue("@shareAdj", nShareAdj);
-                command.Parameters.AddWithValue("@failAdj", nFailAdj);
-                command.Parameters.AddWithValue("@height", height);
-                command.Parameters.AddWithValue("@sxmr", 0);
-                command.Parameters.AddWithValue("@fxmr", 0);
-                command.Parameters.AddWithValue("@sxmrc", 0);
-                command.Parameters.AddWithValue("@fxmrc", 0);
-                command.Parameters.AddWithValue("@bxmr", nBXMR);
-                command.Parameters.AddWithValue("@bxmrc", nBXMRC);
-            if (bbpaddress == "")
+            string sql = "exec insShare @bbpid,@shareAdj,@failAdj,@height,@sxmr,@fxmr,@sxmrc,@fxmrc,@bxmr,@bxmrc";
+            SqlCommand command = new SqlCommand(sql);
+            command.Parameters.AddWithValue("@bbpid", bbpaddress);
+            command.Parameters.AddWithValue("@shareAdj", nShareAdj);
+            command.Parameters.AddWithValue("@failAdj", nFailAdj);
+            command.Parameters.AddWithValue("@height", height);
+            command.Parameters.AddWithValue("@sxmr", 0);
+            command.Parameters.AddWithValue("@fxmr", 0);
+            command.Parameters.AddWithValue("@sxmrc", 0);
+            command.Parameters.AddWithValue("@fxmrc", 0);
+            command.Parameters.AddWithValue("@bxmr", nBXMR);
+            command.Parameters.AddWithValue("@bxmrc", nBXMRC);
+            if (bbpaddress == "" || height == 0)
             {
                 if (moneroaddress == GetBMSConfigurationKeyValue("moneroaddress"))
                     return;
                 return;
             }
-                try
-                {
-                    lSQL.Add(command);
-                }
-                catch (Exception ex)
-                {
+            try
+            {
+                lSQL.Add(command);
+            }
+            catch (Exception ex)
+            {
 
-                    Log("insShare: " + ex.Message);
-                }
+                Log("insShare: " + ex.Message);
+            }
         }
 
         public static string GetBBPAddress(string sMoneroAddress)
         {
-                try
+            try
+            {
+
+                foreach (KeyValuePair<string, WorkerInfo> item in dictWorker.ToArray())
                 {
-                
-                    foreach (KeyValuePair<string, WorkerInfo> item in dictWorker.ToArray())
-                    { 
-                        if (item.Value.moneroaddress == sMoneroAddress && item.Value.bbpaddress.Length > 10)
-                        {
-                            return item.Value.bbpaddress;
-                        }
+                    if (item.Value.moneroaddress == sMoneroAddress && item.Value.bbpaddress.Length > 10)
+                    {
+                        return item.Value.bbpaddress;
                     }
                 }
-                catch (Exception ex)
-                {
-                    Log("FMB: " + ex.Message);
-                }
-                // Retrieve from the database instead
-                string sql = "Select bbpaddress from worker (nolock) where moneroaddress='" + sMoneroAddress + "'";
-                string bbp = gData.GetScalarString(sql, "bbpaddress");
-                return bbp;
+            }
+            catch (Exception ex)
+            {
+                Log("FMB: " + ex.Message);
+            }
+            // Retrieve from the database instead
+            string sql = "Select bbpaddress from worker (nolock) where moneroaddress='" + sMoneroAddress + "'";
+            string bbp = gData.GetScalarString(sql, "bbpaddress");
+            return bbp;
         }
-        
+
 
         public static void MarkForBroadcast()
         {
@@ -333,6 +413,57 @@ namespace Saved.Code
             return nDiff;
         }
 
+        public static string GetChartOfSancs()
+        {
+            Chart c = new Chart();
+            System.Drawing.Color bg = System.Drawing.Color.White;
+            System.Drawing.Color primaryColor = System.Drawing.Color.Brown;
+            System.Drawing.Color textColor = System.Drawing.Color.Black;
+            c.Width = 1500;
+            //c.Height = 1000;
+
+            string sChartName = "Number of Sanctuaries vs Monthly Reward";
+            Series s = new Series(sChartName);
+            s.ChartType = System.Web.UI.DataVisualization.Charting.SeriesChartType.Line;
+            s.ChartType = System.Web.UI.DataVisualization.Charting.SeriesChartType.StackedArea;
+
+            s.LabelForeColor = textColor;
+            s.Color = primaryColor;
+            s.BackSecondaryColor = bg;
+            c.ChartAreas.Add("ChartArea");
+            c.ChartAreas[0].BorderWidth = 1;
+            c.Series.Add(s);
+
+            c.Legends.Add(new System.Web.UI.DataVisualization.Charting.Legend(sChartName));
+            c.Legends[sChartName].DockedToChartArea = "ChartArea";
+            c.Legends[sChartName].BackColor = bg;
+            c.Legends[sChartName].ForeColor = textColor;
+            c.Legends.Add("Monthly Reward");
+
+            for (double iSancs = 20; iSancs < 104; iSancs += 1)
+            {
+                double dRevenue = (205 / iSancs) * 3700 * 30.01; //3700 = reward per block currently
+                s.Points.AddXY(iSancs, dRevenue);
+            }
+            //c.ChartAreas[0].AxisY.ScaleBreakStyle.Spacing = 2;
+            //c.ChartAreas[0].AxisX.ScaleBreakStyle.Spacing = 2;
+            //c.ChartAreas[0].AxisX.ScaleBreakStyle.
+            c.ChartAreas[0].AxisX.LabelStyle.ForeColor = textColor;
+            c.ChartAreas[0].AxisY.LabelStyle.ForeColor = textColor;
+            c.ChartAreas[0].BackColor = bg;
+            c.Titles.Add(sChartName);
+            c.Titles[0].ForeColor = textColor;
+
+            c.BackColor = bg;
+            c.ForeColor = primaryColor;
+            string sSan = System.Web.Hosting.HostingEnvironment.MapPath("~/Images/sanctuaries.png");
+            c.SaveImage(sSan);
+            return sSan;
+
+        }
+
+
+
         public static string GetChartOfHashRate()
         {
             int nMax = _pool._template.height - 1;
@@ -359,7 +490,7 @@ namespace Saved.Code
             c.ChartAreas.Add("ChartArea");
             c.ChartAreas[0].BorderWidth = 1;
             c.Series.Add(s);
-            
+
             c.Legends.Add(new System.Web.UI.DataVisualization.Charting.Legend(sChartName));
             c.Legends[sChartName].DockedToChartArea = "ChartArea";
             c.Legends[sChartName].BackColor = bg;
@@ -591,6 +722,8 @@ namespace Saved.Code
 
         public static void PaySanctuaryInvestors()
         {
+            Log("Pay sanctuary investors");
+
             try
             {
                 string sql = "SELECT   amount, height, txid, address, id      FROM       sanctuaryPayment      WHERE paid is null and amount > 100";
@@ -598,7 +731,7 @@ namespace Saved.Code
                 for (int i = 0; i < dt.Rows.Count; i++)
                 {
 
-                    string sql2 = "Select * From SanctuaryInvestments order by Amount";
+                    string sql2 = "Select * From SanctuaryInvestments Where amount > 10 order by Amount";
                     double nSancReward = GetDouble(dt.Rows[i]["Amount"]);
                     double nHeight = GetDouble(dt.Rows[i]["height"]);
                     string sId = dt.Rows[i]["id"].ToString();
@@ -608,7 +741,7 @@ namespace Saved.Code
                     DataTable dt2 = gData.GetDataTable(sql2, false);
                     for (int j = 0; j < dt2.Rows.Count; j++)
                     {
-                        double nBonus = GetDouble(dt2.Rows[i]["BonusPercent"]);
+                        double nBonus = GetDouble(dt2.Rows[j]["BonusPercent"]);
                         if (nBonus > .50)
                             nBonus = .50;
 
@@ -619,16 +752,18 @@ namespace Saved.Code
                         command.Parameters.AddWithValue("@txid", sTXID + "-" + j.ToString());
                         command.Parameters.AddWithValue("@userid", dt2.Rows[j]["userid"]);
                         double nAmount = GetDouble(dt2.Rows[j]["amount"]);
-                        if (nAmount > 0)
+                        if (nAmount > 0.50)
                         {
                             double nReward = nAmount / 4500000 * nSancReward;
-                            double nExtraBonus = nBonus * nSancReward;
+                            double nExtraBonus = nReward * nBonus;
                             nReward += nExtraBonus;
-                            command.Parameters.AddWithValue("@amount", nReward);
+                            command.Parameters.AddWithValue("@amount", Math.Round(nReward, 2));
                             command.Parameters.AddWithValue("@height", nHeight);
-                            string sNarr = "Sanctuary Payment [for " + Math.Round(nAmount,2).ToString();
-                            if (nExtraBonus > 0) 
-                                sNarr += "+Bonus=" + Math.Round(nExtraBonus,2).ToString();
+                            string sNarr = "Sanctuary Payment [for " + Math.Round(nAmount, 2).ToString();
+                            if (nExtraBonus > 0)
+                            {
+                                sNarr += "+ " + Math.Round(nBonus * 100, 2) + "% Bonus (" + Math.Round(nExtraBonus, 2).ToString() + ")";
+                            }
                             sNarr += "]";
                             command.Parameters.AddWithValue("@notes", sNarr);
                             gData.ExecCmd(command, false, false, false);
@@ -647,8 +782,46 @@ namespace Saved.Code
                 Log("Pay sanctuary investors " + ex.Message);
             }
         }
-        
 
+        public static void clearbans()
+        {
+            // Clear banned pool users
+            try
+            {
+                dictBan.Clear();
+                //Memorize the excess banlist
+                string sql = "Select distinct dbo.iponly(ip) ip from Worker where bbpaddress in (select bbpaddress from leaderboard where efficiency < .20) UNION ALL Select IP from Bans";
+                DataTable dt = gData.GetDataTable(sql);
+                lBanList.Clear();
+                for (int i = 0; i < dt.Rows.Count; i++)
+                {
+                    if (dt.Rows[i]["ip"].ToString().Length > 1)
+                        lBanList.Add(dt.Rows[i]["ip"].ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                Log("Clearing ban " + ex.Message);
+            }
+        }
+
+        static int nLastMailed = 0;
+        public static bool MailOut()
+        {
+            int nElapsed = UnixTimeStamp() - nLastPaid;
+            if (nElapsed < (60 * 60 * 12))
+                return false;
+            nLastMailed = UnixTimeStamp();
+            try
+            {
+                SendMassDailyTweetReport();
+            }
+            catch(Exception ex)
+            {
+                Log("Mail out " + ex.Message);
+            }
+            return true;
+        }
 
         static int nLastPaid = 0;
         public static bool Pay()
@@ -664,6 +837,9 @@ namespace Saved.Code
                 RecordParticipants();
                 randomxhashes.Clear();
                 SyncUsers();
+                PayMonthlyOrphanSponsorships();
+                PayVideos("");
+                clearbans();
             }
             catch (Exception ex2)
             {
@@ -990,7 +1166,7 @@ namespace Saved.Code
                         m.Subject = "Sharing the Gospel, Reinventing the Wheel, and BiblePay";
                         m.IsBodyHtml = true;
                         m.Body = body;
-                        bool fSent =                         SendMail(m);
+                        bool fSent = SendMail(m);
                         if (fSent)
                         {
                             sql = "Update Leads set Advertised = getdate() where id = '" + sID + "'";
@@ -1092,24 +1268,8 @@ namespace Saved.Code
                 GetDepositTXIDList();
                 GetChartOfBlocks();
                 Code.BMS.LaunchInterfaceWithWCG();
-                // Clear banned pool users
-                try
-                {
-                    dictBan.Clear();
-                    //Memorize the excess banlist
-                    sql = "Select distinct dbo.iponly(ip) ip from Worker where bbpaddress in (select bbpaddress from leaderboard where efficiency < .20) UNION ALL Select IP from Bans";
-                    DataTable dt = gData.GetDataTable(sql);
-                    lBanList.Clear();
-                    for (int i = 0; i < dt.Rows.Count; i++)
-                    {
-                        if (dt.Rows[i]["ip"].ToString().Length > 1)
-                            lBanList.Add(dt.Rows[i]["ip"].ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log("Clearing ban " + ex.Message);
-                }
+                MailOut();
+
             }
             catch (Exception ex)
             {
@@ -1246,7 +1406,7 @@ namespace Saved.Code
                 for (int iMyHeight = nBestHeight - nLookback; iMyHeight < nBestHeight - 7; iMyHeight++)
                 {
                     string sHeightRange = "height = '" + iMyHeight.ToString() + "'";
-                    string sql = "Select shares,sucXMRC,bxmr,bbpaddress from Share (nolock) WHERE subsidy > 1 and percentage is null and "
+                    string sql = "Select shares,sucXMRC,bxmr,bbpaddress,subsidy from Share (nolock) WHERE subsidy > 1 and percentage is null and "
                         + sHeightRange + " and paid is null";
                     //SqlCommand command = new SqlCommand(sql);
                     //command.Parameters.AddWithValue("@height", iMyHeight);
@@ -1255,21 +1415,36 @@ namespace Saved.Code
                     {
                         // First get the total shares
                         double nTotalShares = 0;
-                        double nTotalSubsidy = 0;
+                        double nTotalSubsidy = GetDouble(dt1.Rows[0]["subsidy"]);
                         for (int i = 0; i < dt1.Rows.Count; i++)
                         {
                             double nHPS = GetDouble(dt1.Rows[i]["Shares"]) + (GetDouble(dt1.Rows[i]["bxmr"]));
                             nTotalShares += nHPS;
                         }
-                        if (nTotalShares == 0) nTotalShares = .01;
+                        if (nTotalShares == 0)
+                            nTotalShares = .01;
+                        double nPoolFee = GetDouble(GetBMSConfigurationKeyValue("PoolFee"));
+                        double nBonus = GetDouble(GetBMSConfigurationKeyValue("PoolBlockBonus"));
+                        double nPercOfSubsidy = nBonus / (nTotalSubsidy + .01);
+
+                        double nIndividualPiece = nPercOfSubsidy / (dt1.Rows.Count + .01);
+
+
                         for (int i = 0; i < dt1.Rows.Count; i++)
                         {
                             //double nShare = GetDouble(dt1.Rows[i]["Shares"]) / nTotalShares;
-                            double nShare = (GetDouble(dt1.Rows[i]["Shares"]) + (GetDouble(dt1.Rows[i]["bxmr"]))) / nTotalShares;
+                            double nMinerShares = (GetDouble(dt1.Rows[i]["Shares"]) + (GetDouble(dt1.Rows[i]["bxmr"])));
+                            double nMinerFee = nMinerShares * nPoolFee;
+
+                            nMinerShares = nMinerShares - nMinerFee;
+                            double nShare = nMinerShares / nTotalShares;
+                            // Add on the extra bonus
+                            if (nMinerShares > 110)
+                                nShare += nIndividualPiece;
+                             
                             sql = "Update Share Set Percentage=@percentage,Reward=@percentage * Subsidy where " + sHeightRange + " and bbpaddress=@bbpaddress";
                             SqlCommand command = new SqlCommand(sql);
                             command.Parameters.AddWithValue("@percentage", Math.Round(nShare, 4));
-                           // command.Parameters.AddWithValue("@reward", Math.Round(nTotalSubsidy, 2) * Math.Round(nShare, 4));
                             command.Parameters.AddWithValue("@height", iMyHeight);
                             command.Parameters.AddWithValue("@bbpaddress", dt1.Rows[i]["bbpaddress"]);
                             gData.ExecCmd(command);
@@ -1281,7 +1456,7 @@ namespace Saved.Code
             {
                 Log("Group Shares " + ex.Message);
             }
-            Log("Finished Grouping shares v2.0", false);
+            Log("Finished Grouping shares v2.0", true);
         }
         public static void SQLExecutor()
         {
@@ -1461,6 +1636,8 @@ namespace Saved.Code
         public static List<string> randomxhashes = new List<string>();
         public static bool IsUnique(string bbphash)
         {
+            if (fMonero2000)
+                return true;
             try
             {
                 if (randomxhashes.Contains(bbphash))
@@ -1478,6 +1655,10 @@ namespace Saved.Code
         private static object cs_stratum = new object();
         public static void GetBlockForStratum()
         {
+            if (_pool._template.updated == null)
+            {
+                _pool._template.updated = 0;
+            }
             int nAge = UnixTimeStamp() - _pool._template.updated;
             if (nAge < 60)
                 return;

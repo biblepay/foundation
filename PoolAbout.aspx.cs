@@ -48,14 +48,14 @@ namespace Saved
             sql = "Select count(bbpaddress) ct from Leaderboard";
             double dCt = gData.GetScalarDouble(sql, "ct");
             html += GetTR("Miners", dCt.ToString());
-            string KH = (dHR / 1000).ToString() + " KH/S";
-            html += GetTR("Speed", KH);
+            html += GetTR("Speed", GetHPSLabel(dHR));
 
             html += GetTR("Charity Address", GetBMSConfigurationKeyValue("MoneroAddress"));
             html += GetTR("Contact E-Mail", GetBMSConfigurationKeyValue("OperatorEmailAddress"));
             html += GetTR("Pool Fees XMR", "10% (Orphan Charity) + 1% (minexmr.com)");
-            html += GetTR("Pool Fees BBP", "0%");
-
+            html += GetTR("Pool Fees BBP", Math.Round(GetDouble(GetBMSConfigurationKeyValue("PoolFee")) * 100, 2) + "%");
+            html += GetTR("Block Bonus", Math.Round(GetDouble(GetBMSConfigurationKeyValue("PoolBlockBonus")), 0) + " BBP Per Block");
+            
             html += GetTR("Build Version", PoolCommon.pool_version.ToString());
             html += GetTR("Startup Time", PoolCommon.start_date.ToString());
 

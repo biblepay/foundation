@@ -1,4 +1,4 @@
-﻿<%@ Page Title="Contact" Language="C#" MasterPageFile="~/Site.Master" AutoEventWireup="true" CodeBehind="Markup.aspx.cs" Inherits="Saved.Markup"  ValidateRequest="false" %>
+﻿<%@ Page Title="Markup" Language="C#" MasterPageFile="~/Site.Master" AutoEventWireup="true" CodeBehind="Markup.aspx.cs" Inherits="Saved.Markup"  ValidateRequest="false" %>
 
 <asp:Content ID="BodyContent" ContentPlaceHolderID="MainContent" runat="server">
     <h3>Markup Editor</h3>

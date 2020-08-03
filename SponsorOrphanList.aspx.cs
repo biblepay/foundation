@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Linq;
 using System.Web;
@@ -22,8 +23,11 @@ namespace Saved
             string id = Request.QueryString["id"] ?? "";
             if (action=="sponsornow" && id.Length > 1)
             {
-                string sql = "Select * from SponsoredOrphan where id = '" + BMS.PurifySQL(id, 100) + "'";
+                string sql = "Select * from SponsoredOrphan where userid is null and id = '" + BMS.PurifySQL(id, 100) + "' ";
                 double dAmt = gData.GetScalarDouble(sql, "MonthlyAmount");
+                string sChildID = gData.GetScalarString(sql, "childid");
+                string sName = gData.GetScalarString(sql, "name");
+
                 if (dAmt == 0)
                 {
                     MsgBox("Orphan does not exist", "Sorry, this orphan no longer exists. ", this);
@@ -37,7 +41,7 @@ namespace Saved
                 }
 
                 double dUserBalance = GetDouble(GetUserBalance(this));
-
+                
                 UpdateBBPPrices();
                 double dMonthly = GetBBPAmountDouble(dAmt);
                 if (dUserBalance < dMonthly)
@@ -45,7 +49,22 @@ namespace Saved
                     MsgBox("Balance too Low", "Sorry, your balance is too low to sponsor this orphan for a minimum of 30 days.", this);
                     return;
                 }
-                MsgBox("Error - Undefined", "Sorry, this area is under construction.  We will enable this within 3 days for the benefit of Gods Kingdom.", this);
+                // They have enough BBP; lets remove the first months payment, and set the last payment date:
+                string sql1 = "Update SponsoredOrphan set Userid=@userid, LastPaymentDate=getdate() where id='" + id.ToString() + "'";
+                SqlCommand command = new SqlCommand(sql1);
+                command.Parameters.AddWithValue("@userid", gUser(this).UserId.ToString());
+                gData.ExecCmd(command);
+                //IncrementAmountByFloat("SponsoredOrphanPayments", dMonthly, gUser(this).UserId);
+                string sNotes = "Initial Sponsorship";
+                sql1 = "Insert into SponsoredOrphanPayments (id,childid,amount,added,userid,updated,notes) values (newid(),'" 
+                    + sChildID + "','" + dMonthly.ToString() + "',getdate(),'" + gUser(this).UserId.ToString() + "',getdate(),'" + sNotes + "')";
+                gData.Exec(sql1);
+
+
+                AdjBalance(-1 * dMonthly, gUser(this).UserId.ToString(), "Sponsor Payment " + sChildID);
+
+                MsgBox("Success", "Thank you for sponsoring " + sName + "!  You are bearing Christian Fruit and fulfilling James 1:27.  <br><br>Starting in 30 days, we will deduct the sponsorship amount automatically each month.  ", this);
+
                 return;
             }
         }
@@ -60,43 +79,23 @@ namespace Saved
             string nOut = Math.Round(nPerc, 2).ToString() + "%";
             return nOut;
         }
-        private double GetBBPAmountDouble(double nUSD)
-        {
-            if (BBP_USD < .000001)
-                return 0;
-            return Math.Round(nUSD / BBP_USD, 2);
-        }
-        private string GetBBPAmount(double nUSD)
-        {
-            if (BBP_USD < .000001)
-                return "";
-            string sOut = Math.Round(nUSD / BBP_USD, 2) + " BBP";
-            return sOut;
-        }
 
-        private double BBP_BTC = 0;
-        private double BTC_USD = 0;
-        private double BBP_USD = 0;
-
-        private void UpdateBBPPrices()
-        {
-            BBP_BTC = BMS.GetPriceQuote("BBP/BTC", 1);
-            BTC_USD = BMS.GetPriceQuote("BTC/USD");
-            BBP_USD = BBP_BTC * BTC_USD;
-        }
 
          protected string GetSponsoredOrphanList()
         {
             UpdateBBPPrices();
-            string sql = "Select * from SponsoredOrphan where SponsorID is null";
+            string sql = "Select * from SponsoredOrphan where UserID is null and matchpercentage > .01 order by MatchPercentage desc";
             DataTable dt = gData.GetDataTable(sql);
-            string html = "<table class=saved><tr><th>Child ID</th><th>Child Name<th>Added<th>Cost per Month<th>Rebate % Available<th>Monthly Rebate Amount<th>Net Due per Month<th>About this Charity<th>Sponsor Now</tr>";
+            string html = "<table class=saved><tr><th>Child ID</th><th>Child Name<th>Added<th>Cost per Month<th>Rebate % Available<th>Monthly Rebate Amount<th>Net Due per Month<th>Net Due in USD<th>About this Charity<th>Sponsor Now</tr>";
 
             for (int y = 0; y < dt.Rows.Count; y++)
             {
                 SavedObject s = RowToObject(dt.Rows[y]);
                 string sAnchor = "<a target='_blank' href='" + s.Props.URL + "'>" + s.Props.Name + "</a>";
                 double nRebate = GetBBPAmountDouble(s.Props.MonthlyAmount) * GetDouble(s.Props.MatchPercentage);
+                double nUSDRebate = s.Props.MonthlyAmount * s.Props.MatchPercentage;
+                double nUSDTotal = s.Props.MonthlyAmount - nUSDRebate;
+
                 double nNetTotal = GetBBPAmountDouble(GetDouble(s.Props.MonthlyAmount)) - nRebate;
                 string sID = dt.Rows[y]["id"].ToString();
                 string sSponsorLink = "SponsorOrphanList?action=sponsornow&id=" + sID;
@@ -112,7 +111,7 @@ namespace Saved
                     + (s.Props.Added).ToString() + "<td>" 
                     + GetBBPAmount(GetDouble(s.Props.MonthlyAmount)) 
                     + "<td>" + GetPerc(s.Props.MatchPercentage) + "<td>" + Math.Round(nRebate,2).ToString() 
-                    + " BBP<td>" + Math.Round(nNetTotal,2).ToString() + " BBP<td>" + sAboutCharityLink + "<td>" + sSponsorAnchor + "</td></tr>";
+                    + " BBP<td>" + Math.Round(nNetTotal,2).ToString() + " BBP<td>$" + FormatTwoPlaces(nUSDTotal) + "<td>" + sAboutCharityLink + "<td>" + sSponsorAnchor + "</td></tr>";
                 html += a1 + "\r\n";
             }
             html += "</table>";

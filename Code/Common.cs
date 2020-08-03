@@ -8,21 +8,87 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Mail;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Web;
+using System.Threading.Tasks;
 using System.Web.SessionState;
 using System.Web.UI;
 
 namespace Saved.Code
 {
+
+    public static class FileSplitter
+    {
+
+        public static bool RelinquishSpace(string sPath)
+        {
+            try
+            {
+                string sDir = Path.Combine(Path.GetTempPath(), "SVR" + sPath.GetHashCode().ToString());
+                Directory.Delete(sDir, true);
+                return true;
+            }
+            catch(Exception ex)
+            {
+                Common.Log("Unable to relinquish space in " + sPath);
+            }
+            return false;
+        }
+
+        public static string SplitFile(string sPath)
+        {
+            int iPart = 0;
+            string sDir = Path.Combine(Path.GetTempPath(), "SVR" + sPath.GetHashCode().ToString());
+            using (Stream source = File.OpenRead(sPath))
+            {
+                byte[] buffer = new byte[10000000];
+                int bytesRead;
+                while ((bytesRead = source.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    string sPartPath = Path.Combine(sDir, iPart.ToString() + ".dat");
+                    if (!System.IO.Directory.Exists(sDir))
+                        System.IO.Directory.CreateDirectory(sDir);
+                    Stream dest = new FileStream(sPartPath, FileMode.Create);
+                    dest.Write(buffer, 0, bytesRead);
+                    dest.Close();
+                    iPart++;
+                }
+            }
+            return sDir;
+        }
+        private static int MAX_PARTS = 7000;
+        public static void ResurrectFile(string sFolder, string sFinalFileName)
+        {
+            DirectoryInfo di = new DirectoryInfo(sFolder);
+            string sMasterOut = Path.Combine(sFolder, sFinalFileName);
+            Stream dest = new FileStream(sMasterOut, FileMode.Create);
+            for (int i = 0; i < MAX_PARTS; i++)
+            {
+                string sFN = i.ToString() + ".dat";
+                string sPath = Path.Combine(di.FullName, sFN);
+                if (File.Exists(sPath))
+                {
+                    byte[] b = System.IO.File.ReadAllBytes(sPath);
+                    dest.Write(b, 0, b.Length);
+                }
+                else
+                {
+                    break;
+                }
+            }
+            dest.Close();
+        }
+    
+
+    }
+
     public static class Common
     {
         public static Data gData = new Data(Data.SecurityType.REQ_SA);
@@ -33,6 +99,84 @@ namespace Saved.Code
 
         private static string sCachedHomePath = string.Empty;
 
+        public static string CleanseHeading(string sMyHeading)
+        {
+            int iPos = 0;
+            for (int i = 0; i < sMyHeading.Length; i++)
+            {
+                if (sMyHeading.Substring(i, 1) == "-")
+                    iPos = i;
+            }
+            if (iPos > 1)
+            {
+                string sOut = sMyHeading.Substring(0, iPos - 1);
+                return sOut;
+            }
+            return sMyHeading;
+        }
+
+        public static string PoolBonusNarrative()
+        {
+            double nBonus = GetDouble(GetBMSConfigurationKeyValue("PoolBlockBonus"));
+            if (nBonus > 0)
+            {
+                string sNarr = "We are giving away an extra " + nBonus.ToString() + " BBP per block split equally across participating miners who have more than 110 shares in the leaderboard (see Block Bonus).";
+                return sNarr;
+            }
+            return "";
+        }
+        public static void ConvertVideos()
+        {
+            // Convert unconverted RequestVideo to Resilient format
+            string sql = "Select * from RequestVideo where status is null";
+            DataTable dt = gData.GetDataTable(sql);
+            for (int i = 0; i < dt.Rows.Count; i++)
+            {
+                string url = dt.Rows[i]["url"].ToString();
+                string sID = dt.Rows[i]["id"].ToString();
+                string sUserID = dt.Rows[i]["userid"].ToString();
+                // Convert this particular youtube URL into a rapture video
+                // Then store in the rapture table with an uncategorized category
+                GetVideo(url);
+                string sPath = GetPathFromTube(url);
+                // Convert the path to hash
+                string sNewFileName = "700" + sPath.GetHashCode().ToString() + ".mp4";
+                if (System.IO.File.Exists(sPath))
+                {
+                    System.IO.FileInfo fi = new FileInfo(sPath);
+                    string sHeading = Left(fi.Name, 100);
+                    string sNotes = CleanseHeading(sHeading) + "\r\n\r\n" + Left(GetNotes(sPath), 4000);
+                    Task<List<string>> t = Uplink.Store2("video-" + sNewFileName, "", "", sPath);
+                    if (t.Result.Count > 0)
+                    {
+                        sql = "Insert into Rapture (id,added,Notes,URL,FileName,Category,UserID) values (newid(), getdate(), @notes, @url, @filename, @category, @userid)";
+                        SqlCommand command = new SqlCommand(sql);
+                        command.Parameters.AddWithValue("@notes", sNotes);
+                        command.Parameters.AddWithValue("@url", t.Result[0]);
+                        command.Parameters.AddWithValue("@filename", sNewFileName);
+                        command.Parameters.AddWithValue("@category", "Miscellaneous");
+                        command.Parameters.AddWithValue("@userid", sUserID);
+                        gData.ExecCmd(command);
+                        sql = "Update RequestVideo set Status='FILLED' where id = '" + sID + "'";
+                        gData.Exec(sql);
+                        // Delete the temporary file
+                        System.IO.File.Delete(sPath);
+                    }
+                    else
+                    {
+                        sql = "Update RequestVideo set Status='AMAZON FAILURE' where id = '" + sID + "'";
+                        gData.Exec(sql);
+                    }
+                }
+                else
+                {
+                    sql = "Update RequestVideo set Status='FILE DOES NOT EXIST' where id = '" + sID + "'";
+                    gData.Exec(sql);
+                }
+            }
+
+
+        }
         public static string GetSiteName(Page p)
         {
             return GetHeaderBanner(p);
@@ -49,9 +193,47 @@ namespace Saved.Code
             return GetBMSConfigurationKeyValue("longsitename");
         }
 
+        public static string GetPagControl(string sURL, int iActivePage, int iTotalPages)
+        {
+            if (iActivePage < 0)
+                iActivePage = 0;
+            int iPriorPage = iActivePage - 1;
+            if (iPriorPage < 0)
+                iPriorPage = 0;
+
+            int iNextPage = iActivePage + 1;
+            if (iNextPage > iTotalPages - 1)
+                iNextPage = iTotalPages - 1;
+
+
+            string pag = "<div class='pagination'><a href='" + sURL + "&pag=0'>&laquo;</a>";
+            pag += "<a href='" + sURL + "&pag=" + (iPriorPage).ToString() + "'>&larr;</a>";
+
+            int iMaxPages = 18;
+            int iPos = 0;
+            int iStartPage = iActivePage - (iMaxPages / 2);
+            if (iStartPage < 1) iStartPage = 1;
+
+            for (int i = iStartPage; i <= iTotalPages; i++)
+            {
+                string sActive = "";
+                if ((i-1) == iActivePage)
+                    sActive = "class='active'";
+                string sRow = "<a href='" + sURL + "&pag=" + (i - 1).ToString() + "' " + sActive + "> " + i.ToString() + " </a>";
+                pag += sRow;
+                iPos++;
+                if (iPos >= iMaxPages)
+                    break;
+            }
+            pag += "<a href='" + sURL + "&pag=" + (iNextPage).ToString() + "'>&rarr;</a>";
+
+            pag += "<a href='" + sURL + "&pag=" + (iTotalPages - 1).ToString() + "'>&raquo;</a></div>";
+
+            return pag;
+        }
         public static string GetBioImg(string orphanid)
         {
-            string sql = "Select URL from BIO where orphanid=@orphanid";
+            string sql = "Select BioURL from SponsoredOrphan where orphanid=@orphanid";
             SqlCommand command = new SqlCommand(sql);
             command.Parameters.AddWithValue("@orphanid", orphanid);
             string bio = gData.GetScalarString(command, "URL", false);
@@ -121,18 +303,32 @@ namespace Saved.Code
             return fSuccess;
         }
 
-        public static string run_cmd(string cmd, string args)
+
+        const int logonWithProfile = 1;
+        const int logonTypeNetwork = 3;
+        const int logonProviderDefault = 0;
+
+
+        public const UInt32 Infinite = 0xffffffff;
+        public static string run_cmd(string sFileName,string args)
         {
-            string result = "";
+            string result = " ";
 
             try
             {
+
+
+
                 ProcessStartInfo start = new ProcessStartInfo();
-                //Found in "where python"
-                start.FileName = GetBMSConfigurationKeyValue("pypath");
-                start.Arguments = string.Format("{0} {1}", cmd, args);
+
+
+                start.FileName = sFileName;
+                start.Arguments = string.Format("{0}", args);
                 start.UseShellExecute = false;
+                start.CreateNoWindow = false;
                 start.RedirectStandardOutput = true;
+                start.WorkingDirectory = "c:\\inetpub\\wwwroot\\Saved\\Uploads\\";
+
                 using (Process process = Process.Start(start))
                 {
                     using (StreamReader reader = process.StandardOutput)
@@ -140,6 +336,8 @@ namespace Saved.Code
                         result = reader.ReadToEnd();
                     }
                 }
+
+                Log("run_cmd result " + result);
                 return result;
             }
             catch(Exception ex)
@@ -209,6 +407,34 @@ namespace Saved.Code
             return "";
         }
 
+        public static void PayVideos(string sID)
+        {
+            try
+            {
+                string sql = "select datediff(second,starttime, watching) span,size/422000 secs, datediff(second,starttime, watching)/((SIZE/422000)+.01) pct,* from tip where paid is null  and userid is not null";
+                if (sID != "")
+                    sql += " and userid='" + sID + "'";
+
+                DataTable dt1 = gData.GetDataTable(sql);
+                for (int i = 0; i < dt1.Rows.Count; i++)
+                {
+                    double nPCT = GetDouble(dt1.Rows[i]["Pct"]);
+                    double nRew = GetDouble(dt1.Rows[i]["Amount"]);
+                    if (nPCT > 1) nPCT = 1;
+                    
+                    double nAmt = nRew * nPCT;
+                    string sCategory = dt1.Rows[i]["Category"].ToString();
+                    string sUserID = dt1.Rows[i]["UserID"].ToString();
+                    // Reward the user
+                    AdjBalance(nAmt, sUserID, "Video Reward for " + Math.Round(nPCT * 100,2).ToString() + "% for [" + sCategory + "]");
+                    sql = "Update Tip set Paid = getdate() where id = '" + dt1.Rows[i]["id"].ToString() + "'";
+                    gData.Exec(sql);
+                }
+            }catch(Exception ex)
+            {
+                Log("Unable to pay " + ex.Message);
+            }
+        }
 
 
         /*
@@ -225,6 +451,7 @@ namespace Saved.Code
              return result;
         }
         */
+
 
         public static string GetTd(DataRow dr, string colname, string sAnchor)
         {
@@ -254,19 +481,48 @@ namespace Saved.Code
             gData.ExecCmd(command, false, true, true);
         }
 
+        public static string ReplaceURLs(string s)
+        {
+            s = s.Replace("\r\n", " <br><br>");
+
+            string[] vWords = s.Split(" ");
+            string sOut = "";
+            for (int i = 0; i < vWords.Length; i++)
+            {
+                string v = vWords[i];
+                if (v.Contains("https://"))
+                {
+                    v = v.Replace("<br>", "");
+
+                    v = "<a target='_blank' href='" + v + "'><b>Link</b></a>";
+                }
+                sOut += v + " ";
+            }
+            return sOut;
+        }
         public static string GetGlobalAlert(Page p)
         {
-            if (GetDouble(p.Session["Tweet"]) == 1)
-                return "";
-            string sql = "Select top 1 * from Tweet where added > getdate()-1";
-            string sAlertNarr = gData.GetScalarString(sql, "Subject");
-            if (sAlertNarr == "")
-                return "";
-            string sRedir = "MessagePage?Title=Tweet&Body=Tweet_Closed";
-            p.Session["Tweet"] = 1;
-            string sAlert = "<div id=\"divAlert\" style=\"text-align:left;padding-left:250px;background-color:yellow;color:black;\">"
-            + "<span><a href=" + sRedir + ">" + sAlertNarr + "</a></span></div>";
-            return sAlert;
+            //if (GetDouble(p.Session["Tweet"]) == 1)
+            //    return "";
+            string sql = "Select top 1 * from Tweet where added > getdate()-.5";
+            DataTable dt1 = gData.GetDataTable(sql);
+            if (dt1.Rows.Count > 0)
+            {
+                string sID = dt1.Rows[0]["id"].ToString();
+                if (p.Session["Tweet" + sID] == null)
+                {
+                    string sAlertNarr = dt1.Rows[0]["Subject"].ToString();
+                    if (sAlertNarr == "")
+                        return "";
+
+                    string sRedir = "TweetView?id=" + dt1.Rows[0]["id"].ToString();
+                    string sAlert = "<div id=\"divAlert\" style=\"text-align:left;padding-left:250px;background-color:yellow;color:black;\">"
+                    + "<span><a href=" + sRedir + ">" + sAlertNarr + "</a></span></div>";
+                    return sAlert;
+                }
+            }
+            return "";
+
         }
 
 
@@ -296,24 +552,94 @@ namespace Saved.Code
         + "	<ul class='sidebar-menu'>";
        
                 
-           html += AddMenuOption("Doctrine", "Guides.aspx;Study.aspx;Illustrations.aspx;Illustrations.aspx?type=wiki;MediaList.aspx", "Guides for Christians;Theological Studies;Illustrations/Slides;Wiki Theology;Video Lists & Media", "fa-life-ring");
-           html += AddMenuOption("Community", "Default.aspx;PrayerBlog.aspx;PrayerAdd.aspx", "Home;Prayer Requests List Blog;Add New Prayer Request", "fa-ambulance");
-           html += AddMenuOption("Orphans", "SponsorOrphanList.aspx;DonorMatchList.aspx", "Sponsor An Orphan;Donor Match List", "fa-child");
+           html += AddMenuOption("Doctrine", "Guides.aspx;Study.aspx;Illustrations.aspx;Illustrations.aspx?type=wiki;MediaList.aspx;RequestVideo.aspx", "Guides for Christians;Theological Studies;Illustrations/Slides;Wiki Theology;Video Lists & Media;Request a Video", "fa-life-ring");
+           html += AddMenuOption("Community", "Default.aspx;PrayerBlog.aspx;PrayerAdd.aspx;Dashboard.aspx;LandingPage?faucet=1", "Home;Prayer Requests List Blog;Add New Prayer Request;Salvation Dashboard;Faucet", "fa-ambulance");
+           html += AddMenuOption("Orphans", "SponsorOrphanList.aspx;DonorMatchList.aspx;Report?name=myorphans;Report?name=orphantx", "Sponsor An Orphan;Donor Match List;My Orphans;My Orphan Payments", "fa-child");
+            
            html += AddMenuOption("Reports", "Accountability.aspx;Viewer.aspx?target=collage;Partners.aspx", "Accountability;Orphan Collage;Partners", "fa-table");
-           html += AddMenuOption("Dashboard", "Dashboard.aspx", "Dashboard", "fa-line-chart");
+           // html += AddMenuOption("Dashboard", "Dashboard.aspx", "Dashboard", "fa-line-chart");
            html += AddMenuOption("Pool", "Leaderboard.aspx;GettingStarted.aspx;PoolAbout.aspx;BlockHistory.aspx;Viewer.aspx?target=" 
                + System.Web.HttpUtility.UrlEncode("https://minexmr.com/#worker_stats") + ";MiningCalculator.aspx",
                "Leaderboard;Getting Started;About;Block History;XMR Inquiry;Mining Calculator", "fa-sitemap");
 
            html += AddMenuOption("Account", "https://forum.biblepay.org/sso.php?source=https://foundation.biblepay.org/Default.aspx;Login.aspx?opt=logout;AccountEdit.aspx;Deposit.aspx;Deposit.aspx;FractionalSanctuaries.aspx", 
-               "Log In;Log Out;Account Edit;Deposit;Withdrawal;Fractional Sanctuaries", "fa-unlock-alt");
+               "Log In;Log Out;Account;Deposit;Withdrawal;Fractional Sanctuaries", "fa-unlock-alt");
+           html += AddMenuOption("Tweets", "TweetList;TweetAdd", "Tweet List;Advertise a Tweet", "fa-line-chart");
+
            html += AddMenuOption("Admin", "Markup.aspx", "Markup Edit", "fa-wrench");
            html += "</section></aside>";
 
            return html;
-
         }
 
+        public static string GetComments(string id, Page p)
+        {
+            // Shows the comments section for the object.  Also shows the replies to the comments.
+            string sql = "Select * from Comments Inner Join Users on Users.ID = Comments.UserID  where comments.ParentID = @id order by comments.added";
+            SqlCommand command = new SqlCommand(sql);
+            command.Parameters.AddWithValue("@id", id);
+            DataTable dt = gData.GetDataTable(command);
+            string sHTML = "<div><h3>Comments:</h3><br>"
+                + "<table style='padding:10px;' width=73%>"
+                + "<tr><th width=14%>User<th width=10%>Added<th width=64%>Comment</tr>";
+
+                for (int i = 0; i < dt.Rows.Count; i++)
+            {
+                SavedObject s = RowToObject(dt.Rows[i]);
+
+                string sUserPic = GetAvatar(s.Props.Picture);
+
+                string sUserName = NotNull(s.Props.UserName);
+                if (sUserName == "")
+                    sUserName = "N/A";
+                string sBody = ReplaceURLs(s.Props.Body);
+
+                string div = "<tr><td>" + sUserPic + "<br>" + sUserName + "</br></td><td>" + s.Props.Added.ToString() + "</td><td style='border:1px solid lightgrey'><br>" + sBody
+                    + "</td></tr>";
+                sHTML += div;
+
+            }
+            sHTML += "</table><table width=100%><tr><th colspan=2><h2>Add a Comment:</h2></tr>";
+
+            if (!gUser(p).LoggedIn)
+            {
+                sHTML += "<tr><td><font color=red>Sorry, you must be logged in to add a comment.</td></tr></table></div>";
+                return sHTML;
+            }
+
+            string sButtons = "<tr><td>Comment:</td><td><textarea id='txtComment' name='txtComment' rows=10  style='width: 70%;' cols=70></textarea><br><br><button id='btnSaveComment' name='btnSaveComment' value='Save'>Save Comment</button></tr>";
+
+            sButtons += "</table></div>";
+
+            sHTML += sButtons;
+            return sHTML;
+        }
+
+
+
+        public static string GetHPSLabel(double dHR)
+        {
+            string KH = Math.Round(dHR / 1000,2).ToString() + " KH/S";
+            string MH = Math.Round(dHR / 1000000,2).ToString() + " MH/S";
+            string H = Math.Round(dHR,2).ToString() + " H/S";
+            if (dHR < 10000)
+            {
+                return H;
+            }
+            else if (dHR >= 10000 && dHR <= 1000000)
+            {
+                return KH;
+            }
+            else if (dHR > 1000000)
+            {
+                return MH;
+            }
+            else
+            {
+                return H;
+            }
+
+        }
 
         private static int item = 0;
         private static string AddMenuOption(string MenuName, string URLs, string LinkNames, string sIcon)
@@ -402,7 +728,127 @@ namespace Saved.Code
                 Log("IncAmountByFloat::" + ex.Message);
             }
         }
+
+        public static double BBP_BTC = 0;
+        public static double BTC_USD = 0;
+        public static double BBP_USD = 0;
+
+        public static void UpdateBBPPrices()
+        {
+            BBP_BTC = BMS.GetPriceQuote("BBP/BTC", 1);
+            BTC_USD = BMS.GetPriceQuote("BTC/USD");
+            BBP_USD = BBP_BTC * BTC_USD;
+        }
+
+        public static double GetBBPAmountDouble(double nUSD)
+        {
+            if (BBP_USD < .000001)
+                return 0;
+            return Math.Round(nUSD / BBP_USD, 2);
+        }
+
+        public static string GetBBPAmount(double nUSD)
+        {
+            if (BBP_USD < .000001)
+                return "";
+            string sOut = Math.Round(nUSD / BBP_USD, 2) + " BBP";
+            return sOut;
+        }
         
+        public static User GetUserRecord(string id)
+        {
+            string sql = "Select * from USERS where id = '" + id + "'";
+            DataTable dt = gData.GetDataTable(sql);
+            User u = new User();
+            if (dt.Rows.Count > 0)
+            {
+                u.EmailAddress = dt.Rows[0]["EmailAddress"].ToString();
+                u.UserId = dt.Rows[0]["id"].ToString();
+                u.UserName = dt.Rows[0]["username"].ToString();
+            }
+            return u;
+        }
+        public static void PayMonthlyOrphanSponsorships()
+        {
+
+            try
+            {
+                UpdateBBPPrices();
+
+                string sql = "select * from SponsoredOrphan where userid is not null and lastpaymentdate < getdate()-30";
+                DataTable dt1 = gData.GetDataTable(sql);
+                for (int i = 0; i < dt1.Rows.Count; i++)
+                {
+                    string userid = dt1.Rows[i]["userid"].ToString();
+                    double dAmtGross = gData.GetScalarDouble(sql, "MonthlyAmount");
+                    double dMatchPct = GetDouble(dt1.Rows[i]["matchpercentage"]);
+                    double dMatchAmt = dAmtGross * dMatchPct;
+                    double dAmt = Math.Round(dAmtGross - dMatchAmt, 2);
+                    double dBalance = GetUserBalance(userid);
+                    double dMonthly = GetBBPAmountDouble(dAmt);
+                    string id = dt1.Rows[i]["id"].ToString();
+                    string sUserId = dt1.Rows[i]["userid"].ToString();
+                    string sChildID = dt1.Rows[i]["childid"].ToString();
+                    string sLastNotified = dt1.Rows[i]["LastNotified"].ToString();
+                    if (sLastNotified == "") sLastNotified = "1-1-1970";
+                    TimeSpan tLastNotifyElapsed = DateTime.Now - Convert.ToDateTime(sLastNotified);
+                    TimeSpan tElapsed = DateTime.Now - Convert.ToDateTime(dt1.Rows[i]["LastPaymentDate"]);
+
+                    if (dBalance > dMonthly)
+                    {
+                        // Charge each user for their monthly sponsorship
+                        string sql1 = "Update SponsoredOrphan set LastPaymentDate=getdate() where id='" + id.ToString() + "'";
+                        gData.Exec(sql1);
+                        string sNotes = "Sponsor Payment " + sChildID + " (rebate " + GetBBPAmountDouble(dMatchAmt).ToString() + " bbp)";
+                        sql1 = "Insert into SponsoredOrphanPayments (id,childid,amount,added,userid,updated,notes) values (newid(),'" + sChildID + "','" 
+                            + dMonthly.ToString() + "',getdate(),'" + userid + "',getdate(),'" + sNotes + "')";
+                        gData.Exec(sql1);
+                        AdjBalance(-1 * dMonthly, userid, sNotes);
+                    }
+                    else
+                    {
+                        try
+                        {
+                            // If  the 21 day grace period has already elapsed, move the child back to the pool:
+                            if (tElapsed.Days > 51)
+                            {
+                                Log("Child ID " + sChildID + " is being removed due to non payment.");
+                                sql = "Update SponsoredOrphan set LastPaymentDate=null, Userid=null where ID = '" + id + "'";
+                                gData.Exec(sql);
+                            }
+                            else if (tElapsed.Days > 30 && tElapsed.Days < 52 && tLastNotifyElapsed.Hours > 24)
+                            {
+                                // If they are within the 21 day grace period
+                                MailAddress r = new MailAddress("rob@saved.one", "The BiblePay Team");
+                                User u = GetUserRecord(sUserId);
+                                MailAddress t = new MailAddress(u.EmailAddress, u.UserName);
+                                MailAddress cc = new MailAddress("rob@biblepay.org", "Rob Andrews");
+                                MailMessage m = new MailMessage(r, t);
+                                m.Bcc.Add(cc);
+                                m.Subject = "Monthly Orphan Sponsorship Payment is Due";
+                                string sBody = "Dear " + u.UserName + ",<br><br>We are unable to deduct the monthly amount due of " + dMonthly.ToString() + " BBP for child " 
+                                    + sChildID + ".  Our records show that it has been " + tElapsed.Days.ToString() + " days since your last payment.  <br><br>  Will you please make a deposit into your Foundation account?  We will try again tomorrow, and then 20 more successive times.  If we cannot successfully charge your account for the sponsorship within the 21 day (grace period) we will automatically cancel your sponsorship and move the child back to the available pool.  <br><br>Thank you for understanding,<br>The BiblePay Team<br>";
+                                m.IsBodyHtml = true;
+                                m.Body = sBody;
+                                bool fSent = SendMail(m);
+                                sql = "Update SponsoredOrphan set LastNotified = getdate() where id = '" + id + "'";
+                                gData.Exec(sql);
+                            }
+                        }
+                        catch (Exception ex1)
+                        {
+                            Log("PayMonthlyOrphanSponsorships: " + ex1.Message);
+                        }
+
+                    }
+                }
+            }catch(Exception ex2)
+            {
+                Log("PayMonthlyOrphanSponsorships[2]:" + ex2.Message);
+            }
+            string test = "";
+
+        }
         public static string GetBaseHomeFolder()
         {
             string sHomePath = (Environment.OSVersion.Platform == PlatformID.Unix ||
@@ -415,7 +861,6 @@ namespace Saved.Code
 
         public static string RenderGauge(int width, string Name, int value)
         {
-
             string s = "<div id='chart_div'></div><script type=text/javascript> google.load( *visualization*, *1*, {packages:[*gauge*]});"
                 + "     google.setOnLoadCallback(drawChart);"
                 + "      function drawChart() {"
@@ -431,10 +876,8 @@ namespace Saved.Code
             s += "</script>";
             s = s.TrimEnd(',').Replace('*', '"');
             return s;
-
         }
-
-
+        
         public static bool ToBool(object c)
         {
             if (c == null || c==DBNull.Value) return false;
@@ -544,6 +987,68 @@ namespace Saved.Code
             return HTML;
         }
 
+        public static string GetCharityTableHTML(string sql)
+        {
+            string css = "<style> html {    font-size: 1em;    color: black;    font-family: verdana }  .r1 { font-family: verdana; font-size: 10; }</style>";
+            string logo = "https://www.biblepay.org/wp-content/uploads/2018/04/Biblepay70x282_96px_color_trans_bkgnd.png";
+            string name = "BiblePay";
+            string sLogoInsert = "<img width=300 height=100 src='" + logo + "'>";
+            string HTML = "<HTML>" + css + "<BODY><div><div style='margin-left:12px'><TABLE class=r1><TR><TD width=95%>" + sLogoInsert
+                + "<td width=5% align=right>Accountability</td><td>" + DateTime.Now.ToShortDateString() + "</td></tr>";
+
+            HTML += "<TR><TD><td></tr>" + "<TR><TD><td></tr>" + "<TR><TD><td></tr>";
+            HTML += "</table>";
+
+            string header = "<TR><Th>Date<Th>Amount<th>Charity<th>Child Name<th>Child ID<th>Balance<Th width=30%>Notes</tr>";
+            HTML += "<table width=100%>" + header + "<tr><td colspan=7 width=100%><hr></tr>";
+            SqlCommand command = new SqlCommand(sql);
+            double nDR = 0;
+            double nCR = 0;
+            double nTotal = 0;
+            DataTable dt = gData.GetDataTable(command, false);
+            string sCharity = "";
+            string sOldDate = "";
+            for (int i = 0; i < dt.Rows.Count; i++)
+            {
+                double dAmt = GetDouble(dt.Rows[i]["Amount"]);
+                string sType = dAmt >= 0 ? "DR" : "CR";
+                nTotal += GetDouble(dt.Rows[i]["Balance"]);
+                string dt1 = Convert.ToDateTime(dt.Rows[i]["Added"]).ToShortDateString();
+                sCharity = dt.Rows[i]["Charity"].ToString();
+                string row = "<tr><td align=right>" + dt1 + "<td align=right>" + DoFormat(GetDouble(dt.Rows[i]["Amount"])) + "<td align=right>" + dt.Rows[i]["Charity"].ToString()
+                    + "<td align=right>" + dt.Rows[i]["Name"] + "<td align=right>" + dt.Rows[i]["ChildID"] + "<td align=right>" + DoFormat(GetDouble(dt.Rows[i]["Balance"])) 
+                    + "<td align=right><small>" + dt.Rows[i]["Notes"].ToString() + "</small></tr>";
+                
+                // Add the totals
+                if (dAmt > 0)
+                { 
+                    nDR += dAmt;
+                }
+                else
+                {
+                    nCR += dAmt;
+                }
+                
+                if (sOldDate != dt1 && i > 1)
+                {
+                    HTML += "<tr><td colspan=10><hr></td></tr>";
+                }
+
+                HTML += row;
+                sOldDate = dt1;
+            }
+            sql = "update sponsoredOrphan set balance = (Select top 1 Balance from OrphanExpense where SponsoredOrphan.childid=orphanexpense.childid order by added desc)\r\n"
+                + "Select sum(balance) balance from sponsoredOrphan where charity='" + sCharity + "'";
+            double nAmt = gData.GetScalarDouble(sql, "balance");
+
+
+            HTML += "<tr><td>&nbsp;</td></tr>";
+            HTML += "<tr><td>BALANCE:<td><td>" + DoFormat(nAmt) + "</tr>";
+            HTML += "</body></html>";
+            return HTML;
+        }
+
+
         public static string Sign(string sPrivKey, string sMessage, bool fProd)
         {
             if (sPrivKey == null || sMessage == String.Empty || sMessage == null)
@@ -601,7 +1106,7 @@ namespace Saved.Code
 
         public static double GetEstimatedHODL(bool fWithCompounding, double nBonusPercent)
         {
-            string sql = "select sum(amount)/3/4500001*365 amt from sanctuaryPayment where added > getdate()-3.15";
+            string sql = "select sum(amount)/7/4500001*365 amt from sanctuaryPayment where added > getdate()-7";
             double nROI = gData.GetScalarDouble(sql, "amt");
             nROI += nBonusPercent;
             if (fWithCompounding)
@@ -666,7 +1171,126 @@ namespace Saved.Code
             var isValidated = hasNumber.IsMatch(pw) && hasUpperChar.IsMatch(pw) && hasMinimum8Chars.IsMatch(pw);
             return isValidated;
         }
-        
+
+        public static string GetTd2(DataRow dr, string colname, string sAnchor, string sPrefix = "", bool fBold = false)
+        {
+            string val = dr[colname].ToString();
+            string sBold = fBold ? "<b>" : "";
+            string td = "<td><nobr>" + sBold + sPrefix + sAnchor + val + "</a></td>";
+            return td;
+        }
+
+        public static string GetTweetList(string sUserId, int days, bool fExcludeUser = false)
+        {
+            if (sUserId == "" || sUserId == null)
+                sUserId = "BAF8C6FE-E1B2-42FB-0000-4A8289A90CA2";  // system user
+
+            string sql = "Select * from Tweet left Join Users on Users.ID = Tweet.UserID left join TweetRead on TweetRead.ParentID=Tweet.ID and TweetRead.UserID = '"
+                + sUserId + "' where tweet.added > getdate()-" + days.ToString() + " order by Tweet.Added desc";
+            DataTable dt = gData.GetDataTable(sql);
+            string html = "<table class=saved><tr><th>Read?<th width=20%>User</th><th width=20%>Added<th width=50%>Subject";
+            if (fExcludeUser)
+            {
+                html = "<table class=saved><tr><th width=20%>User<th width=20%>Added<th width=50%>Subject";
+
+            }
+            for (int y = 0; y < dt.Rows.Count; y++)
+            {
+                SavedObject s = RowToObject(dt.Rows[y]);
+                string sUserName = NotNull(s.Props.UserName);
+                if (sUserName == "")
+                    sUserName = "N/A";
+                string sAnchor = "<a href='https://foundation.biblepay.org/TweetView.aspx?id=" + s.Props.id.ToString() + "'>";
+                string sReadTime = dt.Rows[y]["ReadTime"].ToNonNullString();
+                bool fBold = sReadTime == "" ? false : true;
+                string sCheckmark = sReadTime != "" ? "<i class='fa fa-check'></i>&nbsp;" : "<i class='fa fa-envelope'></i>&nbsp;";
+
+                string div = "<tr>";
+                if (!fExcludeUser)
+                    div += GetTd2(dt.Rows[y], "ReadTime", sAnchor, sCheckmark, fBold);
+
+                div += "<td>" + GetAvatar(s.Props.Picture) + "&nbsp;" + sUserName + "</td>";
+
+                div += Common.GetTd2(dt.Rows[y], "Added", sAnchor, sCheckmark, fBold)  +  Common.GetTd2(dt.Rows[y], "subject", sAnchor, sCheckmark, fBold) + "</tr>";
+
+                html += div + "\r\n";
+            }
+            html += "</table>";
+            return html;
+        }
+
+        public static bool SendMassDailyTweetReport()
+        {
+            try
+            {
+                SmtpClient client = new SmtpClient();
+                client.UseDefaultCredentials = false;
+                client.Credentials = new System.Net.NetworkCredential("1", "2"); // Do not change these values, change the config values.
+                client.Port = 587;        // this is critical
+                client.EnableSsl = true;  // this is critical
+                                          // smtp.office365.com; sender@domain.org; smtppassword (Works with exchange)
+                client.Host = GetBMSConfigurationKeyValue("smtphost");
+                client.DeliveryMethod = SmtpDeliveryMethod.Network;
+                client.UseDefaultCredentials = false;
+                client.Credentials = new NetworkCredential(GetBMSConfigurationKeyValue("smtpuser"), GetBMSConfigurationKeyValue("smtppassword"));
+
+                // First we check to see if we have any tweets that have not been mass notified in 24 hours
+                string sql = "Select count(*) ct from Tweet where added > getdate()-1";
+                // if none we bail
+                double dLast24 = gData.GetScalarDouble(sql, "ct");
+                if (dLast24 < 1)
+                    return true;
+                // Now we need a manifest of tweets that have gone out in the last 30 days
+                sql = "Select id from tweet where added > getdate()-2 order by added desc";
+                string TweetID = gData.GetScalarString(sql, "id");
+
+                sql = "Select * from Users where verification='Deliverable' and isnull(emailaddress,'') != '' and Unsubscribe is null and isnull(LastEmail,'1-1-1970') < getdate()-2 and Users.ID not in (Select userid from tweetread where parentid='" + TweetID + "')";
+                //                sql = "Select * from Users where Users.id = 'BAF8C6FE-E1B2-42FB-9999-4A8289A90CA2'";
+
+                DataTable dt1 = gData.GetDataTable(sql);
+                MailAddress rTo = new MailAddress("rob@biblepay.org", "BiblePay Team");
+                MailAddress r = new MailAddress("rob@saved.one", "BiblePay Team");
+
+                MailMessage m = new MailMessage(r, rTo);
+
+                m.Subject = "My Tweet Report";
+                m.IsBodyHtml = true;
+
+                string sData = GetTweetList("", 14, true);
+                string sBody = "<html><br>Dear BiblePay Foundation User, <br><br>You have unread tweets that have been added in the last 14 days.  <br><br>This report will show you tweets that our users have paid for that they believe are extremely valuable.  <br><br>We will only send this report once per new tweet and only if you have not read the most recent tweet in 24 hours.<br><br>";
+                sBody += sData;
+                sBody += "<br><br>To unsubscribe from this transactional e-mail, please edit your account settings <a href=https://foundation.biblepay.org/AccountEdit>here</a> and click unsubscribe.<br><br>The BiblePay Tweet Team";
+
+                m.Body = sBody;
+
+                for (int i = 0; i < dt1.Rows.Count; i++)
+                {
+
+                    MailAddress t = new MailAddress(dt1.Rows[i]["EmailAddress"].ToString(), dt1.Rows[i]["UserName"].ToString());
+                    m.Bcc.Add(t);
+                    sql = "Update Users set LastEmail=getdate() where id = '" + dt1.Rows[i]["id"].ToString() + "'";
+                    gData.Exec(sql);
+                }
+
+                try
+                {
+                     client.Send(m);
+                     return true;
+                }
+                catch (Exception e)
+                {
+                     Console.WriteLine("Error in Send email: {0}", e.Message);
+                     return false;
+                }
+                 
+            }
+            catch (Exception ex2)
+            {
+                Log("Cannot send Mass Mail: " + ex2.Message);
+            }
+            return false;
+        }
+
         public static bool SendMail(MailMessage message)
         {
             try
@@ -698,7 +1322,6 @@ namespace Saved.Code
             }
             return false;
         }
-
 
         public static string GetPWNarr()
         {
@@ -818,6 +1441,7 @@ namespace Saved.Code
 
         private static int iRowModulus = 0;
         private static object cs_log = new object();
+        private static string mLastLogData = "";
         public static void Log(string sData, bool fQuiet=false)
         {
             lock (cs_log)
@@ -825,9 +1449,12 @@ namespace Saved.Code
                 {
                     try
                     {
+                        if (sData == mLastLogData)
+                            return;
                         iRowModulus++;
                         if ((fQuiet && iRowModulus % 100 == 0) || (!fQuiet))
                         {
+                            mLastLogData = sData;
                             string sPath = GetFolderUploads("foundation.log");
                             System.IO.StreamWriter sw = new System.IO.StreamWriter(sPath, true);
                             string Timestamp = DateTime.Now.ToString();
@@ -900,10 +1527,35 @@ namespace Saved.Code
             return nBalance;
         }
 
-
-        public static string GetUserBalance(Page p)
+        public static string GetUserIDByAPIKey(string sAPIKEY)
         {
-            return GetTotalFrom(gUser(p).UserId.ToString(), "Deposit").ToString();
+            string sql = "Select ID from Users where APIKEY=@apikey";
+            SqlCommand command = new SqlCommand(sql);
+            command.Parameters.AddWithValue("@apikey", sAPIKEY);
+            string sID = gData.GetScalarString(command, "id");
+            return sID;
+        }
+        public static bool ChargeTransaction(string sAPIKEY, double nBytes, string sTransType, string sFN)
+        {
+            string sUserId = GetUserIDByAPIKey(sAPIKEY);
+            if (sUserId == "")
+                return false;
+
+            double dAmount = nBytes / 1000000;
+            string sNotes = sTransType + " " + nBytes.ToString() + " " + Left(sFN, 100);
+            AdjBalance(-1 * dAmount, sUserId, sNotes);
+            return true;
+        }
+
+
+        public static double GetUserBalance(string id)
+        {
+            return GetTotalFrom(id, "Deposit");
+        }
+
+        public static double GetUserBalance(Page p)
+        {
+            return GetTotalFrom(gUser(p).UserId.ToString(), "Deposit");
         }
 
         public static string GetTotalSancInvestment(Page p)
@@ -1014,6 +1666,8 @@ namespace Saved.Code
             {
                 u.UserId = dt.Rows[0]["Id"].ToString();
                 u.Require2FA = GetDouble(dt.Rows[0]["TwoFactor"]);
+                u.Admin = GetDouble(dt.Rows[0]["Admin"].ToString()) == 0 ? false : true;
+
                 u.RandomXBBPAddress = dt.Rows[0]["RandomXBBPAddress"].ToNonNullString();
             }
 
@@ -1043,16 +1697,11 @@ namespace Saved.Code
             return sOut;
         }
 
-
         public static string GetPathFromTube(string sURL)
         {
-            string sFolderPath = "h:\\youtube\\";
-            //string[] vTube = sURL.Split(new string[] { "/" }, StringSplitOptions.None);
+            string sFolderPath = "c:\\inetpub\\wwwroot\\Saved\\Uploads\\";
             sURL += "&";
-
             string sTube = ExtractXML(sURL, "v=", "&").ToString();
-
-
             string[] files = System.IO.Directory.GetFiles(sFolderPath, "*.mp4");
             for (int i = 0; i < files.Length; i++)
             {
@@ -1094,13 +1743,11 @@ namespace Saved.Code
 
             return data;
         }
-        public static string Chop(string source, int iHowMuch)
+        public static string Left(string source, int iHowMuch)
         {
-            int nLeft = source.Length - iHowMuch;
-            if (nLeft < 1)
-                return "";
-            string sOut = source.Substring(0, nLeft);
-            return sOut;
+            if (source.Length < iHowMuch)
+                return source;
+            return source.Substring(0, iHowMuch);
         }
 
         public static string GetAvatar(object field)
@@ -1117,6 +1764,7 @@ namespace Saved.Code
             //public string EmailAddress;
             public bool LoggedIn;
             public bool Admin;
+            public string EmailAddress;
             public string UserId;
             public bool TwoFactorAuthorized;
             public double Require2FA;
@@ -1155,22 +1803,97 @@ namespace Saved.Code
         }
         public static void GetVideo(string sURL)
         {
-            MyWebClient w = new MyWebClient();
-            string sData = w.DownloadString(sURL);
-            string sTitle = ExtractXML(sData, "<title>", "</title>").ToString();
-            sTitle = sTitle.Replace("YouTube", "");
-            sTitle = sTitle.Replace("- ", "");
-            sTitle = sTitle.Trim();
-            ProcessStartInfo psi = new ProcessStartInfo();
-            psi.FileName = "C:\\code\\youTubeDownloader\\youtube-dl.exe";
-            psi.WorkingDirectory = "h:\\youtube\\";
-            psi.Arguments = sURL + " -w --verbose --write-description --no-check-certificate";
-            psi.WindowStyle = ProcessWindowStyle.Hidden;
-            Process p = Process.Start(psi);
-            p.WaitForExit(60000 * 15);
+            try
+            {
+                
+                string vidArgs = sURL + " -w -f mp4 --verbose --write-description --no-check-certificate";
+                string res = run_cmd("c:\\inetpub\\wwwroot\\Saved\\bin\\youtube-dl.exe", vidArgs);
+            }
+            catch(Exception ex)
+            {
+                Log("GetVideo::" + ex.Message);
+            }
+        }
+        // coding horror
+        ///
+        /// CreateProcessWithLogonW is the unmangaged method used to launch a process under the context of
+        /// alternative, user provided, credentials. It is called by the managed method CreateProcessAsUser
+        /// defined earlier in this class. Further information is available on MSDN under
+        /// CreateProcessWithLogonW (a href="http://msdn.microsoft.com/library/default.asp?url=/library/en-us/"http://msdn.microsoft.com/library/default.asp?url=/library/en-us//a
+        /// dllproc/base/createprocesswithlogonw.asp).
+        ///
+        /// Whether to load a full user profile(param value = 1) or perform a
+        /// network only (param value = 2) logon.
+        /// The application to execute (populate either this parameter
+        /// or the commandLine parameter).
+        /// The command to execute.
+        /// Flags that control how the process is created.
+        ///
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+        static extern bool CreateProcessWithLogonW(string userName, string domain, string password, int logonFlags, string applicationPath, string commandLine,
+        int creationFlags, IntPtr environment, string currentDirectory, ref StartupInformation startupInformation, out ProcessInformation processInformation);
+
+        /*
+        /// CloseHandle closes an open object handle.
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool CloseHandle(IntPtr handle);
+        */
+
+
+        /// 
+        /// The StartupInformation structure is used to specify the window station, desktop, standard handles
+        /// and appearance of the main window for the new process. Further information is available on MSDN
+        /// under STARTUPINFO (a href="http://msdn.microsoft.com/library/en-us/dllproc/base/startupinfo_str.asp)."http://msdn.microsoft.com/library/en-us/dllproc/base/startupinfo_str.asp)./a
+        /// 
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        struct StartupInformation
+        {
+            internal int cb;
+            internal string reserved;
+            internal string desktop;
+            internal string title;
+            internal int x;
+            internal int y;
+            internal int xSize;
+            internal int ySize;
+            internal int xCountChars;
+            internal int yCountChars;
+            internal int fillAttribute;
+            internal int flags;
+            internal UInt16 showWindow;
+            internal UInt16 reserved2;
+            internal byte reserved3;
+            internal IntPtr stdInput;
+            internal IntPtr stdOutput;
+            internal IntPtr stdError;
+        }
+
+        /// 
+        /// The ProcessInformation structure contains information about the newly created process and its
+        /// primary thread.
+        /// 
+        /// hProcess is a handle to the newly created process.
+        /// hThread is a handle to the primary thread of the newly created process.
+        [StructLayout(LayoutKind.Sequential)]
+        struct ProcessInformation
+        {
+            internal IntPtr hProcess;
+            internal IntPtr hThread;
+            internal int processId;
+            internal int threadId;
         }
 
 
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool GetExitCodeProcess(IntPtr process, ref UInt32 exitCode);
+
+        [DllImport("Kernel32.dll", SetLastError = true)]
+        public static extern UInt32 WaitForSingleObject(IntPtr handle, UInt32 milliseconds);
+
+
+        // end of coding horror
         public const int LOGON32_LOGON_INTERACTIVE = 2;
         public const int LOGON32_PROVIDER_DEFAULT = 0;
 

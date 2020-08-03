@@ -72,45 +72,9 @@ namespace Saved
                 +           "<tr><td>Added:<td>" + s.Props.Added.ToString()     + "</td></tr>"
                 +                "<tr><td>Subject:<td>" + s.Props.Subject + "</td></tr>"
                 +               "<tr><td>Body:<td colspan=2>" + sBody + "</td></tr></table>";
-            div += GetComments();
+            div += GetComments(id,this);
 
             return div;
-        }
-        public string GetComments()
-        {
-            // Shows the comments section for the object.  Also shows the replies to the comments.
-            string id = Request.QueryString["id"].ToString();
-            string sql = "Select * from Comments Inner Join Users on Users.ID = Comments.UserID  where comments.ParentID = @id";
-            SqlCommand command = new SqlCommand(sql);
-            command.Parameters.AddWithValue("@id", id);
-            DataTable dt = gData.GetDataTable(command);
-            string sHTML = "<div><h3>Comments:</h3><br>"
-                +"<table style='padding:10px;' width=100% >"
-                +"<tr><th>User<th>Added<th>Comment</tr>";
-
-            for (int i = 0; i < dt.Rows.Count; i++)
-            {
-                SavedObject s = RowToObject(dt.Rows[i]);
-
-                string sUserPic = GetAvatar(s.Props.Picture);
-
-                string sUserName = NotNull(s.Props.UserName);
-                if (sUserName == "")
-                    sUserName = "N/A";
-
-                string div = "<tr><td>" + sUserPic  + "<br>"+ sUserName + "</br></td><td>"+ s.Props.Added.ToString() + "</td><td>"+ s.Props.Body
-                    + "</td></tr>";
-                sHTML += div;
-
-            }
-            sHTML += "</table><table width=100%><tr><th colspan=2><h2>Add a Comment:</h2></tr>";
-
-            string sButtons = "<tr><td>Comment:</td><td><textarea id='txtComment' name='txtComment' rows=10  style='width: 70%;' cols=70></textarea><br><br><button id='btnSaveComment' name='btnSaveComment' value='Save'>Save Comment</button></tr>";
-
-            sButtons += "</table></div>";
-
-            sHTML += sButtons;
-            return sHTML;
         }
     }
 }

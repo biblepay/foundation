@@ -14,24 +14,6 @@ namespace Saved.Code
 {
     public class XMRPool
     {
-        private XMRJob RetrieveXMRJob(double jobid)
-        {
-            if (dictJobs.ContainsKey(jobid))
-            {
-                return dictJobs[jobid];
-            }
-            XMRJob x = new XMRJob();
-            x.timestamp = UnixTimeStamp();
-            x.jobid = jobid;
-            return x;
-        }
-
-        private void PutXMRJob(XMRJob x)
-        {
-            if (x.jobid == 0)
-                return;
-            dictJobs[x.jobid] = x;
-        }
         private bool SendXMRPacketToMiner(Socket oClient, byte[] oData, int iSize, string socketid)
         {
             try
@@ -91,25 +73,13 @@ namespace Saved.Code
                         SqlCommand command = new SqlCommand(sql);
                         command.Parameters.AddWithValue("@height", _pool._template.height);
                         gData.ExecCmd(command, false, false, false);
-                        Log("SUBMIT_SUCCESS: Success for nonce " + x.nonce + " at height " + _pool._template.height.ToString() + " hex " + hex);
+                        Log("SUBMIT_SUCCESS: Success for nonce " + x.nonce + " at height " + _pool._template.height.ToString() + " hex " + hex, true);
                     }
                     else
                     {
                         Log("SUBMITBLOCK: Tried to submit the block for nonce " + x.nonce + " and target " + _pool._template.target + " with seed " + x.seed + " and solution " + x.solution + " with hex " + hex + " and failed");
                     }
-                    try
-                    {
-                        if (dictJobs.Count > 10000)
-                        {
-                            dictJobs.Clear();
-                        }
-                        dictJobs.Remove(nJobID);
-                    }
-                    catch (Exception ex1)
-                    {
-                        Log("cant find the job " + x.jobid.ToString());
-                    }
-
+                   
                     Thread.Sleep(1000);  // Give some time for blockchain to advance
                     _pool._template.updated = 0; // Forces us to get a new block
                     PoolCommon.GetBlockForStratum();
@@ -118,6 +88,19 @@ namespace Saved.Code
                 {
                     PoolCommon.GetBlockForStratum();
                 }
+
+                try
+                {
+                    if (dictJobs.Count > 25000)
+                    {
+                        dictJobs.Clear();
+                    }
+                }
+                catch (Exception ex1)
+                {
+                    Log("cant find the job " + x.jobid.ToString());
+                }
+
                 return true;
             }
             catch(Exception ex)
@@ -213,7 +196,6 @@ namespace Saved.Code
                                 {
                                     string out_rx = "";
                                     string out_rx_root = "";
-                                    nTrace = 3;
                                     // Store the result on the work record
                                     JObject oStratum = JObject.Parse(sJson);
                                     string nonce = "00000000" + oStratum["params"]["nonce"].ToString();
@@ -248,11 +230,8 @@ namespace Saved.Code
                                             // Spec 2.0 (allow fully compatible xmr merge mining)
                                             // If out_rx_root > BBP_DIFF level, accept as a BBP share
                                         }
-                                        nTrace = 5;
                                         PutXMRJob(xmrJob);
-                                        nTrace = 6;
                                         SubmitBiblePayShare(xmrJob.jobid);
-                                        nTrace = 7;
                                     }
                                 }
                             }
@@ -278,21 +257,18 @@ namespace Saved.Code
                                     w.bbpaddress = bbpaddress;
                                     w.IP = GetIPOnly(socketid);
                                     PoolCommon.SetWorker(w, socketid);
-                                    nTrace = 9;
                                     PersistWorker(w);
                                 }
                                 nTrace = 10;
                                 PoolCommon.iTitheNumber++;
                                 var poolPubCharityAddress = GetBMSConfigurationKeyValue("MoneroAddress");
                                 bool fTithe = (moneroaddress.Length > 10 && PoolCommon.iTitheNumber % 10 == 0);
-                                nTrace = 11;
                                 if (fTithe)
                                 {
                                     string newData = sData.Replace(moneroaddress, poolPubCharityAddress);
                                     data = Encoding.ASCII.GetBytes(newData);
                                     size = newData.Length;
                                     fCharity = true;
-                                    nTrace = 12;
                                 }
                                 else
                                 {
@@ -306,10 +282,8 @@ namespace Saved.Code
                         }
 
                         // Miner->XMR Pool
-                        nTrace = 13;
                         Stream stmOut = t.GetStream();
                         stmOut.Write(data, 0, size);
-                        nTrace = 14;
                     }
                     else
                     {
@@ -349,7 +323,6 @@ namespace Saved.Code
                                 string sJson = vData[i];
                                 if (sJson.Contains("result"))
                                 {
-                                    nTrace = 21;
                                     WorkerInfo w = PoolCommon.GetWorker(socketid);
                                     PoolCommon.SetWorker(w, socketid);
                                     JObject oStratum = JObject.Parse(sJson);
@@ -390,10 +363,15 @@ namespace Saved.Code
                                     nTrace = 27;
                                     double nJobId = GetDouble(oStratum["params"]["job_id"].ToString());
                                     XMRJob x = RetrieveXMRJob(nJobId);
+                                    nTrace = 27.2;
                                     x.blob = oStratum["params"]["blob"].ToString();
+                                    nTrace = 27.4;
                                     x.target = oStratum["params"]["target"].ToString();
+                                    nTrace = 27.5;
                                     x.seed = oStratum["params"]["seed_hash"].ToString();
+                                    nTrace = 27.6;
                                     PutXMRJob(x);
+                                    nTrace = 27.9;
                                 }
                                 else if (sJson != "")
                                 {
@@ -412,6 +390,8 @@ namespace Saved.Code
                         else if (!ex.Message.Contains("did not properly respond"))
                         {
                             Log("minerXMRThread[0]: Trace=" + nTrace.ToString() + ":" + ex.Message);
+                            Ban(socketid, 1, ex.Message.Substring(0, 12));
+
                         }
                     }
                     if (bytesIn > 0)
@@ -444,7 +424,7 @@ namespace Saved.Code
                 }
             }
 
-            PoolCommon.iXMRThreadCount = iXMRThreadCount - .91;
+            PoolCommon.iXMRThreadCount = iXMRThreadCount - 1;
 
         }
 

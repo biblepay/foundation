@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Google.Authenticator.WebSam
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Google.Authenticator", "GoogleAuthenticator-master\Google.Authenticator\Google.Authenticator.csproj", "{DAC3D229-1AFE-4A03-8F94-92696491A229}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PoolService", "PoolService\PoolService.csproj", "{35ACA53C-A506-469B-A7F4-214687E9D97B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{DAC3D229-1AFE-4A03-8F94-92696491A229}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DAC3D229-1AFE-4A03-8F94-92696491A229}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DAC3D229-1AFE-4A03-8F94-92696491A229}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35ACA53C-A506-469B-A7F4-214687E9D97B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35ACA53C-A506-469B-A7F4-214687E9D97B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35ACA53C-A506-469B-A7F4-214687E9D97B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35ACA53C-A506-469B-A7F4-214687E9D97B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

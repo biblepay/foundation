@@ -23,12 +23,11 @@ namespace Saved
             //http://san.biblepay.org/Mission/Logos/CompassionLogo.png
             //http://san.biblepay.org/Mission/Logos/KairosLogo.png
 
-            string sNarr = "<h2 align=center><br>BIBLEPAY - DECENTRALIZED WEB</h3><br><br>From here, you can view Christian Spaces, Accountability, Orphans, and more.<br><br><br><br><br>";
-            string sLogos = "JesusLogo.jpg|CameroonOneLogo.png|CompassionLogo.png|KairosLogo.png|DashPayLogo.png|boinclogo.jpg|SouthXChangeLogo.png";
-            string sClicks = "jesus-christ.us/Jesus/JesusChrist.htm|cameroonone.org|compassion.com|kairoschildrensfund.com|dash.org|boinc.berkeley.edu|www.southxchange.com/Market/Book/BBP/BTC";
+            string sLogos = "JesusLogo.jpg|sai.jpg|CameroonOneLogo.png|CompassionLogo.png|KairosLogo.png|DashPayLogo.png|boinclogo.jpg|SouthXChangeLogo.png";
+            string sClicks = "jesus-christ.us/Jesus/JesusChrist.htm|sai.ngo|cameroonone.org|compassion.com|kairoschildrensfund.com|dash.org|boinc.berkeley.edu|www.southxchange.com/Market/Book/BBP/BTC";
             string[] vLogos = sLogos.Split(new string[] { "|" }, StringSplitOptions.None);
             string[] vURLS = sClicks.Split(new string[] { "|" }, StringSplitOptions.None);
-            string sPartners = "<table border=0><tr><td colspan=5><b>Partners Spotlight:</b></td></tr>"
+            string sPartners = "<br><h3>Partners Spotlight:</h3><table border=1px bordercolor=lime>"
                 + "<tr>";
             int iCols = 4;
             int iColNo = 0;
@@ -36,7 +35,7 @@ namespace Saved
             {
 
                 string sURL = vURLS[i];
-                sPartners += "<td><a href=http://" + sURL + "><img width=225 height=100 src=http://san.biblepay.org/Mission/Logos/" + vLogos[i] + " /></a>&nbsp;&nbsp;</td>";
+                sPartners += "<td style='padding:5px;' ><a href=http://" + sURL + "><img width=225 height=100 src=http://san.biblepay.org/Mission/Logos/" + vLogos[i] + " /></a>&nbsp;&nbsp;</td>";
                 iColNo++;
                 if (iColNo == iCols)
                 {

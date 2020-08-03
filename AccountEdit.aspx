@@ -1,4 +1,4 @@
-﻿<%@ Page Title="Contact" Language="C#" MasterPageFile="~/Site.Master" AutoEventWireup="true" CodeBehind="AccountEdit.aspx.cs" Inherits="Saved.AccountEdit" %>
+﻿<%@ Page Title="Account Edit" Language="C#" MasterPageFile="~/Site.Master" AutoEventWireup="true" CodeBehind="AccountEdit.aspx.cs" Inherits="Saved.AccountEdit" %>
 
 
 
@@ -32,10 +32,17 @@
 
 
 
-       <tr><td>User Name:</asp:Label></td>
+       <tr><td>User Name:</td></td>
            <td><asp:TextBox ID="txtUserName" readonly runat="server"></asp:TextBox></td></tr>
 
-
+        <tr><td>Account Balance:</td></td>
+           <td><asp:TextBox ID="txtMyBalance" readonly runat="server"></asp:TextBox></td></tr>
+ 
+        <tr><td>Unsubscribe from E-mails:</td>
+            <td><asp:CheckBox ID="chkUnsubscribe" runat="server" /></asp:CheckBox>
+            <font color="red"><small>Note: If you unsubscribe from our e-mails, you will no longer be eligibile for video rewards, bonuses, promotions, giveaways, tweet rewards, gospel rewards, or randomx bonsuses and you will be out of the loop on emergency notifications.</font></small>
+                </td>
+        </tr>
         <tr><td>Account 2FA Enabled:</asp:Label></td>
            <td><asp:TextBox ID="txtTwoFactorEnabled" readonly runat="server"></asp:TextBox></td></tr>
  

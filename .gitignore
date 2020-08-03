@@ -25,3 +25,8 @@ JesusChrist/mainmenu.htm
 Properties/PublishProfiles/FolderProfile.pubxml.user
 Saved.csproj.user
 Images/blockssolved.png
+*.pubxml
+*.cache
+PoolService/bin/Debug/System.Web.Optimization.xml
+PoolService/bin/Debug/PoolService.exe.config
+PoolService/bin/Debug/PoolService.exe

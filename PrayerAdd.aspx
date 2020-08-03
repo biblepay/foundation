@@ -1,4 +1,4 @@
-﻿<%@ Page Title="Contact" Language="C#" MasterPageFile="~/Site.Master" AutoEventWireup="true" CodeBehind="PrayerAdd.aspx.cs" Inherits="Saved.PrayerAdd" %>
+﻿<%@ Page Title="Prayer Add" Language="C#" MasterPageFile="~/Site.Master" AutoEventWireup="true" CodeBehind="PrayerAdd.aspx.cs" Inherits="Saved.PrayerAdd" %>
 
 <asp:Content ID="BodyContent" ContentPlaceHolderID="MainContent" runat="server">
     <h2>Prayer Request - Add New Prayer Request</h2>

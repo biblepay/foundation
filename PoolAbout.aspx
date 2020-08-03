@@ -19,10 +19,12 @@
 
     <br />
     <p>
+        <span><font color="red">
+            <br /><%=Saved.Code.Common.PoolBonusNarrative() %>
 
+              </font></span>
     </p>
-    <hr />
-
+    
     <hr />
     <%=GetPoolAboutMetrics() %>
     <br />

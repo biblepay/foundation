@@ -21,9 +21,9 @@ namespace Saved
 
             if (sURL == "collage")
             {
-                string sql = "Select * from Orphans order by charity, childid";
+                string sql = "select ChildID,Charity,URL,sponsoredOrphan.Added,Name,BIOURL,AboutCharity,users.username  from sponsoredOrphan left join Users on Users.ID = SponsoredOrphan.Userid  Where ChildID != 'VARIOUS-TBD'  order by Charity,Name";
                 DataTable dt = gData.GetDataTable(sql);
-                string sHTML = "<table cellpadding=7><tr>";
+                string sHTML = "<table><tr>";
                 int iTD = 0;
                 string sErr = "";
                 for (int i = 0; i < dt.Rows.Count; i++)
@@ -31,12 +31,13 @@ namespace Saved
                     // Each Orphan should be a div with their picture in it
                     string sMyBIO = dt.Rows[i]["URL"].ToString();
                     string sName = dt.Rows[i]["ChildID"].ToString() + " - " + dt.Rows[i]["Charity"].ToString();
-                    string sImg = ScrapeImage(sMyBIO, dt.Rows[i]["Charity"].ToString(), sName);
+                    string sBioImg = dt.Rows[i]["BioURL"].ToString();
+                    string sSponsoredBy = dt.Rows[i]["Username"].ToString() == "" ? "BiblePay" : dt.Rows[i]["Username"].ToString();
 
-                    if (sImg != "")
+                    if (sBioImg != "")
                     {
-                        string sMyOrphan = "<td style='border=1px solid black'><a href='" + sMyBIO + "'>" + sName
-                            + "<br><img style='width:300px;height:250px' src='" + sImg + "'></a></td>";
+                        string sMyOrphan = "<td style='padding:7px;border:1px solid lightgrey' cellpadding=7 cellspacing=7><a href='" + sMyBIO + "'>" + sName
+                            + "<br>Sponsored by: " + sSponsoredBy + "<br><img style='width:300px;height:250px' src='" + sBioImg + "'></a><br></td>";
 
                         sHTML += sMyOrphan;
                         iTD++;

@@ -51,6 +51,12 @@ namespace Saved.Code
                     GetBlockForStratum();
                     iStart++;
                 }
+
+                if (Debugger.IsAttached)
+                {
+                    // We can put unit test code in here etc:
+                }
+
                 Thread.Sleep(60000);
                 if (!Debugger.IsAttached)
                 {
@@ -58,6 +64,7 @@ namespace Saved.Code
                     Leaderboard();
                     Pay();
                     PurgeSockets(false);
+                    PurgeJobs();
                 }
             }
         }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+using static Saved.Code.StringExtension;
 
 namespace Saved
 {
@@ -21,9 +22,16 @@ namespace Saved
 
             if (sTitle == "")
             {
-                sTitle = Session["MSGBOX_TITLE"].ToString();
-                sMessageBody = Session["MSGBOX_BODY"].ToString();
+                sTitle = Session["MSGBOX_TITLE"].ToNonNullString();
+                sMessageBody = Session["MSGBOX_BODY"].ToNonNullString();
             }
+
+
+            if (sTitle == "")
+                sTitle = "An error has occurred.";
+            if (sMessageBody == "")
+                sMessageBody = "An error of unknown origin has occurred.";
+
             string sHTML = "<br><h2>" + sTitle + "</h2><hr><br><br><p><span>" + sMessageBody + "</span>";
             return sHTML;
         }

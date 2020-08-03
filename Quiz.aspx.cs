@@ -26,11 +26,15 @@ namespace Saved
             SqlCommand command = new SqlCommand(sql);
             command.Parameters.AddWithValue("@quizid", sID);
             double d1 = gData.GetScalarDouble(command, "ct");
+            string sIP = (HttpContext.Current.Request.UserHostAddress ?? "").ToString();
+            sql = "Select count(*) ct from Quiz where ip='" + sIP + "' and Solved > getdate()-1";
+            double d2 = gData.GetScalarDouble(sql, "ct");
+
             sql = "Select count(*) ct from QuizParticipant where bbpaddress=@bbp";
             command = new SqlCommand(sql);
             command.Parameters.AddWithValue("@bbp", sBBP);
             double dBBP = gData.GetScalarDouble(command, "ct");
-            if (d1 < 1 || dBBP < 1)
+            if (d1 < 1 || dBBP < 1 || d2 > 0)
             {
                 MsgBox("Solved", "Sorry, this quiz has been solved by someone already or does not exist, or you have solved one within the last frequency range.  ", this);
                 return;
@@ -227,12 +231,16 @@ namespace Saved
 
             string poolAccount = GetBMSConfigurationKeyValue("PoolPayAccount");
             string txid = SendMany(p, poolAccount, "Quiz " + Request.QueryString["id"].ToString());
-            sql = "Update Quiz Set Solved=getdate(), TXID=@txid, Book=@book, bbpaddress=@bbpaddress where id=@quizid";
+            string sIP = (HttpContext.Current.Request.UserHostAddress ?? "").ToString();
+
+            sql = "Update Quiz Set Solved=getdate(), IP=@ip, TXID=@txid, Book=@book, bbpaddress=@bbpaddress where id=@quizid";
             command = new SqlCommand(sql);
             command.Parameters.AddWithValue("@txid", txid);
             command.Parameters.AddWithValue("@book", _studybook);
             command.Parameters.AddWithValue("@bbpaddress", txtBBP.Text);
             command.Parameters.AddWithValue("@quizid", Request.QueryString["id"].ToString());
+            command.Parameters.AddWithValue("@ip", sIP);
+
             gData.ExecCmd(command);
             string sNarr = "Congratulations!  You solved the verses of " + _studybook + " first, and won the prize of " + nReward.ToString() + " BBP.  <p>The reward has been transmitted " + txid + ".<p><p>  Thank you for participating! <p><p>And, thank you for learning the Gospel of Jesus Christ!";
             // reset

@@ -20,7 +20,6 @@ namespace Saved
         {
             try
             {
-                double nBP = .10;
                 string s = RenderGauge(250, "HODL %", (int)(GetEstimatedHODL(true, .10) * 100));
                 return s;
             }

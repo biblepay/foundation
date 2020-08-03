@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Mail;
 using System.Web;
@@ -22,7 +23,45 @@ namespace Saved
             string id = Saved.Code.BMS.PurifySQL(Request.QueryString["id"].ToNonNullString(), 50);
             string action = Saved.Code.BMS.PurifySQL(Request.QueryString["action"].ToNonNullString(), 50);
             string claim = Saved.Code.BMS.PurifySQL(Request.QueryString["claim"].ToNonNullString(), 50);
+            string faucet = Request.QueryString["faucet"].ToNonNullString();
 
+            if (Debugger.IsAttached)
+                CoerceUser(Session);
+
+            if (faucet == "1")
+            {
+                if (!gUser(this).LoggedIn)
+                {
+                    MsgBox("Logged Out", "Sorry, you must be logged in to claim the faucet reward.  Please join our forum <a href=https://forum.biblepay.org>from here, then come back and claim the reward</a>.", this);
+                    return;
+                }
+                if (gUser(this).Require2FA != 1)
+                {
+                    MsgBox("2FA Required", "Sorry, you must have 2FA enabled to claim the faucet reward.", this);
+                    return;
+                }
+                string sIP = (HttpContext.Current.Request.UserHostAddress ?? "").ToString();
+                sIP = sIP.Replace("::ffff:", "");
+
+                string sql = "Select Claimed from Users where id='" + gUser(this).UserId.ToString() + "' OR ip='" + sIP + "'";
+                double dClaimed = gData.GetScalarDouble(sql, "Claimed");
+                if (dClaimed == 0)
+                {
+                    double nReward = 100;
+ 
+                    sql = "Update Users set Claimed = 1,ip='" + sIP + "' where id = '" + gUser(this).UserId.ToString() + "'";
+                    AdjBalance(nReward, gUser(this).UserId.ToString(), "New User Faucet Bonus");
+                    gData.Exec(sql);
+                    MsgBox("Claimed", "Congratulations, your account has been credited with " + nReward.ToString() + " BBP!<br>  Thank you for becoming part of our community.<br><br>NOTE:  To see your balance, navigate to ACCOUNT.  To withdraw, navigate to the DEPOSIT/WITHDRAW page.  ", this);
+
+                }
+                else
+                {
+                    MsgBox("Already Claimed", "Sorry, this reward was already claimed.", this);
+                }
+                return;
+
+            }
             if (id != "")
             {
                 string sql = "Update Leads set Landed=getdate() where id = '" + id + "'";

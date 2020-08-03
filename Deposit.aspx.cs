@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -16,55 +17,27 @@ namespace Saved
     public partial class Deposit : Page
     {
 
-        protected string _depositreport = "";
         protected void Page_Load(object sender, EventArgs e)
         {
+            if (Debugger.IsAttached)
+                CoerceUser(Session);
+
             if (gUser(this).LoggedIn == false)
             {
                 MsgBox("Log In Error", "Sorry, you must be logged in first.", this);
                 return;
             }
-            double nReport = GetDouble(Request.QueryString["report"] ?? "");
-            if (nReport == 1)
-            {
-                _depositreport = GetHistory();
-            }
-            else
-            {
-                _depositreport = "";
-            }
+            PayVideos(gUser(this).UserId.ToString());
+            DepositReport();
+
 
         }
 
-        protected string GetHistory()
-        {
-            int nHeight = _pool._template.height;
-
-            string sql = "Select * FROM DEPOSIT WHERE userid=@userid and Amount is not null order by Added";
-            SqlCommand command = new SqlCommand(sql);
-            command.Parameters.AddWithValue("@userid", gUser(this).UserId.ToString());
-            DataTable dt = gData.GetDataTable(command);
-            string html = "<br><h4>Transaction History Report</h4><br><table class=saved><tr><th width=25%>Notes<th>TXID<th>Date<th>Amount<th>Height</tr>";
-
-            for (int y = 0; y < dt.Rows.Count; y++)
-            {
-                double nAmount = GetDouble(dt.Rows[y]["Amount"]);
-                string div = "<tr><td>" + dt.Rows[y]["Notes"].ToString()
-                    + "<td><small><nobr>" + dt.Rows[y]["TXID"].ToString() + "</nobr></small>" 
-                    + "<td>" + dt.Rows[y]["added"].ToString()
-                    + "<td>" + dt.Rows[y]["Amount"].ToString()
-                    + "<td>" + dt.Rows[y]["Height"].ToString() + "</tr>";
-                html += div + "\r\n";
-            }
-            html += "</table>";
-            return html;
-        }
-
+      
         protected void btnDepositReport_Click (object sender, EventArgs e)
         {
-            Response.Redirect("Deposit?report=1");
+            Response.Redirect("Report?name=deposithistory");
         }
-
 
         public double GetTotal(string userid)
         {
@@ -123,6 +96,13 @@ namespace Saved
             if (!bValid)
             {
                 MsgBox("Invalid Address", "Sorry, the withdrawal address is invalid.", this);
+                return;
+            }
+
+            string email = gUser(this).EmailAddress.ToNonNullString();
+            if (email == "")
+            {
+                MsgBox("Email Address Invalid", "Sorry, the email address is not valid.", this);
                 return;
             }
 

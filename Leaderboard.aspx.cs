@@ -108,7 +108,7 @@ namespace Saved
                         string sCategory = dt1.Rows[nGospelRow]["category"].ToString();
                         string sName = dt1.Rows[nGospelRow]["Notes"].ToString();
                         string sId = dt1.Rows[nGospelRow]["id"].ToString();
-                        double nAmt = 250;
+                        double nAmt = GetDouble(GetBMSConfigurationKeyValue("VideoRewardAmount"));
                         string sAnchor = "<a href='Media?id=" + sId + "'>here</a>";
                         string sNarr = "A " + sCategory + " video is available.  Click " + sAnchor + " to earn a " + nAmt.ToString() + " BBP reward for watching the video.";
                         html += "<br><div><span>" + sNarr + "</span></div>";

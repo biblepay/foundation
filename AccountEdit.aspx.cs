@@ -16,7 +16,7 @@ namespace Saved
         protected void Page_Load(object sender, EventArgs e)
         {
 
-            if (false && Debugger.IsAttached)
+            if (true && Debugger.IsAttached)
                 CoerceUser(Session);
 
             if (true)
@@ -29,6 +29,7 @@ namespace Saved
             }
 
             txtTwoFactorEnabled.Text = gUser(this).Require2FA == 1 ? "Enabled" : "Disabled";
+            txtMyBalance.Text = GetUserBalance(this).ToString();
 
             string sql = "Select * from users where username=@username";
             SqlCommand command = new SqlCommand(sql);
@@ -107,7 +108,7 @@ namespace Saved
         protected void btnSave_Click(object sender, EventArgs e)
         {
 
-            string sql = "Update Users set randomxbbpaddress=@rx where id=@id";
+            string sql = "Update Users set randomxbbpaddress=@rx,unsubscribe=@unsubscribe,updated=getdate() where id=@id";
 
             SqlCommand command = new SqlCommand(sql);
             /*
@@ -118,9 +119,14 @@ namespace Saved
             }
             */
             command.Parameters.AddWithValue("@rx", txtRandomXAddress.Text);
-
             command.Parameters.AddWithValue("@id", _id);
+            object unsubscribe = chkUnsubscribe.Checked ? (object)"1" : DBNull.Value;
+            command.Parameters.AddWithValue("@unsubscribe", unsubscribe);
             gData.ExecCmd(command);
+            User gu =(User)Session["CurrentUser"];
+            gu.RandomXBBPAddress = txtRandomXAddress.Text;
+            Session["CurrentUser"] = gu;
+            
             MsgBox("Account Updated", "Your Account has been updated.", this);
         }
         

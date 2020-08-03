@@ -17,6 +17,8 @@ using Amazon.S3.Model;
 using System;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using System.Diagnostics;
+using System.Net.Http;
 
 namespace Saved
 {
@@ -24,6 +26,11 @@ namespace Saved
     {
         protected void Page_Load(object sender, EventArgs e)
         {
+
+            if (Debugger.IsAttached)
+                CoerceUser(Session);
+
+
             if (!gUser(this).Admin)
             {
                 MsgBox("Restricted", "Sorry this page is for admins only.", this);
@@ -91,113 +98,173 @@ namespace Saved
         
         protected void btnRemoveBounce_Click(object sender, EventArgs e)
         {
+            if (!gUser(this).Admin)
+            {
+                Log("BRB");
+                MsgBox("Restricted", "Sorry this page is for admins only.", this);
+                return;
+            }
+
+
+            SendMassDailyTweetReport();
+
+            return;
+            // TODO - figure out how to update the bounce status on the server, and sync the users with new email addresses
+
+            PoolCommon.SyncUsers();
+
+
             string sql = "Select top 5555 * from Leads where Verification is null and source like '%pobh%'";
+            sql = "Select * from Users where verification is null and isnull(emailaddress,'') != ''";
             DataTable dt = gData.GetDataTable(sql);
             for (int i = 0; i < dt.Rows.Count; i++)
             {
-                string email = dt.Rows[i]["email"].ToString();
+                string email = dt.Rows[i]["emailAddress"].ToString();
                 string id = dt.Rows[i]["id"].ToString();
                 string response = VerifyEmailAddress(email, id);
+                sql = "Update users set verification='" + response + "' where id = '" + id + "'";
+                gData.Exec(sql);
+
                 string test = "";
             }
                 
             string sTest = "";
 
         }
+
+            
+
         protected void btnDSQL_Click(object sender, EventArgs e)
         {
-            DataTable dt1 = UnchainedDatabase.GetDataTable("test");
-
-            for (int i = 1; i < 99; i++)
+            if (!gUser(this).Admin)
             {
-                string data = "test " + i.ToString();
-                UnchainedDatabase.Insert("test", i.ToString(), data);
+                Log("DSQL CBNA");
+                MsgBox("Restricted", "Sorry this page is for admins only.", this);
+                return;
+            }
 
+            // Replicate the Rapture table
+            // Read in the rapture table, add a record, update the view, read the record
+            string sql = "Select * from Rapture order by added";
+            DataTable dt = gData.GetDataTable(sql);
+            for (int iRow = 0; iRow < dt.Rows.Count; iRow++)
+            {
+                DataRow dr1 = dt.Rows[iRow];
+                UnchainedDatabase.InsertSQL("rapture", dr1["id"].ToString(), dr1);
+            }
+
+            string s2 = Uplink.Read("rapture/FFF9E193-32D7-4401-84F7-A9EFE470781C");
+
+            DataRow dp1 = UnchainedDatabase.DeserializeDataRow(s2);
+
+
+            // Verify one record
+            string sData = Uplink.Read("test/10");
+            DataRow dr199 = UnchainedDatabase.DeserializeDataRow(sData);
+
+            Uplink.CreateView("test2");
+            Uplink.CreateView("rapture");
+
+            DataTable dt1234 = Uplink.GetDataTableByView("rapture");
+            string test1 = "";
+
+            DataRow[] foundRows = dt1234.Select("Notes like '%peters%'", "Notes desc");
+
+            DataTable dt2 = foundRows.CopyToDataTable();
+
+
+            // Store 1000 records; retrieve 1000 records; store the cache; retrieve the cache
+
+
+            if (false)
+            {
+                DataTable dt1 = Uplink.GetFakeDataset();
+
+                for (int i = 1; i < 999; i++)
+                {
+                    string data = "new-test " + i.ToString();
+                    UnchainedDatabase.InsertSQL("test2", i.ToString(), dt1.Rows[i]);
+
+                }
             }
             string mytest = "";
 
         }
 
+        public static void SubmitPart(string sURL)
+        {
+            MyWebClient w = new MyWebClient();
+            string sValue = "1234";
+            w.Headers.Add("APIKey", sValue);
+            w.Headers.Add("data", "12345");
+            string sFile = "c:\\dominos.png";
+            byte[] b = System.IO.File.ReadAllBytes(sFile);
+
+            byte[] e = w.UploadData(sURL, b);
+
+            string test = "";
+
+        }
+
         protected void btnCopyToAWS_Click(object sender, EventArgs e)
         {
-        
-            // Convert unconverted RequestVideo to Rapture videos
-            string sql = "Select * from Rapture where url is not null and FileName like '%mp4%' and url2 is null";
 
-            DataTable dt = gData.GetDataTable(sql);
-            for (int i = 0; i < dt.Rows.Count; i++)
+            if (!gUser(this).Admin)
             {
-                string url = dt.Rows[i]["url"].ToString();
-                string fnsource = dt.Rows[i]["FileName"].ToString();
-                string path = "s:\\Rapture\\" + fnsource;
-                string notes = dt.Rows[i]["Notes"].ToString();
-                string sId = dt.Rows[i]["id"].ToString();
-                if (System.IO.File.Exists(path))
-                {
-
-                    Task<string> myTask = Uplink.Store2(fnsource, "notes", notes, path);
-                    sql = "Update Rapture set Url2='" + myTask.Result + "' where id = '" + sId + "'";
-                    gData.Exec(sql);
-
-                }
-                else
-                {
-                    string sOneTest = "";
-
-                }
+                Log("Clicked by non aws user");
+                MsgBox("Restricted", "Sorry this page is for admins only.", this);
+                return;
             }
+
+            // Replicate the Rapture Table
+            UnchainedDatabase.ReplicateTable("rapture");
+
+            //string sDir = FileSplitter.SplitFile("c:\\dominos.png");
+            //FileSplitter.ResurrectFile(sDir, "d1.png");
+            // Test the ls performance of 99 parts
+
+            DataTable dt1 = Uplink.GetFakeDataset();
+            // Filter (as in where clause)
+
+            DataRow[] foundRows = dt1.Select("Col1 like '%4%' or Col2 like '%4%'", "Col1 desc");
+            DataTable dt2 = foundRows.CopyToDataTable();
+            // Write data row to file
+            UnchainedDatabase.InsertSQL("tbltest", "1", foundRows[17]);
+
+            return;
 
         }
 
 
         protected void btnConvert_Click(object sender, EventArgs e)
         {
-            // Convert unconverted RequestVideo to Rapture videos
-            string sql = "Select * from RequestVideo where status is null";
+            string test =             Saved.Code.PoolCommon.GetChartOfSancs();
 
+
+            // Upgrade san.biblepay images to uplink images
+            string sql = "Select id,url from  SponsoredOrphan where url like '%san.biblepay%' ";
             DataTable dt = gData.GetDataTable(sql);
-            for (int i = 0; i < dt.Rows.Count; i++)
+            for (int i =0; i < dt.Rows.Count; i++)
             {
-                string url = dt.Rows[i]["url"].ToString();
-                // Convert this particular youtube URL into a rapture video
-                // Then store in the rapture table with an uncategorized category
-                GetVideo(url);
-                string sPath = GetPathFromTube(url);
-                // Convert the path to hash
-                string sNewFileName = "700" + sPath.GetHashCode().ToString() + ".mp4";
-
-                System.IO.FileInfo fi = new FileInfo(sPath);
-                string sHeading = Chop(fi.Name, 16);
-
-                string notes = sHeading + "\r\n\r\n"+ Chop(GetNotes(sPath), 4000);
-                string sNewPath = "s:\\Rapture\\" + sNewFileName;
-
-                fi.CopyTo(sNewPath,true);
-
-                sql = "Insert into Rapture (id,added,Notes,URL,timestamp,FileName,Category) values (newid(), getdate(), @notes, @url, 0, @filename, @category)";
-                SqlCommand command = new SqlCommand(sql);
-                command.Parameters.AddWithValue("@notes", notes);
-                string sNewUrl = "https://video.biblepay.org/" + sNewFileName;
-                command.Parameters.AddWithValue("@url", sNewUrl);
-                command.Parameters.AddWithValue("@filename", sNewFileName);
-                command.Parameters.AddWithValue("@category", "Miscellaneous");
-
-                gData.ExecCmd(command);
-
-                sql = "Update RequestVideo set Status='FILLED' where id = '" + dt.Rows[i]["id"].ToString() + "'";
-
+                string bio = dt.Rows[i]["url"].ToString();
+                string sURL = Uplink.Replicate(bio);
+                sql = "Update SponsoredOrphan set url='" + sURL + "' where id = '" + dt.Rows[i]["id"].ToString() + "'";
                 gData.Exec(sql);
-
             }
-
             lblStatus.Text = "Updated " + DateTime.Now.ToString();
 
         }
 
 
-
         protected void btnSave_Click(object sender, EventArgs e)
         {
+
+            if (!gUser(this).Admin)
+            {
+                Log("Clicked save from non admin");
+                MsgBox("Restricted", "Sorry this page is for admins only.", this);
+                return;
+            }
 
             StringBuilder sb = new StringBuilder();
 
@@ -230,6 +297,12 @@ namespace Saved
         }
         protected void btnPDF_Click(object sender, EventArgs e)
         {
+            if (!gUser(this).Admin)
+            {
+                Log("Clicked from non pdf");
+                MsgBox("Restricted", "Sorry this page is for admins only.", this);
+                return;
+            }
 
             // Make an Unchained Object
             UnchainedTransaction u = new UnchainedTransaction();

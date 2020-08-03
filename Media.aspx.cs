@@ -16,8 +16,27 @@ namespace Saved
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-            if (true && Debugger.IsAttached)
+            if (Debugger.IsAttached)
                  CoerceUser(Session);
+
+
+            string sSave = Request.Form["btnSaveComment"].ToNonNullString();
+            string mediaid = Request.QueryString["mediaid"] ?? "";
+            if (sSave != "" && mediaid.Length > 1)
+            {
+                if (gUser(this).UserName == "")
+                {
+                    MsgBox("Nick Name must be populated", "Sorry, you must have a username to save a tweet reply.  Please navigate to Account Settings | Edit to set your UserName.", this);
+                    return;
+                }
+                string sql = "Insert into Comments (id,added,userid,body,parentid) values (newid(), getdate(), @userid, @body, @parentid)";
+                SqlCommand command = new SqlCommand(sql);
+                command.Parameters.AddWithValue("@userid", gUser(this).UserId);
+                command.Parameters.AddWithValue("@body", Request.Form["txtComment"]);
+                command.Parameters.AddWithValue("@parentid", mediaid);
+                gData.ExecCmd(command);
+            }
+
 
             // Respect the category (Current, Historical, Rapture, Guest-Pastor, etc).
             string id = Request.QueryString["id"].ToNonNullString();
@@ -79,6 +98,14 @@ namespace Saved
 
         }
 
+        public string GetUserName(string userid)
+        {
+            if (userid == "")
+                return "";
+            string sql = "Select * from USERS where id = '" + userid + "'";
+            string username = gData.GetScalarString(sql, "username");
+            return username;
+        }
         public string GetMedia()
         {
             string category = Request.QueryString["category"].ToNonNullString();
@@ -106,14 +133,13 @@ namespace Saved
 
                  if (sVideoID.Length > 1)
                  {
-                     double nReward = 250;
+                    double nReward = GetDouble(GetBMSConfigurationKeyValue("VideoRewardAmount"));
                      double dSize = Saved.Code.BMS.GetWebResourceSize(sURL);
-
-                     string sql1 = "Insert into Tip (id,userid,amount,added,videoid,starttime,size) values (newid(),'" + gUser(this).UserId.ToString() + "','" + nReward.ToString() + "',getdate(),'" + sVideoID + "',getdate(),'" + dSize.ToString() + "')";
+                     string sql1 = "Insert into Tip (id,userid,amount,added,videoid,starttime,size,category) values (newid(),'" + gUser(this).UserId.ToString() 
+                        + "','" + nReward.ToString() + "',getdate(),'" + sVideoID + "',getdate(),'" + dSize.ToString() + "','" + sCategory + "')";
                      gData.Exec(sql1);
-                     // Reward the user
-                     AdjBalance(nReward, gUser(this).UserId.ToString(), "Video Reward [" + sCategory  + "]");
-                     html += "<br>Congratulations!  You will be rewarded " + nReward.ToString() + " for watching this video.  Please do not click away until you gain something from the video.  <br><br> ";
+                     html += "<br>Congratulations!  You will be rewarded up to " + nReward.ToString() 
+                        + " for watching this video.  Please do not click away until you gain something from the video, otherwise you will not receive the full reward.  <br><br> ";
                  }
             }
 
@@ -126,15 +152,20 @@ namespace Saved
             
             bool fAdmin = gUser(this).Admin;
             bool fRelink = dt.Rows.Count > 1;
+
+            string sTable = "<table cellpadding=20px cellspacing=20px>";
+            html += sTable;
             for (int y = 0; y < dt.Rows.Count; y++)
             {
                 string sNotes = GetNotesHTML(dt.Rows[y]["Notes"].ToString());
-                if (sNotes.Length > 512) sNotes = sNotes.Substring(0, 512);
+                if (sNotes.Length > 777) sNotes = sNotes.Substring(0, 777);
                 string sEditURL = "<a href=Markup.aspx?type=Rapture&id=" + dt.Rows[y]["id"].ToString() + ">Edit</a>";
 
                 string sAnchor = "<div><a href=Media.aspx?mediaid=" + dt.Rows[y]["id"].ToString() + ">";
+                string sUserID = dt.Rows[y]["userid"].ToString();
+                string sUserName = GetUserName(sUserID);
 
-                string sDiv = "<table cellpadding=20px cellspacing=20px><tr><td>";
+                string sDiv = "<tr><td width=30%>";
 
                 if (fRelink)
                     sDiv += sAnchor;
@@ -149,15 +180,23 @@ namespace Saved
                 if (fRelink)
                     sDiv += "</a></div>";
 
-                sDiv += "<td style='padding:20px;font-size:16px;'>&nbsp;&nbsp;" + sNotes + "</td>";
+                string sFooter = "";
+                if (sUserName != "")
+                    sFooter = "Uploaded by " + sUserName;
+                sDiv += "<td style='padding:20px;font-size:16px;' width=70%>&nbsp;&nbsp;" + sNotes + "<br><small>" + sFooter + "</small></td>";
                 
                 
                 if (fAdmin)
                     sDiv += "<td>" + sEditURL + "</td>";
 
-                sDiv += "</tr></table>";
+                sDiv += "</tr>";
                 html += sDiv;
 
+            }
+            html += "</table>";
+            if (mediaid != "")
+            {
+                html += GetComments(mediaid, this);
             }
             return html;
         }

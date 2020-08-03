@@ -20,6 +20,12 @@
             <br />Additionally, the Founder would like to see maximum growth (and maximum net sponsorships), so we are making children available here that are partially subsidized by matches.  </li>
         <li>Q:  Why are the kids from two Charities only?  
             <br />A:  We currently partner with a few vetted charities, (<a href=Partners>see our partners page here</a>), but to expand to new charities we must hold a sanctuary vote.</li>
+        <li>Q:  What if I don't understand how to buy BBP on an exchange, or part of this sounds complicated?
+            <br />A:  We have a forum at (https://forum.biblepay.org) that can answer some questions.  But feel free to send an e-mail to rob@biblepay.org and the founder will help you get started.
+        </li>
+        <li>Q:  I don't understand how to open an account here?
+            <br />A:  Please register first at https://forum.biblepay.org - then use that username to log into https://foundation.biblepay.org .  If you have any trouble, please e-mail rob@biblepay.org.  Thank You!
+        </li>
 
     </ul>
 

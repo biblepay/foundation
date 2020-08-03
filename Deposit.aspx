@@ -8,11 +8,7 @@
 
     <hr />
 
-    <%=_depositreport%>
-
-    <%=DepositReport() %>
-    <br />
-
+    
     <table>
     <tr><td>    Deposit Address:&nbsp;<td>    <asp:TextBox ID="txtDepositAddress" width="500px" readonly runat="server" ></asp:TextBox></tr>
     <tr><td>    Balance:          <td>    <asp:TextBox ID="txtBalance" width="200px" readonly runat="server" ></asp:TextBox></tr>

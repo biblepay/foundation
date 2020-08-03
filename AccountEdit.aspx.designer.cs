@@ -51,6 +51,24 @@ namespace Saved
         protected global::System.Web.UI.WebControls.TextBox txtUserName;
 
         /// <summary>
+        /// txtMyBalance control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox txtMyBalance;
+
+        /// <summary>
+        /// chkUnsubscribe control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.CheckBox chkUnsubscribe;
+
+        /// <summary>
         /// txtTwoFactorEnabled control.
         /// </summary>
         /// <remarks>

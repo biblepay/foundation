@@ -128,13 +128,16 @@
     <Content Include="BMS\LAST_MANDATORY_VERSION.aspx" />
     <Content Include="DonateNow.aspx" />
     <Content Include="DonorMatchList.aspx" />
+    <Content Include="AddExpense.aspx" />
+    <Content Include="Report.aspx" />
     <Content Include="SponsorOrphanList.aspx" />
+    <Content Include="DbSchemaAdd.aspx" />
     <Content Include="TweetView.aspx" />
     <Content Include="TweetList.aspx" />
     <Content Include="TweetAdd.aspx" />
     <Content Include="UnchainedUpload.aspx" />
     <Content Include="BMS\FaucetID.aspx" />
-    <Content Include="Corruption.aspx" />
+    <Content Include="temp_Corruption.aspx" />
     <Content Include="BMS\TrackDashPay.aspx" />
     <Content Include="BMS\DashPay.aspx" />
     <Content Include="Partners.aspx" />
@@ -149,12 +152,11 @@
     <Content Include="BlockHistory.aspx" />
     <Content Include="FractionalSanctuaries.aspx" />
     <Content Include="Deposit.aspx" />
-    <Content Include="QuizList.aspx" />
     <Content Include="Quiz.aspx" />
     <Content Include="PoolAbout.aspx" />
     <Content Include="GettingStarted.aspx" />
     <Content Include="Leaderboard.aspx" />
-    <Content Include="RequestVideo - Copy.aspx" />
+    <Content Include="RequestVideo.aspx" />
     <Content Include="Admin1.aspx" />
     <Content Include="MediaList.aspx" />
     <Content Include="PrayerView.aspx" />
@@ -247,12 +249,33 @@
     <Compile Include="DonorMatchList.aspx.designer.cs">
       <DependentUpon>DonorMatchList.aspx</DependentUpon>
     </Compile>
+    <Compile Include="AddExpense.aspx.cs">
+      <DependentUpon>AddExpense.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="AddExpense.aspx.designer.cs">
+      <DependentUpon>AddExpense.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Report.aspx.cs">
+      <DependentUpon>Report.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Report.aspx.designer.cs">
+      <DependentUpon>Report.aspx</DependentUpon>
+    </Compile>
     <Compile Include="SponsorOrphanList.aspx.cs">
       <DependentUpon>SponsorOrphanList.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
     <Compile Include="SponsorOrphanList.aspx.designer.cs">
       <DependentUpon>SponsorOrphanList.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="DbSchemaAdd.aspx.cs">
+      <DependentUpon>DbSchemaAdd.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="DbSchemaAdd.aspx.designer.cs">
+      <DependentUpon>DbSchemaAdd.aspx</DependentUpon>
     </Compile>
     <Compile Include="TweetView.aspx.cs">
       <DependentUpon>TweetView.aspx</DependentUpon>
@@ -292,12 +315,12 @@
     <Compile Include="Code\PoolCommon.cs" />
     <Compile Include="Code\Unchained.cs" />
     <Compile Include="Code\XMR.cs" />
-    <Compile Include="Corruption.aspx.cs">
-      <DependentUpon>Corruption.aspx</DependentUpon>
+    <Compile Include="temp_Corruption.aspx.cs">
+      <DependentUpon>temp_Corruption.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
-    <Compile Include="Corruption.aspx.designer.cs">
-      <DependentUpon>Corruption.aspx</DependentUpon>
+    <Compile Include="temp_Corruption.aspx.designer.cs">
+      <DependentUpon>temp_Corruption.aspx</DependentUpon>
     </Compile>
     <Compile Include="BMS\TrackDashPay.aspx.cs">
       <DependentUpon>TrackDashPay.aspx</DependentUpon>
@@ -400,13 +423,6 @@
     <Compile Include="Deposit.aspx.designer.cs">
       <DependentUpon>Deposit.aspx</DependentUpon>
     </Compile>
-    <Compile Include="QuizList.aspx.cs">
-      <DependentUpon>QuizList.aspx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
-    </Compile>
-    <Compile Include="QuizList.aspx.designer.cs">
-      <DependentUpon>QuizList.aspx</DependentUpon>
-    </Compile>
     <Compile Include="Quiz.aspx.cs">
       <DependentUpon>Quiz.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -435,12 +451,12 @@
     <Compile Include="Leaderboard.aspx.designer.cs">
       <DependentUpon>Leaderboard.aspx</DependentUpon>
     </Compile>
-    <Compile Include="RequestVideo - Copy.aspx.cs">
-      <DependentUpon>RequestVideo - Copy.aspx</DependentUpon>
+    <Compile Include="RequestVideo.aspx.cs">
+      <DependentUpon>RequestVideo.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
-    <Compile Include="RequestVideo - Copy.aspx.designer.cs">
-      <DependentUpon>RequestVideo - Copy.aspx</DependentUpon>
+    <Compile Include="RequestVideo.aspx.designer.cs">
+      <DependentUpon>RequestVideo.aspx</DependentUpon>
     </Compile>
     <Compile Include="Admin1.aspx.cs">
       <DependentUpon>Admin1.aspx</DependentUpon>

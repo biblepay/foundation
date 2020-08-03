@@ -45,7 +45,6 @@ namespace Saved
             }
         }
 
-        protected string _report = "";
         protected void Page_Load(object sender, EventArgs e)
         {
             if (Debugger.IsAttached)
@@ -54,26 +53,16 @@ namespace Saved
             if (gUser(this).LoggedIn == false)
             {
 
-                string Promotion = "<br><font color=red>LIMITED TIME PROMOTION:  <br><br>For a limited time, we will be giving away an extra 10% bonus resulting in a <b>52%</b> ROI for new users who set up fractional sanctuaries!<br>To Claim the reward, <ul>Please meet the following conditions: <li>Create an account at forum.biblepay.org after May 6th, 2020.  <li>Create a new Fractional Sanctuary.<li>Your Fractional Sanctuary page will clearly show the BONUS percentage on the page if you qualified.<li>There is no end date yet for this promotion.<li>If you have any questions or need help, please e-mail rob@biblepay.org </ul></font>Thank you for using BiblePay.";
+                string Promotion = "<br><font color=red>LIMITED TIME PROMOTION:  <br><br>For a limited time, we will be giving away an extra 10% bonus resulting in a higher ROI for new users who set up fractional sanctuaries!<br>To Claim the reward, <ul>Please meet the following conditions: <li>Create an account at forum.biblepay.org after May 6th, 2020.  <li>Create a new Fractional Sanctuary.<li>Your Fractional Sanctuary page will clearly show the BONUS percentage on the page if you qualified.<li>There is no end date yet for this promotion.<li>If you have any questions or need help, please e-mail rob@biblepay.org </ul></font>Thank you for using BiblePay.";
                 
                 MsgBox("Log In Error", "Sorry, you must be logged in first." + Promotion, this);
                 return;
             }
-
-            double nReport = GetDouble(Request.QueryString["FractionalSancReport"] ?? "");
-            if (nReport == 1)
-            {
-                _report = FractionalSancReport();
-            }
-            else
-            {
-                _report = "";
-            }
-
+           
             double nTotalFracSancBalance = Common.GetTotalFrom(gUser(this).UserId.ToString(), "SanctuaryInvestments");
             double nTotalBalance = Common.GetTotalFrom(gUser(this).UserId.ToString(), "Deposit");
             txtGlobalSancInvestments.Text = Common.GetTotalFrom("", "SanctuaryInvestments").ToString();
-            txtGlobalSancInvestmentCount.Text = GetCountFrom("SanctuaryInvestments").ToString();
+            txtGlobalSancInvestmentCount.Text = GetUserCountFrom("SanctuaryInvestments").ToString();
             txtBonusPercent.Text = (GetBonusPercent() * 100).ToString() + "%";
             txtFractionalSancBalance.Text = nTotalFracSancBalance.ToString();
             txtBalance.Text = nTotalBalance.ToString();
@@ -85,42 +74,19 @@ namespace Saved
             double nROI = GetEstimatedHODL(true, nBP);
             txtHODLPercent.Text = (nROI*100).ToString() + "%";
         }
-        
-
-        protected string FractionalSancReport()
-        {
-            string sql = "Select * FROM Deposit where userid=@userid and Amount is not null and Notes like 'Sanctuary Payment%' order by Added";
-            SqlCommand command = new SqlCommand(sql);
-            command.Parameters.AddWithValue("@userid", gUser(this).UserId.ToString());
-            DataTable dt = gData.GetDataTable(command);
-            string html = "<br><h4>Fractional Sanctuary Payment Report</h4><br><table class=saved><tr><th>Type</th><th>TXID<th>Date<th>Amount<th>Height<th width=35%>Notes</tr>";
-            for (int y = 0; y < dt.Rows.Count; y++)
-            {
-                double nAmount = GetDouble(dt.Rows[y]["Amount"]);
-                string sNarr = nAmount > 0 ? "Reward" : "Withdrawal";
-                string div = "<tr><td>" + sNarr + "<td><small><nobr>" + dt.Rows[y]["TXID"].ToString() + "</nobr></small>" 
-                    + "<td>" + dt.Rows[y]["added"].ToString()
-                    + "<td>" + dt.Rows[y]["Amount"].ToString()
-                    + "<td>" + dt.Rows[y]["Height"].ToString() + "<td>" + dt.Rows[y]["Notes"].ToString() + "</tr>";
-                html += div + "\r\n";
-            }
-            html += "</table>";
-            return html;
-        }
 
 
-        public double GetCountFrom(string table)
+        public double GetUserCountFrom(string table)
         {
             string sql = "Select count(userid) ct from " + table + " where amount is not null";
             SqlCommand command = new SqlCommand(sql);
             return gData.GetScalarDouble(command, "ct");
         }
-
-
+        
 
         protected void btnFracReport_Click(object sender, EventArgs e)
         {
-            Response.Redirect("FractionalSanctuaries.aspx?fractionalsancreport=1");
+            Response.Redirect("Report?name=fractionalsanctx");
         }
 
         protected void btnAddFractionalSanctuary_Click(object sender, EventArgs e)
@@ -166,7 +132,6 @@ namespace Saved
                 string sNarr = "The fractional sanctuary addition was successful <br><br><br>Now you can sit back and relax.  In approximately 24 hours, you will see new transactions in the Fractional Sanctuary report, and your sanctuary reward will automatically be credited to your balance.  <br><br>Thank you for using BiblePay!  ";
                 MsgBox("Success", sNarr, this);
                 return;
-
             }
             else
             {

@@ -18,6 +18,15 @@
     <br />
     <br />
     <%=GetPartners() %>
-    
+    <br />
+    <br />
+    <h3>Case Studies by our partners:</h3>
+    <br />
+
+    <table>
+        <tr><td width="20%">SAI<td width="20%">Orphans<td width="50%">&nbsp;<a href=https://sai.ngo/wp-content/uploads/2019/11/SAI-Brochure-1.pdf>PDF</a></tr>
+        <tr><td>SAI<td>Animals<td>&nbsp;<a href=https://sai.ngo/wp-content/uploads/2019/11/Animals-SAI-.pdf>PDF</a></tr>
+    </table>
+
     
 </asp:Content>

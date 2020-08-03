@@ -32,63 +32,224 @@ namespace Saved.Code
     public static class UnchainedDatabase
     {
 
-        public static Dictionary<int, string> dictObjects = new Dictionary<int, string>();
-
-        public static DataTable GetDataTable(string sTable)
+        public static string CreateSchema(string sTableName, string colnames, string datatypes)
         {
-            int iSleep = 0;
-            DataTable dt = new DataTable();
-            string o1 = "";
-            Dictionary<int, Thread> dictThreads = new Dictionary<int, Thread>();
-            int hiLevel = 312;
-            for (int i = 0; i < hiLevel; i++)
+            string[] vcolnames = colnames.Split(",");
+            if (vcolnames.Length < 2)
+                return "column names list must contain at least 2 items.";
+            for (int i = 0; i < vcolnames.Count(); i++)
             {
-                string sPrimaryKey = sTable + "/" + i.ToString() + ".dat";
-                ThreadStart starter = delegate { Uplink.Read(sPrimaryKey); };
-                dictThreads[i] = new Thread(starter);
-                dictThreads[i].Start();
-
+                if (vcolnames[i].Contains(" "))
+                    return "Cannot contain spaces.";
             }
-            for (int i = 0; i < hiLevel; i++)
+            string[] vdatatypes = datatypes.Split(",");
+            if (vdatatypes.Length < 2)
+                return "Datatypes list must contain at least 2 items.";
+            for (int i = 0; i < vdatatypes.Length; i++)
             {
-                dictThreads[i].Join();
+                string dt = vdatatypes[i];
+                bool bFound = false;
+                if (dt == "datetime" || dt == "guid" || dt == "float" || dt == "string")
+                    bFound = true;
+                if (!bFound)
+                    return "Invalid datatype";
             }
-            string test1 = "";
-            return dt;
+            string sSchema = "<TABLE>" + sTableName + "</TABLE><COLUMNNAMES>" + colnames + "</COLUMNNAMES><DATATYPES>" + datatypes + "</DATATYPES>";
+            Saved.Code.Uplink.StoreAndDelete("schema", sTableName, sSchema);
+            return "";
         }
-        private static int nFPK = -1;
-        public static int GetFilePrimaryKey(string sTable)
+
+        public static string SerializeDataTable(DataTable dt)
         {
-            if (nFPK > 0)
-                return nFPK;
-            for (int i = 0; i < 1000000; i++)
+            string sData = "";
+            string sRowDelimiter = "[~]";
+            for (int i = 0; i < dt.Rows.Count; i++)
             {
-                string sPrimaryKey = sTable + "/" + i.ToString() + ".dat";
-                string data = Uplink.Read(sPrimaryKey);
-                if (data == "")
+                string sRow = SerializeDataRow(dt.Rows[i]);
+                sData += sRow + sRowDelimiter;
+            }
+            return sData;
+        }
+
+        public static DataTable DeserializeDataTable(string sData)
+        {
+            string sRowDelimiter = "[~]";
+            DataTable dt = new DataTable();
+            if (sData == "" || sData == null)
+                return dt;
+
+            dt.Clear();
+            string[] vRows = sData.Split(sRowDelimiter);
+
+            if (vRows.Length >= 1)
+            {
+                DataRow dr = DeserializeDataRow(vRows[0]);
+                for (int i = 0; i < dr.Table.Columns.Count; i++)
                 {
-                    nFPK = i;
-                    return i;
+                    dt.Columns.Add(dr.Table.Columns[i].ColumnName);
                 }
             }
-            return -1;
+            for (int i = 0; i < vRows.Length; i++)
+            {
+                DataRow dr = DeserializeDataRow(vRows[i]);
+                dt.ImportRow(dr);
+            }
+            return dt;
         }
-        public static string Insert(string sTable, string ID, string sJsonObject)
-        {
-            // We need to know the max(rowid) in this table as we do inserts
-            string sFile = GetFilePrimaryKey(sTable) + ".dat";
-            string sPrimaryKey = sTable + "/" + sFile;
 
+        public static string SerializeDataRow(DataRow dr)
+        {
+            string sSchema = "<table>" + dr.Table.TableName + "</table>";
+            string sDelimiter = "[|]";
+            string sColDelimiter = "[-]";
+            string sData = "";
+            for (int i = 0; i < dr.Table.Columns.Count; i++)
+            {
+                string colName = dr.Table.Columns[i].ColumnName;
+                object colValue = dr[i];
+                string sType = dr.Table.Columns[i].DataType.ToString();
+                string sRow = sType + sDelimiter + i.ToString() + sDelimiter + colName + sDelimiter + colValue.ToNonNullString() + sDelimiter;
+                sData += sRow + sColDelimiter;
+            }
+            sData += sSchema;
+            return sData;
+        }
+        public static DataRow DeserializeDataRow(string sData)
+        {
+
+            if (sData.Length < 10)
+                return null;
+
+            DataTable dt = new DataTable();
+            dt.Clear();
+
+            DataRow _datarow = null;
+
+            // Data Row requires schema
+            string sDelimiter = "[|]";
+            string sColDelimiter = "[-]";
+            string[] vCols = sData.Split(sColDelimiter);
+            for (int zOp = 0; zOp <= 1; zOp++)
+            {
+                for (int i = 0; i < vCols.Length; i++)
+                {
+                    string sColumn = vCols[i];
+                    string[] vData = sColumn.Split(sDelimiter);
+                    if (vData.Length >= 3)
+                    {
+                        string sType = vData[0];
+                        double nColOrdinal = GetDouble(vData[1]);
+                        string sColName = vData[2];
+                        string sValue = vData[3];
+                        if (zOp == 0)
+                        {
+                            dt.Columns.Add(sColName);
+                        }
+                        else if (zOp == 1)
+                        {
+                            _datarow[i] = sValue;
+                        }
+
+                    }
+                }
+                if (zOp == 0)
+                    _datarow = dt.NewRow();
+                if (zOp == 1)
+                    dt.Rows.Add(_datarow);
+            }
+            string sTable = ExtractXML(sData, "<table>", "</table>").ToString();
+            _datarow.Table.TableName = sTable;
+            return _datarow;
+
+
+        }
+
+        public static string InsertSQL(string sTable, string sPrimaryKey, DataRow dr)
+        {
+            string sFullKey = "table-" + sTable + "/" + sPrimaryKey;
+            string sFile = sFullKey.GetHashCode().ToString() + ".dat";
+            string sPath = GetFolderUnchained("DataStaging");
+            string sFullpath = Path.Combine(sPath, sFile);
+            dr.Table.TableName = sTable;
+            string sData = SerializeDataRow(dr);
+            Unchained.WriteToFile(sFullpath, sData);
+            DataRow dr1000 = DeserializeDataRow(sData);
+            Task<List<string>> myTask = Uplink.Store2(sFullKey, "", "", sFullpath);
+            if (System.IO.File.Exists(sFullpath))
+                System.IO.File.Delete(sFullpath);
+            return myTask.Result[0];
+        }
+        public static string InsertJSON(string sTable, string ID, string sJsonObject)
+        {
+            string sFile = sJsonObject.GetHashCode() + ".dat";
+            string sPrimaryKey = sTable + "/" + sFile;
             string sPath = GetFolderUnchained("DataStaging");
             string sFullpath = Path.Combine(sPath, sFile);
             Unchained.WriteToFile(sFullpath, sJsonObject);
-            Task<string> myTask = Uplink.Store2(sPrimaryKey, "", "", sFullpath);
-            if (myTask.Result.Length > 0)
-            {
-                nFPK++;
-            }
-            return myTask.Result;
+            Task<List<string>> myTask = Uplink.Store2(sPrimaryKey, "", "", sFullpath);
+            return myTask.Result[0];
         }
+        public static string ConvertDataType(Type t)
+        {
+            string t1 = t.ToString();
+            string tout = "";
+            if (t1 == "System.String")
+            {
+                tout = "string";
+                return tout;
+            }
+            else if (t1 == "System.DateTime")
+            {
+                tout = "datetime";
+                return tout;
+
+            }
+            else if (t1 == "System.Guid")
+            {
+                tout = "guid";
+                return tout;
+            }
+            else if (t1 == "MONEY" || t1 == "FLOAT" || t1 == "System.Double")
+            {
+                tout = "float";
+                return tout;
+            }
+            else
+            {
+                throw new Exception("Unknown Type");
+            }
+            return tout;
+        }
+
+        public static Tuple<string,string> DescribeDataTableSchema(DataTable dt)
+        {
+            string colnames = "";
+            string datatypes = "";
+            for (int i = 0; i < dt.Columns.Count; i++)
+            {
+                colnames += dt.Columns[i].ColumnName + ",";
+                Type t1 = dt.Columns[i].DataType;
+                string sDataType = ConvertDataType(t1);
+                datatypes += sDataType + ",";
+
+            }
+            colnames = Left(colnames, colnames.Length - 1);
+            datatypes = Left(datatypes, datatypes.Length - 1);
+            Tuple<string, string> t = Tuple.Create(colnames, datatypes);
+            return t;
+        }
+        public static void ReplicateTable(string tablename)
+        {
+            string sql = "Select * from " + tablename + " order by added";
+            DataTable dt = gData.GetDataTable(sql);
+            Tuple<string, string> sSchema = DescribeDataTableSchema(dt);
+            CreateSchema(tablename, sSchema.Item1, sSchema.Item2);
+            for (int i = 0; i < dt.Rows.Count; i++)
+            {
+                InsertSQL(tablename, dt.Rows[i]["id"].ToString(), dt.Rows[i]);
+            }
+        }
+
     }
 
     public class UnchainedTransaction
@@ -135,34 +296,132 @@ namespace Saved.Code
             }
             return false;
         }
-       
-    public static async Task<string> Store2(string sKey, string sMetadataName, string sMetadataValue, string sFilePath)
+
+        public struct DataRowObject
         {
-            try
-            {
-                uplinkClient = new AmazonS3Client(GetBMSConfigurationKeyValue("s3key"), GetBMSConfigurationKeyValue("s3secret"), Amazon.RegionEndpoint.CACentral1);
-                // Open multiple storage threads in parallel for write speed (handled internally):
-                var fileTransferUtility = new TransferUtility(uplinkClient);
-                var fileTransferUtilityRequest = new TransferUtilityUploadRequest
+            public string Key;
+            public string TableName;
+        }
+        public static async Task<List<DataRowObject>> ListContentsOfTable(string sTableName)
+        {
+            uplinkClient = new AmazonS3Client(GetBMSConfigurationKeyValue("s3key"), GetBMSConfigurationKeyValue("s3secret"), Amazon.RegionEndpoint.CACentral1);
+            var lor = new ListObjectsRequest();
+            lor.BucketName = "biblepay";
+            lor.Prefix = sTableName;
+            List<DataRowObject> lDROs = new List<DataRowObject>();
+            var listResponse = uplinkClient.ListObjects(lor);
+           
+                foreach (S3Object obj in listResponse.S3Objects)
                 {
-                    BucketName = "biblepay",
-                    FilePath = sFilePath,
-                    StorageClass = S3StorageClass.Standard,
-                    PartSize = 7000000, 
-                    Key = sKey,
-                    CannedACL = S3CannedACL.PublicRead
-                };
-                fileTransferUtility.Upload(fileTransferUtilityRequest);
-                string out_url = "https://biblepay.s3.ca-central-1.amazonaws.com/" + sKey;
-                return out_url;
-            }
-            catch(Exception ex)
-            {
-                Log("Failed to Store " + sKey + ":" + ex.Message);
-            }
-            return "";
+                    DataRowObject dro = new DataRowObject();
+                    dro.Key = obj.Key;
+                    lDROs.Add(dro);
+                }
+            
+            return lDROs;
         }
 
+        public static string Replicate(string sURL)
+        {
+            MyWebClient w = new MyWebClient();
+            string sFileName = Guid.NewGuid().ToString();
+            string sPath = "c:\\inetpub\\wwwroot\\Saved\\Uploads\\" + sFileName;
+            w.DownloadFile(sURL, sPath);
+            string[] vChop = sURL.Split("/");
+            string sChop = vChop[vChop.Length - 1];
+            Task<List<string>> t = Store2("san-" + sChop, "", "", sPath);
+            System.IO.File.Delete(sPath);
+            return t.Result[0];
+        }
+
+        private static Amazon.RegionEndpoint GetEndpoint(int iDensity, out string sBucketName)
+        {
+            
+            if (iDensity == 0)
+            {
+                sBucketName = "biblepay";
+                return Amazon.RegionEndpoint.CACentral1;
+            }
+            else if (iDensity == 1)
+            {
+                sBucketName = "biblepay-useast";
+                return Amazon.RegionEndpoint.USEast1;
+            }
+            else if (iDensity == 2)
+            {
+                sBucketName = "biblepay-eucentral";
+                return Amazon.RegionEndpoint.EUCentral1;
+            }
+            else if (iDensity == 3)
+            {
+                sBucketName = "biblepay-uswest";
+                return Amazon.RegionEndpoint.USWest1;
+            }
+            else
+            {
+                sBucketName = "biblepay";
+                throw new Exception("Invalid endpoint");
+            }
+        }
+
+        private static string GetURLPrefix(Amazon.RegionEndpoint r, string sBucketName)
+        {
+            string sURL = "https://" + sBucketName + ".s3." + r.SystemName + "." + r.PartitionDnsSuffix;
+            return sURL;
+        }
+
+        public static async Task<List<string>> Store2(string sKey, string sMetadataName, string sMetadataValue, string sFilePath, int iDensityLevel = 1)
+        {
+            List<string> out_url = new List<string>();
+
+            for (int i = 0; i < iDensityLevel; i++)
+            {
+                string sBucketName = "";
+                Amazon.RegionEndpoint EP1 = GetEndpoint(i, out sBucketName);
+                try
+                {
+                    uplinkClient = new AmazonS3Client(GetBMSConfigurationKeyValue("s3key"), GetBMSConfigurationKeyValue("s3secret"), EP1);
+                    // Open multiple storage threads in parallel for write speed (handled internally):
+                    var fileTransferUtility = new TransferUtility(uplinkClient);
+                    var fileTransferUtilityRequest = new TransferUtilityUploadRequest
+                    {
+                        BucketName = sBucketName,
+                        FilePath = sFilePath,
+                        StorageClass = S3StorageClass.Standard,
+                        PartSize = 7000000,
+                        Key = sKey,
+                        CannedACL = S3CannedACL.PublicRead
+                    };
+                    fileTransferUtility.Upload(fileTransferUtilityRequest);
+                    string sURL = GetURLPrefix(EP1, sBucketName) + "/" + sKey;
+                    out_url.Add(sURL);
+
+                }
+                catch (Exception ex)
+                {
+                    Log("Failed to Store " + sKey + ":" + ex.Message);
+                }
+            }
+            return out_url;
+        }
+
+        public static DataTable GetFakeDataset()
+        {
+            DataTable dt = new DataTable();
+            dt.Clear();
+            dt.Columns.Add("Col1");
+            dt.Columns.Add("Col2");
+            for (int i = 0; i < 1000; i++)
+            {
+                DataRow _ravi = dt.NewRow();
+                _ravi["Col1"] = "value_one_" + i.ToString() + "_1";
+                _ravi["Col2"] = "value_two_" + i.ToString() + "_2";
+                dt.Rows.Add(_ravi);
+            }
+            //            dt.WriteXML("dtDataxml");
+            return dt;
+
+        }
         public static string Read(string sKey)
         {
             try
@@ -172,7 +431,7 @@ namespace Saved.Code
                 string sData = w.DownloadString(sURL);
                 string sNumerical = ExtractXML(sKey, "/", ".dat").ToString();
 
-                UnchainedDatabase.dictObjects[(int)GetDouble(sNumerical)] = sData;
+                //UnchainedDatabase.dictObjects[(int)GetDouble(sNumerical)] = sData;
 
                 return sData;
             }
@@ -186,6 +445,73 @@ namespace Saved.Code
                 return "";
             }
         }
+
+        public static DataRow GetDataRow(string sKey)
+        {
+            string sULData = Uplink.Read(sKey);
+            DataRow dr1 = UnchainedDatabase.DeserializeDataRow(sULData);
+            return dr1;
+        }
+
+        public static DataTable GetDataTableByView(string sTableName)
+        {
+
+            string sData = Uplink.Read("view-" + sTableName);
+            DataTable dt1 = UnchainedDatabase.DeserializeDataTable(sData);
+            return dt1;
+
+        }
+
+        public static void StoreAndDelete(string sTableType, string sTableName, string sData)
+        {
+            string sFullKey = sTableType + "-" + sTableName;
+            string sFile = sFullKey.GetHashCode().ToString() + ".dat";
+            string sPath = GetFolderUnchained("DataStaging");
+            string sFullpath = Path.Combine(sPath, sFile);
+            Unchained.WriteToFile(sFullpath, sData);
+            Task<List<string>> myTask = Uplink.Store2(sFullKey, "", "", sFullpath);
+            if (System.IO.File.Exists(sFullpath))
+                System.IO.File.Delete(sFullpath);
+        }
+        public static void CreateView(string sTableName)
+        {
+
+            DataTable dt = new DataTable();
+            dt.Clear();
+
+            Task<List<DataRowObject>> taskDROS = Uplink.ListContentsOfTable(sTableName);
+            // Schema
+            if (taskDROS.Result.Count > 0)
+            {
+                DataRow drFirst = GetDataRow(taskDROS.Result[0].Key);
+
+                for (int i = 0; i < drFirst.Table.Columns.Count; i++)
+                {
+                    dt.Columns.Add(drFirst.Table.Columns[i].ColumnName);
+                }
+            }
+            foreach (DataRowObject dro in taskDROS.Result)
+            {
+                DataRow dr1 = GetDataRow(dro.Key);
+                if (dr1 != null)
+                {
+                    dt.ImportRow(dr1);
+                }
+            }
+
+            // Serialize the View
+            dt.TableName = sTableName;
+
+            string sView = UnchainedDatabase.SerializeDataTable(dt);
+            StoreAndDelete("view", sTableName, sView);
+           
+            // Deserialize the View
+            DataTable dt999 = UnchainedDatabase.DeserializeDataTable(sView);
+
+
+            string test = "";
+        }
+
         public static string Store(string sKey, string sMetadataName, string sMetadataValue, string sFilePath)
         {
             uplinkClient = new AmazonS3Client(GetBMSConfigurationKeyValue("s3key"), GetBMSConfigurationKeyValue("s3secret"), Amazon.RegionEndpoint.CACentral1);
@@ -224,9 +550,9 @@ namespace Saved.Code
 
         public static void WriteToFile(string path, string data)
         {
-            
             File.WriteAllText(path, data);
-            //File.SetLastWriteTimeUtc(path, FromUnixTimeStamp(TimeStamp));
+            // This function is here in case we need to update the write time to UTC: (a port from BMS)
+            // File.SetLastWriteTimeUtc(path, FromUnixTimeStamp(TimeStamp));
         }
     }
 }
