@@ -88,7 +88,7 @@ namespace Saved
 
             string sHTMLBody = ReplaceURLs(s.Props.Body);
 
-            sBody = "<div style='min-height:300px'><span style=''>" + sHTMLBody + "</span></div>";
+            string sBody = "<div style='min-height:300px'><span style=''>" + sHTMLBody + "</span></div>";
 
             string div = "<table style='padding:10px;' width=73%><tr><td>User:<td>"+ sUserPic+ "</tr>"
                 +"<tr><td>User Name:<td>" + sUserName + "</tr>"
