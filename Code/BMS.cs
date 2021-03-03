@@ -14,6 +14,8 @@ using static Saved.Code.Common;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using static Saved.Code.DataOps;
 
 namespace Saved.Code
 {
@@ -232,6 +234,36 @@ namespace Saved.Code
             }
         }
 
+        public static string DOGE_PRICE_QUOTE()
+        {
+            try
+            {
+                double dPrice = GetPriceQuote("DOGE/BTC");
+                string sPrice = dPrice.ToString("0." + new string('#', 339));
+                string sResult = "<MIDPOINT>" + sPrice + "</MIDPOINT><EOF>";
+                return sResult;
+            }
+            catch (Exception ex)
+            {
+                return ex.Message;
+            }
+        }
+
+        public static string LTC_PRICE_QUOTE()
+        {
+            try
+            {
+                double dPrice = GetPriceQuote("LTC/BTC");
+                string sPrice = dPrice.ToString("0." + new string('#', 339));
+                string sResult = "<MIDPOINT>" + sPrice + "</MIDPOINT><EOF>";
+                return sResult;
+            }
+            catch (Exception ex)
+            {
+                return ex.Message;
+            }
+        }
+
         public static string XMR_PRICE_QUOTE()
         {
             try
@@ -275,7 +307,7 @@ namespace Saved.Code
             oParams[1] = sCharityName;
             oParams[2] = "XML";
 
-            NBitcoin.RPC.RPCClient n = GetLocalRPCClient();
+            NBitcoin.RPC.RPCClient n = WebRPC.GetLocalRPCClient();
 
             dynamic oOut = n.SendCommand("exec", oParams);
             string oResult = oOut.Result["payments"].Value;
@@ -340,7 +372,7 @@ namespace Saved.Code
         {
             object[] oParams = new object[1];
             oParams[0] = "all";
-            NBitcoin.RPC.RPCClient n = GetLocalRPCClient();
+            NBitcoin.RPC.RPCClient n = WebRPC.GetLocalRPCClient();
             dynamic oOut = n.SendCommand("listchildren", oParams);
             string d = ",";
             string sOut = "Child ID,Charity,CPK,Bio URL,Sponsor,Balance\r\n";
@@ -450,6 +482,8 @@ namespace Saved.Code
 
         public static string PurifySQL(string value, double maxlength)
         {
+            if (value == null)
+                return "";
             if (value.IndexOf("'") > 0)
                 value = "";
             if (value.IndexOf("--") > 0)
@@ -494,6 +528,46 @@ namespace Saved.Code
             gData.Exec(sql);
         }
 
+        public static UTXO GetTxOut(string sTicker, string sTXID, int iOrdinal)
+        {
+            UTXO n = new UTXO();
+            try
+            {
+                NBitcoin.RPC.RPCClient c = GetRPCClient(sTicker);
+                object[] oParams = new object[2];
+                oParams[0] = sTXID;
+                oParams[1] = iOrdinal;
+                n.nAmount = 0;
+                n.Found = false;
+                dynamic oOut = c.SendCommand("gettxout", oParams);
+                n.TXID = sTXID;
+                n.nOrdinal = iOrdinal;
+
+                n.Address = "";
+                n.nAmount = 0;
+
+                if (oOut.Result == null)
+                {
+                    // Spent
+                    
+                    n.Spent = true;
+                    n.Found = true;
+                }
+                else
+                {
+                    n.Address = oOut.Result["scriptPubKey"]["addresses"][0];
+                    n.nAmount = oOut.Result["value"];
+                    n.Spent = false;
+                    n.Found = true;
+                }
+                return n;
+            }
+            catch(Exception ex)
+            {
+                Log("Cant find the UTXO::" + sTicker + "-" + sTXID + "::" + ex.Message);
+            }
+            return n;
+        }
         public static int GetBlockAge(string sTicker)
         {
             NBitcoin.RPC.RPCClient c = GetRPCClient(sTicker);
@@ -553,6 +627,198 @@ namespace Saved.Code
             string sResp2 = "<response>" + sResp + "</response><EOF></HTML>";
             return sResp2;
         }
+
+        public static bool CheckDashAddress(string dash)
+        {
+
+            string sInPath = "c:\\inetpub\\wwwroot\\Saved\\Uploads\\dash2.log";
+            System.IO.StreamReader fileIn = new System.IO.StreamReader(sInPath);
+
+            string sLine = "";
+            int i = 0;
+            while ((sLine = fileIn.ReadLine()) != null)
+            {
+                if (sLine == dash)
+                {
+                    fileIn.Close();
+                    return true;
+                }
+                i++;
+            }
+            fileIn.Close();
+            return false;
+
+        }
+
+
+
+public static string CheckReward(HttpRequest Request)
+        {
+            //std::string sXML = "<non_bbp_pubkey>" + sPubKey + "</non_bbp_pubkey><non_bbp_keytype>" + RoundToString(nKeyType, 0) 
+            //+ "</non_bbp_keytype><bbp_pubkey>" + myAddress + "</bbp_pubkey>";
+            string sForum = "https://forum.biblepay.org/index.php?topic=517.new#new";
+            string sWeb = "https://www.biblepay.org";
+            string sEaster = "https://forum.biblepay.org/index.php?topic=747.new#new";
+            string sNarr = "Thank you for your interest in BiblePay.  We are a blockchain that supports over 90 orphans paid for by generous donations, our sanctuaries, and 10% of our mining emissions.  ";
+            sNarr += "Please consider donating to our Orphan Foundation, by clicking Send Money and checking the Orphan Donation checkbox.  ";
+            sNarr += "Also, please join our Forum and let us know you are a new member here " + sForum + ".   ";
+            sNarr += "Please see our website at " + sWeb + ".  Finally, if you have any questions about our Easter Egg program please post here " + sEaster + ".  Thank you for using BiblePay and God bless you!";
+
+            string sIP = (HttpContext.Current.Request.UserHostAddress ?? "").ToString();
+            sIP = sIP.Replace("::ffff:", "");
+            string sData = Request.Headers["Action"].ToNonNullString();
+            string nba = ExtractXML(sData, "<non_bbp_pubkey>", "</non_bbp_pubkey>");
+            string bbpa = ExtractXML(sData, "<bbp_pubkey>", "</bbp_pubkey>");
+            string ssig = ExtractXML(sData, "<non_bbp_signature>", "</non_bbp_signature>");
+
+            bool fVerified = Fastly.VerifySignature(nba, "bbp", ssig);
+            double nAmount = 0;
+            string sOutcome = "";
+            if (!fVerified)
+            {
+                nAmount = 0;
+                sOutcome = "Sorry, the Non biblepay signature is not valid.  Please try copying the signature with https://foundation.biblepay.org/Scratchpad";
+            }
+            else
+            {
+                string sIP2 = sIP.Replace(".", "-");
+                string sql = "Select count(*) ct from Campaign where ip='" + PurifySQL(sIP2, 50) 
+                    + "' or nonbbpaddress='" + PurifySQL(nba, 100) + "' or bbpaddress='" + PurifySQL(bbpa, 100) + "'";
+                double dCt = gData.GetScalarDouble(sql, "ct");
+
+                if (dCt > 0)
+                {
+                    nAmount = 0;
+                    sOutcome = "Sorry, this campaign is limited to one claim per non-biblepay user. ";
+                }
+                else
+                {
+                    bool won = CheckDashAddress(nba);
+                    double d1 = 0;
+                    if (won)
+                    {
+                        Random r = new Random();
+                        int rInt = r.Next(0, 20000);
+
+                        d1 = 5000 + rInt;
+                        rInt = r.Next(0, 100);
+                        if (rInt == 50)
+                            d1 = 1000000;
+                    }
+                    //                    double d1 = gData.GetScalarDou
+                    if (d1 == 0)
+                    {
+                        nAmount = 0;
+                        sOutcome = "Sorry, this non-biblepay address is not a winner.  Please try again during our next campaign.";
+                    }
+                    else
+                    {
+                        sql = "Insert into Campaign (id, bbpaddress,ip,nonbbpaddress,claimed,amount) values (newid(), '" 
+                            + PurifySQL(bbpa, 100) + "','" + sIP2 + "','" + PurifySQL(nba, 100) + "',getdate(),'" + nAmount.ToString() + "')";
+                        //                        sql = "Update Campaign set bbpaddress='" + PurifySQL(bbpa, 100) + "',ip='"                             + sIP2 + "', Claimed=getdate() where nonbbpaddress='" + PurifySQL(nba, 100) + "'";
+                        gData.Exec(sql);
+                        nAmount = d1;
+                        sOutcome = "Congratulations!  You found " + nAmount.ToString() + " BBP!  The reward has been sent to your wallet address " + bbpa + "!";
+                        Log(sOutcome);
+                        Withdraw("", bbpa, nAmount, "");
+                    }
+                }
+            }
+            // Return response
+            string sResp2 = "<amount>" + nAmount.ToString()
+                + "</amount><outcome>" + sOutcome + "</outcome><narr>" + sNarr + "</narr><EOF></HTML>";
+            return sResp2;
+            
+        }
+
+
+        public static string CheckNewUserReward(HttpRequest Request)
+        {
+            string sForum = "https://forum.biblepay.org/index.php?topic=517.new#new";
+            string sWeb = "https://www.biblepay.org";
+            string sEaster = "https://forum.biblepay.org/index.php?topic=747.new#new";
+            string sNarr = "Thank you for your interest in BiblePay.  We are a blockchain that supports over 90 orphans paid for by generous donations, our sanctuaries, and 10% of our mining emissions.  ";
+            sNarr += "Please consider donating to our Orphan Foundation, by clicking Send Money and checking the Orphan Donation checkbox.  ";
+            sNarr += "Also, please join our Forum and let us know you are a new member here " + sForum + ".   ";
+            sNarr += "Please see our website at " + sWeb + ".  Finally, if you have any questions please post here " + sEaster + ".  Thank you for using BiblePay and God bless you!";
+
+            string sIP = (HttpContext.Current.Request.UserHostAddress ?? "").ToString();
+            sIP = sIP.Replace("::ffff:", "");
+            string sData = Request.Headers["Action"].ToNonNullString();
+            string bbp_reward_address = ExtractXML(sData, "<bbp_pubkey>", "</bbp_pubkey>");
+            string email = ExtractXML(sData, "<email>", "</email>");
+
+            double nAmount = 0;
+            string sOutcome = "";
+            string sIP2 = sIP.Replace(".", "-");
+            string sql = "Select count(*) ct from Campaign where ip='" + PurifySQL(sIP2, 50)
+                    + "' or nonbbpaddress='" + PurifySQL(email, 100) + "' or bbpaddress='" + PurifySQL(bbp_reward_address, 100) + "'";
+            double dCt = gData.GetScalarDouble(sql, "ct");
+            sql = "Select count(*) ct from Leads where rewardclaimed is null and Email='" + PurifySQL(email, 256) + "' ";
+            double dEmailCt = gData.GetScalarDouble(sql, "ct");
+            if (dCt == 0 && dEmailCt == 0)
+            {
+                //maybe google
+                string status = CheckEmail(email, "google", "", "");
+                if (status == "deliverable")
+                {
+                    dEmailCt = 1;
+                }
+                
+            }
+            if (dCt > 0)
+                {
+                    nAmount = 0;
+                    sOutcome = "Sorry, this campaign is limited to one claim per non-biblepay user. ";
+                }
+                else if (dEmailCt == 0)
+                {
+                    nAmount = 0;
+                    sOutcome = "Sorry, this user is not part of the new user campaign. ";
+                }
+            else
+            {
+                bool won = true;
+                    double d1 = 0;
+                    if (won)
+                    {
+                        Random r = new Random();
+                        double dMinimumReward = GetDouble(GetBMSConfigurationKeyValue("minnewuserreward"));
+
+                        int rInt = r.Next((int)dMinimumReward, (int)dMinimumReward*2);
+                        d1 = 1 + rInt;
+                        // Jackpot winner: (1 in 100):
+                        rInt = r.Next(0, 100);
+                        if (rInt == 50)
+                            d1 = 1000000;
+                    }
+                    if (d1 == 0)
+                    {
+                        nAmount = 0;
+                        sOutcome = "Sorry, this non-biblepay address is not a winner.  Please try again during our next campaign.";
+                    }
+                    else
+                    {
+                        sql = "Insert into Campaign (id, bbpaddress,ip,nonbbpaddress,claimed,amount) values (newid(), '"
+                            + PurifySQL(bbp_reward_address, 100) + "','" + sIP2 + "','" + PurifySQL(email, 256) + "',getdate(),'" + nAmount.ToString() + "')";
+                        //                        sql = "Update Campaign set bbpaddress='" + PurifySQL(bbpa, 100) + "',ip='"                             + sIP2 + "', Claimed=getdate() where nonbbpaddress='" + PurifySQL(nba, 100) + "'";
+                        gData.Exec(sql);
+                        sql = "Update leads set RewardClaimed=getdate() where email='" + PurifySQL(email, 256) + "'";
+                        gData.Exec(sql);
+                        nAmount = d1;
+                        sOutcome = "Congratulations!  You found " + nAmount.ToString() + " BBP!  The reward has been sent to your wallet address " + bbp_reward_address + "!";
+                        Log(sOutcome);
+                        Withdraw("", bbp_reward_address, nAmount, "");
+                    }
+                }
+            
+            // Return response
+            string sResp2 = "<amount>" + nAmount.ToString()
+                + "</amount><outcome>" + sOutcome + "</outcome><narr>" + sNarr + "</narr><EOF></HTML>";
+            return sResp2;
+
+        }
+
         public static string TrackDashPay(HttpRequest Request)
         {
             try
@@ -615,7 +881,7 @@ namespace Saved.Code
             bool fHealth = true;
             try
             {
-                NBitcoin.RPC.RPCClient nLocal = GetLocalRPCClient();
+                NBitcoin.RPC.RPCClient nLocal = WebRPC.GetLocalRPCClient();
                 int nBlocks = nLocal.GetBlockCount();
                 int nBBPAge = GetBlockAge("BBP");
                 int nDashAge = GetBlockAge("DASH");
@@ -645,7 +911,7 @@ namespace Saved.Code
         {
             try
             {
-                NBitcoin.RPC.RPCClient nLocal = GetLocalRPCClient();
+                NBitcoin.RPC.RPCClient nLocal = WebRPC.GetLocalRPCClient();
                 object[] oParams = new object[2];
                 oParams[0] = sTXID;
                 oParams[1] = 1;
@@ -680,7 +946,7 @@ namespace Saved.Code
                     System.Threading.Thread.Sleep(2000);
                 }
 
-                NBitcoin.RPC.RPCClient nLocal = GetLocalRPCClient();
+                NBitcoin.RPC.RPCClient nLocal = WebRPC.GetLocalRPCClient();
                 object[] oParams = new object[2];
                 oParams[0] = sTXID;
                 oParams[1] = 1;
@@ -704,7 +970,7 @@ namespace Saved.Code
                 IX.instantlock = oOut.Result["instantlock"];
                 if (IX.confirms > 1)
                     IX.instantlock = true;
-
+                IX.instantlock = true;
                 IX.amount = nTotal;
                 return IX;
             }
@@ -744,7 +1010,7 @@ namespace Saved.Code
 
             if (sTicker == "BBP")
             {
-                nClient = GetLocalRPCClient();
+                nClient = WebRPC.GetLocalRPCClient();
             }
             else
             {
@@ -764,6 +1030,61 @@ namespace Saved.Code
                 + ix.dashamount.ToString() + "','" + ix.status + "','" + PurifySQL(ix.txid, 64) + "','" + ix.dashtxid + "')";
             gData.Exec(sql);
             return 1;
+        }
+
+        // For promotional campaigns
+        public static System.Collections.Generic.List<string> GetTopDashAddresses()
+        {
+            List<string> t = new List<string>();
+            NBitcoin.RPC.RPCClient nDash = GetRPCClient("dash");
+            int nHeight = nDash.GetBlockCount();
+            nHeight = 705784;
+            for (int h = nHeight-1; h > 1; h--)
+            {
+
+                object[] oParams = new object[1];
+                oParams[0] = h;
+
+                Console.WriteLine(h.ToString());
+                Debug.WriteLine(h.ToString());
+
+                dynamic o1 = nDash.SendCommand("getblockhash", oParams);
+                string sHash = o1.Result.ToString();
+
+                oParams = new object[1];
+                oParams[0] = sHash;
+
+                dynamic oBlock = nDash.SendCommand("getblock", oParams);
+                // loop through each transaction
+                //try
+
+                for (int i = 1; i < oBlock.Result["tx"].Count; i++)
+                {
+                    dynamic oTx = oBlock.Result["tx"][i];
+                    string txid = oTx.ToString();
+                    object[] oTxParams = new object[2];
+                    oTxParams[0] = txid;
+                    oTxParams[1] = 1;
+                    dynamic oTx1 = nDash.SendCommand("getrawtransaction", oTxParams);
+
+                    for (int j = 0; j < oTx1.Result["vout"].Count; j++)
+                    {
+                        try
+                        {
+                            dynamic oTxOut = oTx1.Result["vout"][j];
+                            double nAmt = oTxOut["value"];
+                            string sAddress = oTxOut["scriptPubKey"]["addresses"][0].ToString();
+                            DashLog(sAddress);
+                        }
+                        catch (Exception ex)
+                        {
+                            //opreturn nulldata
+                        }
+
+                    }
+                }
+            }
+            return t;
         }
 
         public static string IssueIX(string sAddress, double nAmount, string sTicker, string bbptxid)
@@ -825,12 +1146,12 @@ namespace Saved.Code
                 double dBBPPrice = GetPriceQuote("BBP/BTC", 1);
                 double dDashPrice = GetPriceQuote("DASH/BTC");
                 double dBitcoinUSD = GetPriceQuote("BTC/USD");
-                double dDashUSD = dDashPrice * dBitcoinUSD;
+                double dDashUSD = dDashPrice * dBitcoinUSD * .98;
                 double dBBPUSD = dBBPPrice * dBitcoinUSD;
 
-                if (dBBPUSD < .000001)
+                if (dBBPUSD < .0002)
                 {
-                    return "<error>BBP Price too low.  Feature disabled.</error></HTML><EOF>\r\n";
+                    return "<error>BBP Price too low (BBP/USD < .0002 BBP/USD limit).  Feature disabled temporarily.</error></HTML><EOF>\r\n";
                 }
                 if (dDashUSD < 1)
                 {
@@ -1199,6 +1520,4 @@ namespace Saved.Code
             return w;
         }
     }
-
-
 }

@@ -160,8 +160,6 @@ namespace Saved.Code
             string sTable = ExtractXML(sData, "<table>", "</table>").ToString();
             _datarow.Table.TableName = sTable;
             return _datarow;
-
-
         }
 
         public static string InsertSQL(string sTable, string sPrimaryKey, DataRow dr)
@@ -174,6 +172,7 @@ namespace Saved.Code
             string sData = SerializeDataRow(dr);
             Unchained.WriteToFile(sFullpath, sData);
             DataRow dr1000 = DeserializeDataRow(sData);
+            // SQL Storage (Non-File)
             Task<List<string>> myTask = Uplink.Store2(sFullKey, "", "", sFullpath);
             if (System.IO.File.Exists(sFullpath))
                 System.IO.File.Delete(sFullpath);
@@ -186,6 +185,7 @@ namespace Saved.Code
             string sPath = GetFolderUnchained("DataStaging");
             string sFullpath = Path.Combine(sPath, sFile);
             Unchained.WriteToFile(sFullpath, sJsonObject);
+            // Non-File
             Task<List<string>> myTask = Uplink.Store2(sPrimaryKey, "", "", sFullpath);
             return myTask.Result[0];
         }
@@ -311,24 +311,24 @@ namespace Saved.Code
             List<DataRowObject> lDROs = new List<DataRowObject>();
             var listResponse = uplinkClient.ListObjects(lor);
            
-                foreach (S3Object obj in listResponse.S3Objects)
-                {
+            foreach (S3Object obj in listResponse.S3Objects)
+            {
                     DataRowObject dro = new DataRowObject();
                     dro.Key = obj.Key;
                     lDROs.Add(dro);
-                }
-            
+            }
             return lDROs;
         }
 
         public static string Replicate(string sURL)
         {
-            MyWebClient w = new MyWebClient();
+            Saved.Code.MyWebClient w = new MyWebClient();
             string sFileName = Guid.NewGuid().ToString();
             string sPath = "c:\\inetpub\\wwwroot\\Saved\\Uploads\\" + sFileName;
             w.DownloadFile(sURL, sPath);
             string[] vChop = sURL.Split("/");
             string sChop = vChop[vChop.Length - 1];
+            // File
             Task<List<string>> t = Store2("san-" + sChop, "", "", sPath);
             System.IO.File.Delete(sPath);
             return t.Result[0];
@@ -366,10 +366,85 @@ namespace Saved.Code
 
         private static string GetURLPrefix(Amazon.RegionEndpoint r, string sBucketName)
         {
-            string sURL = "https://" + sBucketName + ".s3." + r.SystemName + "." + r.PartitionDnsSuffix;
+            //string sURL = "https://" + sBucketName + ".s3." + r.SystemName + "." + r.PartitionDnsSuffix;
+            string sURL = "https://media.biblepay.org";
             return sURL;
         }
 
+        // NOTE:  This is a proof-of-concept for devnet (not yet ready for testnet).  We are going to investigate neural networks, and quantum transactions before deciding on the final sidechain struct.
+        public struct SidechainTransaction
+        {
+            public string TXID;
+            public double nFee;
+            public string BlockHash;
+            public string FileName;
+            public double nHeight;
+            public bool fFile;
+            public string URL;
+            public string CPK;
+            public double nDuration;
+            public double nDensity;
+            public double nSize;
+            public string Network; // Testnet or MainNet etc.
+        }
+
+        public static string SerializeTransaction(SidechainTransaction u)
+        {
+            string delim = "[~]";
+            string data = u.BlockHash + delim + u.TXID + delim + u.FileName + delim + u.nFee.ToString() + delim + u.URL + delim + u.CPK + delim + u.nDuration.ToString() + delim + u.nDensity.ToString() + delim + u.Network + delim + u.nHeight.ToString() + delim + u.nSize.ToString() + delim;
+            return data;
+        }
+
+        public static bool StoreTransaction(SidechainTransaction u)
+        {
+            string sData = SerializeTransaction(u);
+            string sKey = "table-blocks-" + u.BlockHash + "-" + u.TXID;
+            string sFile = sKey.GetHashCode().ToString() + ".dat";
+            string sPath = GetFolderUnchained("DataStaging");
+            string sFullpath = Path.Combine(sPath, sFile);
+            Unchained.WriteToFile(sFullpath, sData);
+            Store3(sKey, u.CPK, sFullpath);
+            //Task<List<string>> myTask = Store2(sKey, "", "", sFullpath);
+            fDirtyBlockData = true;
+            return true;
+        }
+
+        public struct Response
+        {
+            public string Results;
+            public string ErrorCode;
+        };
+
+        public static Response Store3(string sOriginalName, string CPK, string sSourcePath, int iDensityLevel = 1)
+        {
+            // This stores the file in the local file store - which be have replicated to either storj or the biblepay SAN.  This file store is connected to our CDN.
+            // Insert the file in SQL also.
+            Response r = new Response();
+            try
+            {
+                FileInfo fi = new FileInfo(sSourcePath);
+                string sDir = GetFolderUnchained(CPK);
+                string sOutPath = sDir + "\\" + sOriginalName;
+                if (!Directory.Exists(sDir))
+                {
+                    Directory.CreateDirectory(sDir);
+                }
+                BOINC.BBPCopyFile(sSourcePath, sOutPath);
+                
+                string sURL = "https://unknown.org/Unchained/" + CPK + "/" + sOriginalName;
+                r.Results = sURL;
+
+                return r;
+            }
+            catch (Exception ex)
+            {
+                Log("Store3::" + ex.Message);
+                r.ErrorCode = ex.Message;
+                return r;
+            }
+        }
+        // These endpoints are disabled.  We no longer deal with AWS since they appear to be abusive big tech.
+        // In addition, AWS has no easy way to throttle bandwidth (without putting a CDN in front of it), so whats the use.
         public static async Task<List<string>> Store2(string sKey, string sMetadataName, string sMetadataValue, string sFilePath, int iDensityLevel = 1)
         {
             List<string> out_url = new List<string>();
@@ -392,10 +467,10 @@ namespace Saved.Code
                         Key = sKey,
                         CannedACL = S3CannedACL.PublicRead
                     };
+
                     fileTransferUtility.Upload(fileTransferUtilityRequest);
                     string sURL = GetURLPrefix(EP1, sBucketName) + "/" + sKey;
                     out_url.Add(sURL);
-
                 }
                 catch (Exception ex)
                 {
@@ -427,12 +502,9 @@ namespace Saved.Code
             try
             {
                 MyWebClient w = new MyWebClient();
-                string sURL = "https://biblepay.s3.ca-central-1.amazonaws.com/" + sKey;
+                string sURL = "https://media.biblepay.org/" + sKey;
                 string sData = w.DownloadString(sURL);
                 string sNumerical = ExtractXML(sKey, "/", ".dat").ToString();
-
-                //UnchainedDatabase.dictObjects[(int)GetDouble(sNumerical)] = sData;
-
                 return sData;
             }
             catch(WebException)
@@ -473,18 +545,125 @@ namespace Saved.Code
             if (System.IO.File.Exists(sFullpath))
                 System.IO.File.Delete(sFullpath);
         }
+
+        private static ReaderWriterLockSlim dictLock = new ReaderWriterLockSlim();
+
+        public static Dictionary<string, string> dictSideChain = new Dictionary<string, string>();
+        public static object cs_block = new object();
+
+        public static double KeyToBlockHeight(string sKey)
+        {
+            string[] myKey = sKey.Split("-");
+            if (myKey.Length > 1)
+            {
+                double dHeight = GetDouble(myKey[0]);
+                return dHeight;
+            }
+            return 0;
+        }
+
+        public static int nLastBlockData = 0;
+        public static string msBlockData = "";
+        public static int nHitCount = 0;
+        public static bool fDirtyBlockData = false;
+        public static string GetBlockData(int nHeight)
+        {
+            return "<eof></html>";
+
+            nHitCount++;
+
+            if (nHeight > 1 && nHeight < 170000)
+            {
+                return "<eof></html>";
+            }
+
+            int nElapsed = UnixTimeStamp() - nLastBlockData;
+            if (nElapsed > (60 * 60 * 2))
+            {
+                fDirtyBlockData = true;
+            }
+
+            try
+            {
+                if (dictSideChain.Count == 0 || fDirtyBlockData)
+                {
+                    GetRawBlockData();
+                    nLastBlockData = UnixTimeStamp();
+                }
+                else
+                {
+                    if (nHitCount % 20 == 0)
+                    {
+                        Log("BlockData Len=" + msBlockData.Length);
+                         
+                    }
+                    return msBlockData;
+                }
+
+                string sData = "<blocks>";
+                int iRecs = 0;
+                lock (cs_block)
+                {
+                    foreach (KeyValuePair<string, string> entry in dictSideChain.ToArray())
+                    {
+                        double nKey = KeyToBlockHeight(entry.Key);
+
+                        //if (nKey > nHeight - 5000 && nKey < nHeight + 5000)
+
+                        {
+                            string sRow = "<data>" + entry.Value + "</data>";
+                            sData += sRow;
+                            iRecs++;
+                        }
+                    }
+                }
+                sData += "</blocks><eof></html>";
+                //                 Log("Getting new rawblockdata of " + sData.Length.ToString() + " Containing " + iRecs.ToString());
+
+
+                msBlockData = sData;
+                return sData;
+            }
+            catch(Exception ex)
+            {
+                Log("GetBlockData:: " + ex.Message);
+            }
+            return "";
+        }
+
+        public static void GetRawBlockData()
+        {
+            string sBlockPrefix = "table-blocks-";
+            lock (cs_block)
+            {
+                nLastBlockData = UnixTimeStamp();
+                Task<List<DataRowObject>> taskDROS = Uplink.ListContentsOfTable(sBlockPrefix);
+                foreach (DataRowObject dro in taskDROS.Result)
+                {
+                    string sData = Read(dro.Key);
+                    string[] vData = sData.Split("[~]");
+                    if (vData.Length > 9)
+                    {
+                        double nHeight = GetDouble(vData[9]);
+                        string txid = vData[1];
+                        string sKey = nHeight.ToString() + "-" + txid;
+                        {
+                            dictSideChain[sKey] = sData;
+                        }
+                    }
+                }
+            }
+        }
+        
         public static void CreateView(string sTableName)
         {
-
             DataTable dt = new DataTable();
             dt.Clear();
-
             Task<List<DataRowObject>> taskDROS = Uplink.ListContentsOfTable(sTableName);
             // Schema
             if (taskDROS.Result.Count > 0)
             {
                 DataRow drFirst = GetDataRow(taskDROS.Result[0].Key);
-
                 for (int i = 0; i < drFirst.Table.Columns.Count; i++)
                 {
                     dt.Columns.Add(drFirst.Table.Columns[i].ColumnName);
@@ -498,16 +677,12 @@ namespace Saved.Code
                     dt.ImportRow(dr1);
                 }
             }
-
             // Serialize the View
             dt.TableName = sTableName;
-
             string sView = UnchainedDatabase.SerializeDataTable(dt);
             StoreAndDelete("view", sTableName, sView);
-           
             // Deserialize the View
             DataTable dt999 = UnchainedDatabase.DeserializeDataTable(sView);
-
 
             string test = "";
         }
@@ -516,7 +691,7 @@ namespace Saved.Code
         {
             uplinkClient = new AmazonS3Client(GetBMSConfigurationKeyValue("s3key"), GetBMSConfigurationKeyValue("s3secret"), Amazon.RegionEndpoint.CACentral1);
             bool fStored = WriteObject("biblepay", sKey, sFilePath, sMetadataName, sMetadataValue);
-            string sURL = fStored ? "https://biblepay.s3.ca-central-1.amazonaws.com/" + sKey : "";
+            string sURL = fStored ? "https://media.biblepay.org/" + sKey : "";
             return sURL;
         }
     }
@@ -528,7 +703,6 @@ namespace Saved.Code
         // SubmitValue, SendMoney, SubmitFile
         public static void SubmitUnchainedTransaction(UnchainedTransaction tx)
         {
-
             string data = tx.Serialize();
             string path = GetFolderUnchained("Unprocessed");
             string fn = data.GetHashCode() + ".unc";
