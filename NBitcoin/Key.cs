@@ -95,6 +95,16 @@ namespace NBitcoin
             return this._ECKey.Sign(hash);
         }
 
+        public string SignBasicMessage(string message)
+        {
+            byte[] data2 = Encoding.UTF8.GetBytes(message);
+            byte[] h1 = Hashes.SHA256(data2);
+            byte[] h2 = Hashes.SHA256(h1);
+            uint256 hash3 = new uint256(h2);
+            string sig = Convert.ToBase64String(SignCompact(hash3));
+            return sig;
+        }
+
 
         public string SignMessage(String message)
         {
@@ -106,6 +116,9 @@ namespace NBitcoin
             uint256 hash = Hashes.Hash256(data);
             return Convert.ToBase64String(SignCompact(hash));
         }
+
+
+        
 
 
         public byte[] SignCompact(uint256 hash)

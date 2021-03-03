@@ -16,7 +16,6 @@ namespace Saved
 {
     public partial class MiningCalculator : Page
     {
-
         double GetAvgHashRate()
         {
             string sql = "select avg(hashRate) hr from hashrate where added > getdate()-1";
@@ -68,18 +67,19 @@ namespace Saved
         {
             txtCalc.Text = "";
             double nXMRReward = 1.75;
+            double nLastSubsidy = 4000;
             double nXMRRevPerDay = nXMRReward * GetDouble(txtXMRPrice.Text) * GetDouble(txtXMRBlocksFound.Text);
             double nXMRPPH = nXMRRevPerDay / (GetDouble(txtXMRMHS.Text) + .001) / 1000000 * .90;
-            double nXMRMonthlyRev = nXMRPPH * GetDouble(txtHPS.Text) * 31 / 2;
-            double nBBPReward = 2445;
+            double nXMRMonthlyRev = nXMRPPH * GetDouble(txtHPS.Text) * 31 * 1;
+            double nBonus = GetDouble(GetBMSConfigurationKeyValue("PoolBlockBonus"));
+            double nBBPReward = nLastSubsidy + nBonus;
             double nBBPRevPerDay = GetDouble(txtBBPPrice.Text) * GetDouble(txtBBPBlocksFound.Text) * nBBPReward;
             double nBBPPPH = nBBPRevPerDay / (GetDouble(txtBBPMHS.Text) + .001) / 1000000;
             double nBBPMonthlyRev = nBBPPPH * GetDouble(txtHPS.Text) * 31;
-
             txtCalc.Text = "1. XMR Revenue Per Day: (XMRPrice=" + txtXMRPrice.Text + ") * XMR Blocks Per Day=" + txtXMRBlocksFound.Text + " * XMRReward=" + nXMRReward.ToString() 
                 + ") = " + nXMRRevPerDay.ToString() + "\r\n";
             txtCalc.Text += "2. XMR Payment Per Hash: (XMRRevenuePerDay=" + nXMRRevPerDay.ToString() + "/XMR Pool MH/S=" + txtXMRMHS.Text + " * .90 (XMR Net Revenue after Tithe))=" + PrintDouble(nXMRPPH) + "\r\n";
-            txtCalc.Text += "3. XMR Revenue Per Month: (XMRPPH=" + PrintDouble(nXMRPPH) + " * YourHashPerSecond=" + txtHPS.Text + "/2) = " + nXMRMonthlyRev.ToString() + "\r\n";
+            txtCalc.Text += "3. XMR Revenue Per Month: (XMRPPH=" + PrintDouble(nXMRPPH) + " * YourHashPerSecond=" + txtHPS.Text + ") = " + nXMRMonthlyRev.ToString() + "\r\n";
             
             txtCalc.Text += "4. BBP Revenue Per Day: (BBPPrice=" + txtBBPPrice.Text + ") * BBP Blocks Per Day=" + txtBBPBlocksFound.Text + " * Reward " + nBBPReward.ToString() + ") = " + nBBPRevPerDay.ToString() + "\r\n";
             txtCalc.Text += "5. BBP Payment Per Hash: (BBPRevPerDay=" + nBBPRevPerDay.ToString() + "/BBP Pool MH/S=" + txtBBPMHS.Text + ")=" + PrintDouble(nBBPPPH) + "\r\n";
@@ -92,13 +92,8 @@ namespace Saved
             txtCalc.Text += "9. Net Profit: " + nProfit.ToString() + "\r\n";
             txtBBPRevenue.Text = nBBPMonthlyRev.ToString();
             txtXMRRevenue.Text = nXMRMonthlyRev.ToString();
-
             txtCost.Text = nTotalCosts.ToString();
             txtNET.Text = nProfit.ToString();
-
-
-
         }
-
     }
 }

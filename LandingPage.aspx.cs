@@ -50,7 +50,7 @@ namespace Saved
                     double nReward = 100;
  
                     sql = "Update Users set Claimed = 1,ip='" + sIP + "' where id = '" + gUser(this).UserId.ToString() + "'";
-                    AdjBalance(nReward, gUser(this).UserId.ToString(), "New User Faucet Bonus");
+                    DataOps.AdjBalance(nReward, gUser(this).UserId.ToString(), "New User Faucet Bonus");
                     gData.Exec(sql);
                     MsgBox("Claimed", "Congratulations, your account has been credited with " + nReward.ToString() + " BBP!<br>  Thank you for becoming part of our community.<br><br>NOTE:  To see your balance, navigate to ACCOUNT.  To withdraw, navigate to the DEPOSIT/WITHDRAW page.  ", this);
 
@@ -67,10 +67,16 @@ namespace Saved
                 string sql = "Update Leads set Landed=getdate() where id = '" + id + "'";
                 gData.Exec(sql);
             }
+            else
+            {
+                // Probably a user from google
+                string sql = "update system set value=value+1 where systemkey='googlead'";
+                gData.Exec(sql);
+            }
 
             if (action == "unsubscribe")
             {
-                string sql = "Delete from Leads where id = '" + id + "'";
+                string sql = "Update Leads set verification='Unsubscribed' where id = '" + id + "'";
                 gData.Exec(sql);
                 MsgBox("Unsubscribed", "We are sorry to see you go.  We respect your privacy and wish you the richest blessings of Abraham, Isaac & Jacob.  <br><br>You have been unsubscribed from our mailing list.  <br>Thank you.<br>", this);
                 return;
@@ -96,7 +102,7 @@ namespace Saved
                 else
                 {
                     // Claim it
-                    AdjBalance(Common.nCampaignRewardAmount, gUser(this).UserId.ToString(), "New User Welcome Bonus");
+                    DataOps.AdjBalance(Common.nCampaignRewardAmount, gUser(this).UserId.ToString(), "New User Welcome Bonus");
                     sql = "Update Leads set RewardClaimed=getdate() where id='" + GetId() + "'";
                     gData.Exec(sql);
 

@@ -11,7 +11,7 @@ namespace Saved
 {
 
 
-    public partial class RokuLeaderboard
+    public partial class CampaignReport
     {
     }
 }

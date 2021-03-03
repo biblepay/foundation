@@ -57,9 +57,9 @@ namespace NBitcoin
             return null;
         }
 
-        public bool VerifyMessage(string message, string signature)
+        public bool VerifyMessage(string message, string signature, bool fUseDarkCoin = false)
         {
-            PubKey key = PubKey.RecoverFromMessage(message, signature);
+            PubKey key = PubKey.RecoverFromMessage(message, signature, fUseDarkCoin);
             return key.Hash == this.Hash;
         }
 

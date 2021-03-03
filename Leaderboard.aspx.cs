@@ -33,12 +33,9 @@ namespace Saved
 
         protected string GetLeaderboard()
         {
-            int nHeight = Common.GetHeight();
             string sql = "Select * from Leaderboard order by bbpaddress";
-            //bbpaddress, shares, fails, sucXMR, FailXMR, SuxXMRC, FailXMRC, Updated, Height
             DataTable dt = gData.GetDataTable(sql);
             string html = "<table class=saved><tr><th width=20%>BBP Address</th><th>BBP Shares<th>BBP Invalid<th>XMR Shares<th>XMR Charity Shares<th>Efficiency<th>Hash Rate<th>Updated<th>Height</tr>";
-
             for (int y = 0; y < dt.Rows.Count; y++)
             {
                 SavedObject s = RowToObject(dt.Rows[y]);
@@ -109,7 +106,7 @@ namespace Saved
                         string sName = dt1.Rows[nGospelRow]["Notes"].ToString();
                         string sId = dt1.Rows[nGospelRow]["id"].ToString();
                         double nAmt = GetDouble(GetBMSConfigurationKeyValue("VideoRewardAmount"));
-                        string sAnchor = "<a href='Media?id=" + sId + "'>here</a>";
+                        string sAnchor = "<a href='Media?mediaid=" + sId + "&reward=1'>here</a>";
                         string sNarr = "A " + sCategory + " video is available.  Click " + sAnchor + " to earn a " + nAmt.ToString() + " BBP reward for watching the video.";
                         html += "<br><div><span>" + sNarr + "</span></div>";
                     }

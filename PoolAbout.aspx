@@ -20,7 +20,7 @@
     <br />
     <p>
         <span><font color="red">
-            <br /><%=Saved.Code.Common.PoolBonusNarrative() %>
+            <br /><%=Saved.Code.PoolCommon.PoolBonusNarrative() %>
 
               </font></span>
     </p>

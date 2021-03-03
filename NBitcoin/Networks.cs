@@ -18,5 +18,7 @@ namespace NBitcoin
         public static Network StratisTest => NetworksContainer.GetNetwork("StratisTest") ?? NetworksContainer.Register(new StratisTest());
      
         public static Network StratisRegTest => NetworksContainer.GetNetwork("StratisRegTest") ?? NetworksContainer.Register(new StratisRegTest());
+        public static Network DashMain => NetworksContainer.GetNetwork("DashMain") ?? NetworksContainer.Register(new DashMain());
+
     }
 }

@@ -2,7 +2,31 @@
 
 <asp:Content ID="BodyContent" ContentPlaceHolderID="MainContent" runat="server">
 
+
+
+
     <script>
+
+
+
+        function slowPlaySpeed() {
+            var vid = document.getElementById("video1");
+
+            vid.playbackRate = 0.5;
+        }
+
+        function normalPlaySpeed() {
+            var vid = document.getElementById("video1");
+
+            vid.playbackRate = 1;
+        }
+
+        function fastPlaySpeed() {
+            var vid = document.getElementById("video1");
+
+            vid.playbackRate = 1.75;
+        }
+
         function getParameterByName(name, url) {
             if (!url) url = window.location.href;
             name = name.replace(/[\[\]]/g, '\\$&');
@@ -13,38 +37,49 @@
             return decodeURIComponent(results[2].replace(/\+/g, ' '));
         }
 
-        CT = 0;
-
+        var CT = 0;
+        var interval = 60000;
+        var starttime = 0;      
         function beacon() {
             queryString = window.location.search;
             var mediaid = getParameterByName('mediaid');
 
-            CT++;
-            if (CT > 256)
-                return;
-
 
             if (mediaid == null)
                 return;
+
+            setInterval('beacon()', interval);
+         
+            var elapsed = new Date().getTime() - starttime;
+
+            if (elapsed < interval)
+                return;
+
+
+            if (CT > 65535)
+                return;
+
+            CT++;
+            starttime = new Date().getTime();
 
             $.ajax({
                 type: 'GET',
                 async: false,
                 url: 'Media.aspx' + queryString + '&watching=1'
             });
-            setInterval('beacon()', 30000);
+
+
+            
         }
 
-        function startIt() {
-            beacon();
-        }
-        window.onload = startIt();
+
+        window.onload = beacon();
 
         </script>
 
-    <h4>Media:</h4>
+    <h2><b><%=GetMediaCategory()%></b></h2>
 
-    <br />
     <%=GetMedia() %>
   
+    <br />
 </asp:Content>

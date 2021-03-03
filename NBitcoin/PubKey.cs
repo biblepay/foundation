@@ -250,15 +250,23 @@ namespace NBitcoin
 
         //Thanks bitcoinj source code
         //http://bitcoinj.googlecode.com/git-history/keychain/core/src/main/java/com/google/bitcoin/core/Utils.java
-        public static PubKey RecoverFromMessage(string messageText, string signatureText)
+        public static PubKey RecoverFromMessage(string messageText, string signatureText, bool fUseDarkCoin = false)
         {
-            return RecoverFromMessage(Encoding.UTF8.GetBytes(messageText), signatureText);
+            return RecoverFromMessage(Encoding.UTF8.GetBytes(messageText), signatureText, fUseDarkCoin);
         }
 
-        public static PubKey RecoverFromMessage(byte[] messageBytes, string signatureText)
+        public static PubKey RecoverFromMessage(byte[] messageBytes, string signatureText, bool fUseDarkCoinUtilEncoding = true)
         {
             byte[] signatureEncoded = Encoders.Base64.DecodeData(signatureText);
-            byte[] message = Utils.FormatMessageForSigning(messageBytes);
+            byte[] message;
+            if (fUseDarkCoinUtilEncoding)
+            {
+                message = Utils.FormatMessageForSigning(messageBytes);
+            }
+            else
+            {
+                message = messageBytes;
+            }
             uint256 hash = Hashes.Hash256(message);
             return RecoverCompact(hash, signatureEncoded);
         }

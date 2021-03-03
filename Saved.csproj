@@ -50,14 +50,26 @@
     <Reference Include="AWSSDK.S3, Version=3.3.0.0, Culture=neutral, PublicKeyToken=885c28607f98e604, processorArchitecture=MSIL">
       <HintPath>packages\AWSSDK.S3.3.5.0-beta\lib\net45\AWSSDK.S3.dll</HintPath>
     </Reference>
+    <Reference Include="BouncyCastle.Crypto, Version=1.8.8.0, Culture=neutral, PublicKeyToken=0e99375e54769942, processorArchitecture=MSIL">
+      <HintPath>packages\Portable.BouncyCastle.1.8.8\lib\net40\BouncyCastle.Crypto.dll</HintPath>
+    </Reference>
+    <Reference Include="MailKit, Version=2.10.0.0, Culture=neutral, PublicKeyToken=4e064fe7c44a8f1b, processorArchitecture=MSIL">
+      <HintPath>packages\MailKit.2.10.1\lib\net47\MailKit.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="MimeKit, Version=2.10.0.0, Culture=neutral, PublicKeyToken=bede1c8a46c66814, processorArchitecture=MSIL">
+      <HintPath>packages\MimeKit.2.10.1\lib\net47\MimeKit.dll</HintPath>
+    </Reference>
     <Reference Include="MySql.Data, Version=6.6.4.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>MySQL\MySql.Data.dll</HintPath>
     </Reference>
     <Reference Include="OpenHtmlToPdf">
       <HintPath>Code\OpenHtmlToPdf.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
     </Reference>
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System" />
@@ -68,6 +80,8 @@
       <HintPath>packages\System.Drawing.Common.4.7.0\lib\net461\System.Drawing.Common.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.Http" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
     <Reference Include="System.Web.DataVisualization" />
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
@@ -125,7 +139,23 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="AddRokuMiner.aspx" />
+    <Content Include="Fastly.aspx" />
+    <Content Include="BMS\NewUser.aspx" />
+    <Content Include="BMS\CheckReward.aspx" />
+    <Content Include="BMS\Roku.aspx" />
+    <Content Include="BMS\BlockData.aspx" />
     <Content Include="BMS\LAST_MANDATORY_VERSION.aspx" />
+    <Content Include="CampaignReport.aspx" />
+    <Content Include="UnchainedPayPerByte.aspx" />
+    <Content Include="UnchainedPayPerView.aspx" />
+    <Content Include="UnchainedMainMenu.aspx" />
+    <Content Include="Wells.aspx" />
+    <Content Include="RokuLeaderboard.aspx" />
+    <Content Include="MediaBlack.aspx" />
+    <Content Include="Scratchpad.aspx" />
+    <Content Include="Tip.aspx" />
+    <Content Include="Faucet.aspx" />
     <Content Include="DonateNow.aspx" />
     <Content Include="DonorMatchList.aspx" />
     <Content Include="AddExpense.aspx" />
@@ -228,12 +258,133 @@
     <Content Include="Bundle.config" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AddRokuMiner.aspx.cs">
+      <DependentUpon>AddRokuMiner.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="AddRokuMiner.aspx.designer.cs">
+      <DependentUpon>AddRokuMiner.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Code\Fastly.cs" />
+    <Compile Include="Code\FileSplitter.cs" />
+    <Compile Include="Code\PoolWebServices.cs" />
+    <Compile Include="Code\Retired.cs" />
+    <Compile Include="Code\UICommon.cs" />
+    <Compile Include="Code\Utilities.cs" />
+    <Compile Include="Code\WebRPC.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Fastly.aspx.cs">
+      <DependentUpon>Fastly.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Fastly.aspx.designer.cs">
+      <DependentUpon>Fastly.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="BMS\NewUser.aspx.cs">
+      <DependentUpon>NewUser.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="BMS\NewUser.aspx.designer.cs">
+      <DependentUpon>NewUser.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="BMS\CheckReward.aspx.cs">
+      <DependentUpon>CheckReward.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="BMS\CheckReward.aspx.designer.cs">
+      <DependentUpon>CheckReward.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="BMS\Roku.aspx.cs">
+      <DependentUpon>Roku.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="BMS\Roku.aspx.designer.cs">
+      <DependentUpon>Roku.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="BMS\BlockData.aspx.cs">
+      <DependentUpon>BlockData.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="BMS\BlockData.aspx.designer.cs">
+      <DependentUpon>BlockData.aspx</DependentUpon>
+    </Compile>
     <Compile Include="BMS\LAST_MANDATORY_VERSION.aspx.cs">
       <DependentUpon>LAST_MANDATORY_VERSION.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
     <Compile Include="BMS\LAST_MANDATORY_VERSION.aspx.designer.cs">
       <DependentUpon>LAST_MANDATORY_VERSION.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="CampaignReport.aspx.cs">
+      <DependentUpon>CampaignReport.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="CampaignReport.aspx.designer.cs">
+      <DependentUpon>CampaignReport.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="UnchainedPayPerByte.aspx.cs">
+      <DependentUpon>UnchainedPayPerByte.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="UnchainedPayPerByte.aspx.designer.cs">
+      <DependentUpon>UnchainedPayPerByte.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="UnchainedPayPerView.aspx.cs">
+      <DependentUpon>UnchainedPayPerView.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="UnchainedPayPerView.aspx.designer.cs">
+      <DependentUpon>UnchainedPayPerView.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="UnchainedMainMenu.aspx.cs">
+      <DependentUpon>UnchainedMainMenu.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="UnchainedMainMenu.aspx.designer.cs">
+      <DependentUpon>UnchainedMainMenu.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Wells.aspx.cs">
+      <DependentUpon>Wells.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Wells.aspx.designer.cs">
+      <DependentUpon>Wells.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="RokuLeaderboard.aspx.cs">
+      <DependentUpon>RokuLeaderboard.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="RokuLeaderboard.aspx.designer.cs">
+      <DependentUpon>RokuLeaderboard.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="MediaBlack.aspx.cs">
+      <DependentUpon>MediaBlack.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="MediaBlack.aspx.designer.cs">
+      <DependentUpon>MediaBlack.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Scratchpad.aspx.cs">
+      <DependentUpon>Scratchpad.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Scratchpad.aspx.designer.cs">
+      <DependentUpon>Scratchpad.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Tip.aspx.cs">
+      <DependentUpon>Tip.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Tip.aspx.designer.cs">
+      <DependentUpon>Tip.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Faucet.aspx.cs">
+      <DependentUpon>Faucet.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Faucet.aspx.designer.cs">
+      <DependentUpon>Faucet.aspx</DependentUpon>
     </Compile>
     <Compile Include="DonateNow.aspx.cs">
       <DependentUpon>DonateNow.aspx</DependentUpon>

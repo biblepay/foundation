@@ -48,7 +48,7 @@ namespace Saved
             sql = "Select count(bbpaddress) ct from Leaderboard";
             double dCt = gData.GetScalarDouble(sql, "ct");
             html += GetTR("Miners", dCt.ToString());
-            html += GetTR("Speed", GetHPSLabel(dHR));
+            html += GetTR("Speed", UICommon.GetHPSLabel(dHR));
 
             html += GetTR("Charity Address", GetBMSConfigurationKeyValue("MoneroAddress"));
             html += GetTR("Contact E-Mail", GetBMSConfigurationKeyValue("OperatorEmailAddress"));
@@ -69,7 +69,7 @@ namespace Saved
             html += GetTR("Total Shares (24 hours)", ts24.ToString());
             html += GetTR("Total Invalid Shares (24 hours)", tis24.ToString());
 
-            sql = "Select count(distinct height) h from Share (nolock) where updated > getdate()-1 and subsidy > 0 and reward > 1";
+            sql = "Select count(distinct height) h from Share (nolock) where updated > getdate()-1 and subsidy > 0 and reward > .05";
             double tbf24 = gData.GetScalarDouble(sql, "h");
             html += GetTR("Total Blocks Found (24 hours)", tbf24.ToString());
 

@@ -10,6 +10,7 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using static Saved.Code.Common;
 using static Saved.Code.EntityHelper;
+using static Saved.Code.UICommon;
 
 namespace Saved
 {
@@ -20,7 +21,9 @@ namespace Saved
         {
             try
             {
-                string s = RenderGauge(250, "HODL %", (int)(GetEstimatedHODL(true, .10) * 100));
+                double n1 = 0;
+                double n2 = 0;
+                string s = RenderGauge(250, "HODL %", (int)(GetEstimatedHODL(true, 0, out n1, out n2) * 100));
                 return s;
             }
             catch (Exception ex)
@@ -33,7 +36,7 @@ namespace Saved
         protected void Page_Load(object sender, EventArgs e)
         {
             // Increment the Counter
-            IncSysByFloat("GoogleAd", 1);
+            DataOps.IncSysByFloat("GoogleAd", 1);
 
         }
 

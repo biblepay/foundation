@@ -46,6 +46,10 @@ namespace Saved
             }
             else
             {
+                if (gUser(this).Banned)
+                {
+                    MsgBox("Banned", "Sorry, your account has been banned. ", this);
+                }
                 MsgBox("Invalid Credentials Entered", "Invalid 2FA pin entered. ", this);
             }
         }

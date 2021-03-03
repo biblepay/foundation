@@ -406,6 +406,13 @@ namespace NBitcoin.RPC
             return SendCommand(new RPCRequest(commandName, parameters));
         }
 
+        public RPCResponse SendCommand2(string commandName, params object[] parameters)
+        {
+            return SendCommand(new RPCRequest(commandName, parameters));
+        }
+
+
+
         public Task<RPCResponse> SendCommandAsync(string commandName, params object[] parameters)
         {
             return SendCommandAsync(new RPCRequest(commandName, parameters));

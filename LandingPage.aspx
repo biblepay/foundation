@@ -5,17 +5,22 @@
 
 
 
-    We are elated to have you here.  We hope you will consider joining our community, and help make BiblePay the CryptoCurrency for Christians!
+    We are very happy to have you here.  We hope you will consider joining our community, and help make BiblePay the CryptoCurrency for Christians!
     <br />
     <br />
 
-    To claim your free reward, please follow these steps:
-
+    <h3>To claim the free new-user reward (which is currently <%= Saved.Code.Common.GetRewardMoniker() %>, please follow these instructions:</h3>
+    
     <ul>
-        <li>Create a free forum account <a href="https://forum.biblepay.org">here.</a>  Note: The reason this is necessary is to establish a user account with the ability to withdraw Foundation coins.</li>
-        <li>Come back to this page, while logged in from your new forum account.  </li>
-        <li>Click <a href='LandingPage?claim=1&id=<%=GetId()%>'>this link to claim your reward.</a></li>
+        <li>
+            Download BiblePay Wallet to your PC by clicking <a href="https://www.biblepay.org/wallet/">here.</a>
+            <li> Sync the wallet (IE verify the block count synchronized from 1 to the current block, which is about 250000).
+                <li> From the console, type 'newuser emailaddress' where emailaddress is your e-mail address.  To get the console, click Tools | Info | Console.  This command will immediately inform you of the free coins and you will receive them instantly into the wallet!
+            <li> From the BiblePay wallet, you can take Free college courses to learn about Christianity.  Just click "BiblePay University" to get started.
+            <li> You can also sponsor an orphan!  Just click Send Money, check the DAC checkbox and send a donation.  To see our orphan collage, click <a href="http://foundation.biblepay.org/Viewer?target=collage">here.</a>
+            <li> You can also create a free forum account <a href="https://forum.biblepay.org">here.</a>  This forum allows you to ask questions or help us.</li>
 
+        
     </ul>
 
     <br />

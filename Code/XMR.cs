@@ -105,7 +105,7 @@ namespace Saved.Code
             }
             catch(Exception ex)
             {
-                Log("Unable to submit bbp share:  " + ex.Message);
+                Log("Unable to submit bbp share:  " + ex.Message, true);
             }
             return false;
         }
