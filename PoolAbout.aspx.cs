@@ -52,7 +52,7 @@ namespace Saved
 
             html += GetTR("Charity Address", GetBMSConfigurationKeyValue("MoneroAddress"));
             html += GetTR("Contact E-Mail", GetBMSConfigurationKeyValue("OperatorEmailAddress"));
-            html += GetTR("Pool Fees XMR", "10% (Orphan Charity) + 1% (minexmr.com)");
+            html += GetTR("Pool Fees XMR", "1% (minexmr.com)");
             html += GetTR("Pool Fees BBP", Math.Round(GetDouble(GetBMSConfigurationKeyValue("PoolFee")) * 100, 2) + "%");
             html += GetTR("Block Bonus", Math.Round(GetDouble(GetBMSConfigurationKeyValue("PoolBlockBonus")), 0) + " BBP Per Block");
             

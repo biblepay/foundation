@@ -110,18 +110,6 @@ namespace Saved.Code
             return false;
         }
             
-        private void IncTitheNbr()
-        {
-            PoolCommon.iTitheNumber++;
-            if (PoolCommon.iTitheNumber % 50 == 0)
-            {
-                // Launch a new seed
-                Random r = new Random();
-                int rInt = r.Next(0, 10);
-                PoolCommon.iTitheModulus = rInt;
-            }
-        }
-
         private void PersistWorker(WorkerInfo w)
         {
             try
@@ -260,19 +248,20 @@ namespace Saved.Code
                                     PersistWorker(w);
                                 }
                                 nTrace = 10;
-                                PoolCommon.iTitheNumber++;
-                                var poolPubCharityAddress = GetBMSConfigurationKeyValue("MoneroAddress");
-                                bool fTithe = (moneroaddress.Length > 10 && PoolCommon.iTitheNumber % 10 == 0);
-                                if (fTithe)
+                                // As per 3-3-2021, we cease to collect the 10% orphan tithe from the mining side (we still of course have orphan charity in governance, and our sanctuaries each must sponsor one orphan)
+                                // We are doing this to open the floodgates for merge mining BBP+XMR, in hope we pick up mass users. (Like DOGE+LTC).
+                                if (false)
                                 {
-                                    string newData = sData.Replace(moneroaddress, poolPubCharityAddress);
-                                    data = Encoding.ASCII.GetBytes(newData);
-                                    size = newData.Length;
-                                    fCharity = true;
-                                }
-                                else
-                                {
-                                    fCharity = false;
+                                    PoolCommon.iTitheNumber++;
+                                    var poolPubCharityAddress = GetBMSConfigurationKeyValue("MoneroAddress");
+                                    bool fTithe = (moneroaddress.Length > 10 && PoolCommon.iTitheNumber % 10 == 0);
+                                    if (fTithe)
+                                    {
+                                        string newData = sData.Replace(moneroaddress, poolPubCharityAddress);
+                                        data = Encoding.ASCII.GetBytes(newData);
+                                        size = newData.Length;
+                                        fCharity = true;
+                                    }
                                 }
                             }
                             else if (sJson != "")
