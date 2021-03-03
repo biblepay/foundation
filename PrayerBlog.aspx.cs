@@ -23,10 +23,15 @@ namespace Saved
         protected string GetPrayerBlogs()
         {
 
-            int nHeight = Common.GetHeight();
-
             string sql = "Select * from PrayerRequest Inner Join Users on Users.ID = PrayerRequest.UserID order by PrayerRequest.Added desc";
-            DataTable dt = gData.GetDataTable(sql);
+            DataTable dt = new DataTable();
+            try
+            {
+                dt = gData.GetDataTable(sql);
+            }catch(Exception ex)
+            {
+                MsgBox("Error", "Contact rob@biblepay.org", this);
+            }
             string html = "<table class=saved><tr><th width=20%>User</th><th width=20%>Added<th width=50%>Subject";
 
             for (int y = 0; y < dt.Rows.Count; y++)
@@ -37,9 +42,9 @@ namespace Saved
                     sUserName = "N/A";
                 string sAnchor = "<a href='PrayerView.aspx?id=" + s.Props.id.ToString() + "'>";
 
-                string div = sAnchor + "<tr><td>" + GetAvatar(s.Props.Picture) + "&nbsp;" 
-                    + sUserName + "</td>" + GetTd(dt.Rows[y], "Added", sAnchor) 
-                    + GetTd(dt.Rows[y],"subject", sAnchor) + "</tr>";
+                string div = sAnchor + "<tr><td>" + DataOps.GetAvatar(s.Props.Picture) + "&nbsp;" 
+                    + sUserName + "</td>" + UICommon.GetTd(dt.Rows[y], "Added", sAnchor) 
+                    + UICommon.GetTd(dt.Rows[y],"subject", sAnchor) + "</tr>";
                 html += div + "\r\n";
 
             }

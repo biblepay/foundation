@@ -61,7 +61,7 @@ namespace Saved
             }
             SavedObject s = RowToObject(dt.Rows[0]);
 
-            string sUserPic = GetAvatar(s.Props.Picture); 
+            string sUserPic = DataOps.GetAvatar(s.Props.Picture); 
             string sUserName = NotNull(s.Props.UserName);
             if (sUserName == "")
                 sUserName = "N/A";
@@ -72,7 +72,7 @@ namespace Saved
                 +           "<tr><td>Added:<td>" + s.Props.Added.ToString()     + "</td></tr>"
                 +                "<tr><td>Subject:<td>" + s.Props.Subject + "</td></tr>"
                 +               "<tr><td>Body:<td colspan=2>" + sBody + "</td></tr></table>";
-            div += GetComments(id,this);
+            div += UICommon.GetComments(id,this);
 
             return div;
         }

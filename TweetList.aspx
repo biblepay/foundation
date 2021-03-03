@@ -3,7 +3,7 @@
 <asp:Content ID="BodyContent" ContentPlaceHolderID="MainContent" runat="server">
     <h2>Tweets</h2>
 
-    <%=Saved.Code.Common.GetTweetList(Saved.Code.Common.gUser(this).UserId, 90) %>
+    <%=Saved.Code.UICommon.GetTweetList(Saved.Code.Common.gUser(this).UserId, 90) %>
 
     <br />
     <br />

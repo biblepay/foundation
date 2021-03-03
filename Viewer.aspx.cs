@@ -21,7 +21,8 @@ namespace Saved
 
             if (sURL == "collage")
             {
-                string sql = "select ChildID,Charity,URL,sponsoredOrphan.Added,Name,BIOURL,AboutCharity,users.username  from sponsoredOrphan left join Users on Users.ID = SponsoredOrphan.Userid  Where ChildID != 'VARIOUS-TBD'  order by Charity,Name";
+                string sql = "select ChildID,Charity,URL,sponsoredOrphan.Added,Name,BIOURL,AboutCharity,users.username  from sponsoredOrphan "
+                    + " left join Users on Users.ID = SponsoredOrphan.Userid  Where ChildID != 'VARIOUS-TBD' and childid != 'TBD'  and active=1 order by Charity,Name";
                 DataTable dt = gData.GetDataTable(sql);
                 string sHTML = "<table><tr>";
                 int iTD = 0;

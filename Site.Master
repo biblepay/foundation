@@ -2,38 +2,20 @@
 
 <!DOCTYPE html>
 
-
-    <!--	<script type="text/javascript" src="https://forum.biblepay.org/Themes/default/scripts/script.js?fin20"></script>-->
-    <!--	<script type="text/javascript" src="https://forum.biblepay.org/Themes/Offside/scripts/theme.js?fin20"></script>-->
-    <!--    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>-->
-    <!--    <script type="text/javascript" src="https://forum.biblepay.org/Themes/Offside/scripts/app.min.js"></script>-->
-    <!--    <script type="text/javascript" src="https://forum.biblepay.org/Themes/Offside/scripts/custom.min.js"></script>-->
-    <!--	<link rel="stylesheet" type="text/css" href="https://forum.biblepay.org/Themes/Offside/css/font-awesome.css" />-->
-    <!--<script src="Scripts/jquery-3.4.1.min.js"></script>-->
-
-
 <html lang="en">
 <head runat="server">
     <meta charset="utf-8" />
 
-
-
     <link rel="stylesheet" type="text/css" href="https://forum.biblepay.org/Themes/Offside/css/index.css?fin20" />
 	<link rel="stylesheet" type="text/css" href="https://forum.biblepay.org/Themes/Offside/css/responsive.css?fin20" />
 	<link rel="stylesheet" type="text/css" href="https://forum.biblepay.org/Themes/Offside/css/bootstrap.css" />
-
     <link rel="stylesheet" type="text/css" href="https://forum.biblepay.org/Themes/Offside/css/font-awesome.css" />
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css">
-
 	<link rel="stylesheet" type="text/css" href="https://forum.biblepay.org/Themes/Offside/css/sidenav.css" />
 	<link rel="stylesheet" type="text/css" href="https://forum.biblepay.org/Themes/Offside/css/animate.min.css" />
 	<link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" rel="stylesheet" />
 	<link rel="stylesheet" type="text/css" href="https://forum.biblepay.org/Themes/default/css/webkit.css" />
-
-    
     <link rel="stylesheet" type="text/css" id="admin_css" href="https://forum.biblepay.org/Themes/default/css/admin.css" />
-
-    
     <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
 
     <title><%: Page.Title %> - <%=Saved.Code.Common.GetLongSiteName(this.Page)%></title>
@@ -47,7 +29,6 @@
     <script type='text/javascript' src='https://www.google.com/jsapi'></script>
 
     <script>
-
         function afterload() {
             var pageheight = $(".Page").height() + 70;
            
@@ -65,7 +46,6 @@
             $('#rightmenubutton').removeClass('hidden-lg');
             $('#rightmenubutton').removeClass('hidden-sm');
         }
-
 
         function openNav() {
             $("#mySidenav").css("transform", "translate(0px,0)");
@@ -100,11 +80,7 @@
 
 
     </style>
-
-
-
 </head>
-
 
 <body onload="afterload();">
     <form runat="server">
@@ -114,7 +90,6 @@
                 <%--Framework Scripts--%>
                 <asp:ScriptReference Name="MsAjaxBundle" />
                 <asp:ScriptReference Name="jquery" />
-
                 <asp:ScriptReference Name="WebForms.js" Assembly="System.Web" Path="~/Scripts/WebForms/WebForms.js" />
                 <asp:ScriptReference Name="WebUIValidation.js" Assembly="System.Web" Path="~/Scripts/WebForms/WebUIValidation.js" />
                 <asp:ScriptReference Name="MenuStandards.js" Assembly="System.Web" Path="~/Scripts/WebForms/MenuStandards.js" />
@@ -134,8 +109,8 @@
         <div class="navbar navbar-inverse navbar-fixed-top" style="z-index:256;">
             <div class="container" style="padding-left:100px;">
                 <div style="max-height:75px;overflow:hidden;">
-                    <img src="<%=Saved.Code.Common.GetHeaderImage(this.Page) %>" xwidth="100px" height="75px" />
-                    <span style="font-family:candara;color:antiquewhite;font-size:22px;">&nbsp;<%=Saved.Code.Common.GetHeaderBanner(this.Page) %></span>
+                    <img src="<%=Saved.Code.UICommon.GetHeaderImage(this.Page) %>" xwidth="100px" height="75px" />
+                    <span style="font-family:candara;color:antiquewhite;font-size:22px;">&nbsp;<%=Saved.Code.UICommon.GetHeaderBanner(this.Page) %></span>
                      <div id='rightmenubutton' style='float:right;' class="close-sidebar hidden-lg hidden-sm">
                         <a href="#" onclick="openNav();" class="sidebar-toggle" data-toggle="offcanvas" role="button">
                             <i class="fa fa-navicon">
@@ -147,11 +122,9 @@
 
             <%=Saved.Code.Common.GetGlobalAlert(this.Page) %>
 
-
-
         </div>
 
-            <%=Saved.Code.Common.GetSideBar(this.Page) %>
+            <%=Saved.Code.UICommon.GetSideBar(this.Page) %>
 
             <div class="container body-content">
                 <asp:ContentPlaceHolder ID="MainContent" runat="server">
@@ -162,7 +135,7 @@
          <div class="footer_wrapper hidden" >
             <div class="footer">  
                 <table width="100%"><tr>
-                    <td width='95%' align="center"> &nbsp;&nbsp;&nbsp; &copy;<%=Saved.Code.Common.GetFooter(this.Page) %> </td>
+                    <td width='95%' align="center"> &nbsp;&nbsp;&nbsp; &copy;<%=Saved.Code.UICommon.GetFooter(this.Page) %> </td>
                 </tr></table>
              </div>
         </div>  

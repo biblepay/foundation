@@ -120,7 +120,7 @@ namespace Saved
             }
             sHTML += "</table>";
             string sURL = "Report?name=" + sName;
-            sHTML += GetPagControl(sURL, nPageNo, (int)nTotalPages);
+            sHTML += UICommon.GetPagControl(sURL, nPageNo, (int)nTotalPages);
             if (dt.Rows.Count == 0)
             {
                 sHTML += "<div>You have no sponsored orphans.</div>";

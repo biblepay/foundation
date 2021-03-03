@@ -30,7 +30,7 @@ namespace Saved
             {
                 sql = "Select subject from Tweet where id='" + id + "'";
                 string sSubject = gData.GetScalarString(sql, "subject");
-                AdjBalance(1, userid, "Tweet Read [" + sSubject + "]");
+                DataOps.AdjBalance(1, userid, "Tweet Read [" + sSubject + "]");
             }
 
             this.Session["Tweet" + id] = "1";
@@ -81,7 +81,7 @@ namespace Saved
             }
             SavedObject s = RowToObject(dt.Rows[0]);
 
-            string sUserPic = GetAvatar(s.Props.Picture); 
+            string sUserPic = DataOps.GetAvatar(s.Props.Picture); 
             string sUserName = NotNull(s.Props.UserName);
             if (sUserName == "")
                 sUserName = "N/A";
@@ -95,7 +95,7 @@ namespace Saved
                 +           "<tr><td>Added:<td>" + s.Props.Added.ToString()     + "</td></tr>"
                 +                "<tr><td>Subject:<td>" + s.Props.Subject + "</td></tr>"
                 +               "<tr><td>&nbsp;</tr><tr><td width=8%>Body:<td style='border:1px solid lightgrey;min-height:300px' colspan=1 xbgcolor='grey' width=40%>" + sBody + "</td></tr></table>";
-            div += GetComments(id, this);
+            div += UICommon.GetComments(id, this);
 
             return div;
         }

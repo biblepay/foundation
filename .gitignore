@@ -5,6 +5,7 @@
 .vs/Foundation/v16/Server/sqlite3/storage.ide
 *.pdb
 bin/*
+packages/
 NBitcoin/bin/Debug/netstandard2.0/NBitcoin.dll
 NBitcoin/obj/Debug/*.*
 NBitcoin/obj/*.*

@@ -8,6 +8,7 @@ using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 using static Saved.Code.Common;
+using static Saved.Code.DataOps;
 
 namespace Saved
 {
@@ -28,7 +29,7 @@ namespace Saved
 
         protected double GetTweetCost()
         {
-            string sql = "select count(*) ct from users where twofactor=1";
+            string sql = "select count(*) ct from users where verification='deliverable'";
             double dCost = gData.GetScalarDouble(sql, "ct");
             return dCost;
         }
@@ -42,7 +43,6 @@ namespace Saved
                 return;
             }
             
-
             double dBalance = GetUserBalance(this);
             double dCost = GetTweetCost();
             if (dBalance < dCost)

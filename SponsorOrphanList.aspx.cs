@@ -24,7 +24,15 @@ namespace Saved
             if (action=="sponsornow" && id.Length > 1)
             {
                 string sql = "Select * from SponsoredOrphan where userid is null and id = '" + BMS.PurifySQL(id, 100) + "' ";
-                double dAmt = gData.GetScalarDouble(sql, "MonthlyAmount");
+                double dAmt = 0;
+                try
+                {
+                    dAmt = gData.GetScalarDouble(sql, "MonthlyAmount");
+                }catch(Exception ex)
+                {
+                    MsgBox("Error", "Please contact rob@biblepay.org for more information", this);
+                    return;
+                }
                 string sChildID = gData.GetScalarString(sql, "childid");
                 string sName = gData.GetScalarString(sql, "name");
 
@@ -40,7 +48,7 @@ namespace Saved
                     return;
                 }
 
-                double dUserBalance = GetDouble(GetUserBalance(this));
+                double dUserBalance = GetDouble(DataOps.GetUserBalance(this));
                 
                 UpdateBBPPrices();
                 double dMonthly = GetBBPAmountDouble(dAmt);
@@ -61,7 +69,7 @@ namespace Saved
                 gData.Exec(sql1);
 
 
-                AdjBalance(-1 * dMonthly, gUser(this).UserId.ToString(), "Sponsor Payment " + sChildID);
+                DataOps.AdjBalance(-1 * dMonthly, gUser(this).UserId.ToString(), "Sponsor Payment " + sChildID);
 
                 MsgBox("Success", "Thank you for sponsoring " + sName + "!  You are bearing Christian Fruit and fulfilling James 1:27.  <br><br>Starting in 30 days, we will deduct the sponsorship amount automatically each month.  ", this);
 
