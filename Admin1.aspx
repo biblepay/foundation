@@ -32,6 +32,7 @@
          <asp:Button ID="btnCopyToAWS" runat="server" onclick="btnCopyToAWS_Click"  Text="Copy-to-aws" style="width:85px" />
          <asp:Button ID="btnRemoveBounce" runat="server" onclick="btnRemoveBounce_Click"  Text="Remove Bounce" style="width:85px" />
          <asp:Button ID="btnDSQL" runat="server" onclick="btnDSQL_Click"  Text="Test DSQL" style="width:85px" />
+         <asp:Button ID="btnRemoveSancs" runat="server" onclick="btnRemoveSancs_Click"  Text="Remove Sancs" style="width:85px" />
 
       </div>
 

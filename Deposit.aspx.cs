@@ -11,6 +11,7 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using static Saved.Code.Common;
 using static Saved.Code.PoolCommon;
+using static Saved.Code.UICommon;
 
 namespace Saved
 {
@@ -24,12 +25,15 @@ namespace Saved
 
             if (gUser(this).LoggedIn == false)
             {
+                if (gUser(this).Banned)
+                {
+                    MsgBox("Banned", "Sorry, your account has been banned.", this);
+                }
                 MsgBox("Log In Error", "Sorry, you must be logged in first.", this);
                 return;
             }
-            PayVideos(gUser(this).UserId.ToString());
+            WebServices.PayVideos(gUser(this).UserId.ToString());
             DepositReport();
-
 
         }
 
@@ -99,39 +103,24 @@ namespace Saved
                 return;
             }
 
-            string email = gUser(this).EmailAddress.ToNonNullString();
+            string email = gData.GetScalarString("Select emailaddress from Users where id = '" + gUser(this).UserId.ToString() + "'", "emailaddress");
             if (email == "")
             {
-                MsgBox("Email Address Invalid", "Sorry, the email address is not valid.", this);
+                MsgBox("Email Address Invalid", "Sorry, the email address is not valid.  Please update it.  If the problem persists please email rob@biblepay.org.", this);
                 return;
             }
 
             if (nTotal >= nReq)
             {
-                List<Payment> p = new List<Payment>();
-                Payment p1 = new Payment();
-                p1.bbpaddress = txtWithdrawalAddress.Text;
-                p1.amount = nReq;
-                p.Add(p1);
 
-                string poolAccount = GetBMSConfigurationKeyValue("PoolPayAccount");
+                string txid = Withdraw(gUser(this).UserId, txtWithdrawalAddress.Text, nReq, "Withdraw");
 
-                string txid = SendMany(p, poolAccount, "Withdrawal");
                 if (txid == "" || txid == null)
                 {
                     MsgBox("Withdrawal Failure", "Sorry, the withdrawal failed!  Please contact contact@biblepay.org. ", this);
                     return;
                 }
-                // Update the amount
-                string sql = "insert into Deposit (id, notes, address, txid, userid, added, amount, height) values (newid(), @notes, @address, @txid, @userid, getdate(), @amount, @height)";
-                SqlCommand command = new SqlCommand(sql);
-                command.Parameters.AddWithValue("@userid", gUser(this).UserId.ToString());
-                command.Parameters.AddWithValue("@address", txtWithdrawalAddress.Text);
-                command.Parameters.AddWithValue("@txid", txid);
-                command.Parameters.AddWithValue("@amount", nReq * -1);
-                command.Parameters.AddWithValue("@notes", "Withdrawal");
-                command.Parameters.AddWithValue("@height", _pool._template.height);
-                gData.ExecCmd(command);
+
                 string sNarr = "The withdrawal was successful; the TXID is <font color=green>" + txid.ToString() + "</font>.  <br><br><br> Thank you for using BiblePay! <br><br><h4>Click <a href=Deposit.aspx>here to see your transaction list. </a></h4><br> ";
                 MsgBox("Success. ", sNarr, this);
                 return;
@@ -153,8 +142,8 @@ namespace Saved
                 string dep = dt.Rows[0]["DepositAddress"].ToString() ?? "";
                 if (dep == "")
                 {
-                    dep = GetNewDepositAddress();
-                    UpdateSingleField("Users", "DepositAddress", dep, gUser(this).UserId.ToString());
+                    dep = WebRPC.GetNewDepositAddress();
+                    DataOps.UpdateSingleField("Users", "DepositAddress", dep, gUser(this).UserId.ToString());
                 }
                 txtDepositAddress.Text = dep;
             }

@@ -31,7 +31,7 @@ namespace Saved
             //Handle the SSO return call:
             if (sso.Length > 2)
             {
-                string decsso = Common.decipherSSO(sso);
+                string decsso = UICommon.decipherSSO(sso);
                 string[] vData = decsso.Split("|");
                 if (vData.Length >= 2)
                 {
@@ -51,7 +51,7 @@ namespace Saved
                         User u1 = new User();
                         u1.UserName = un;
                         u1.AvatarURL = url;
-                        PersistUser(ref u1);
+                        DataOps.PersistUser(ref u1);
                         u1.LoggedIn = u1.Require2FA == 1 ? false : true;
                         Session["CurrentUser"] = u1;
                         string sTarget = u1.Require2FA == 1 ? "Login.aspx" : "Default.aspx";

@@ -48,11 +48,14 @@ function doSlideshow()
      </div>
 
     <br />
-    <h4><a href="Partners.aspx">See our Partners</a></h4>
-    
-    <!--<div id="tweets">
-        <br><br><b>Twitter:</b><br><div style='width:100%; height:500; text-align:center; overflow:auto;'>
-            <a class='twitter-timeline' href='https://twitter.com/BiblePay?ref_src=twsrc%5Etfw'>Tweets by BiblePay</a> 
+    <hr />
+
+    <h4><a href="Partners.aspx">Our Partners</a></h4>
+    <hr />
+
+    <div id="tweets">
+        <br><br><br><div style='width:100%; height:500; text-align:center; overflow:auto;'>
+            <a class='twitter-timeline' href='https://twitter.com/BiblePay?ref_src=twsrc%5Etfw'>Tweets on the BiblePay Network</a> 
             <script src='https://platform.twitter.com/widgets.js' charset='utf-8'></script><script>window.onerror = function () { return false; };</script></div>
                      </div>-->
     

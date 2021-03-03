@@ -51,6 +51,42 @@ namespace Saved
         protected global::System.Web.UI.WebControls.TextBox txtNotes;
 
         /// <summary>
+        /// txtFoundation control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox txtFoundation;
+
+        /// <summary>
+        /// txtSong control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox txtSong;
+
+        /// <summary>
+        /// txtBitcoin control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox txtBitcoin;
+
+        /// <summary>
+        /// txtXMRRate control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox txtXMRRate;
+
+        /// <summary>
         /// btnAddSingleExpense control.
         /// </summary>
         /// <remarks>
@@ -58,5 +94,14 @@ namespace Saved
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button btnAddSingleExpense;
+
+        /// <summary>
+        /// btnAddExpenseRecord control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnAddExpenseRecord;
     }
 }

@@ -15,8 +15,20 @@
         <tr><td>    Child ID (or Charity Name):  <td>    <asp:TextBox ID="txtChildID" width="400px"  runat="server" ></asp:TextBox></tr>
         <tr><td>    Expense Narrative:               <td>    <asp:TextBox ID="txtNotes" width="400px"  runat="server" ></asp:TextBox></tr>
     </table>
+
+    <h3>Add Monthly Pool Expense+Income record:</h3>
+    <table>
+        <tr><td>    XMR Raised from Foundation:                  <td>    <asp:TextBox ID="txtFoundation" width="200px"  runat="server" ></asp:TextBox></tr>
+        <tr><td>    XMR Raised from Song Pool:                 <td>    <asp:TextBox ID="txtSong" width="200px"  runat="server" ></asp:TextBox></tr>
+        <tr><td>    Bitcoin Value:  <td>    <asp:TextBox ID="txtBitcoin" width="400px"  runat="server" ></asp:TextBox></tr>
+        <tr><td>    XMR Value:  <td>    <asp:TextBox ID="txtXMRRate" width="400px"  runat="server" ></asp:TextBox></tr>
+
+    </table>
+
+
     <asp:Button ID="btnAddSingleExpense" runat="server" Text="Add Expense" OnClick="btnAddExpense_Click" />
 
 
+    <asp:Button ID="btnAddExpenseRecord" runat="server" Text="Add Monthly Expense Record + Income Record" OnClick="btnAddExpenseRecord_Click" />
 
 </asp:Content>

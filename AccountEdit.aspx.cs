@@ -5,7 +5,7 @@ using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Web.UI;
 using static Saved.Code.Common;
-
+using static Saved.Code.DataOps;
 
 namespace Saved
 {
@@ -16,7 +16,7 @@ namespace Saved
         protected void Page_Load(object sender, EventArgs e)
         {
 
-            if (true && Debugger.IsAttached)
+            if (Debugger.IsAttached)
                 CoerceUser(Session);
 
             if (true)
@@ -30,7 +30,6 @@ namespace Saved
 
             txtTwoFactorEnabled.Text = gUser(this).Require2FA == 1 ? "Enabled" : "Disabled";
             txtMyBalance.Text = GetUserBalance(this).ToString();
-
             string sql = "Select * from users where username=@username";
             SqlCommand command = new SqlCommand(sql);
             command.Parameters.AddWithValue("@username", gUser(this).UserName);
@@ -42,6 +41,9 @@ namespace Saved
                 {
                     txtRandomXAddress.Text = dr1["RandomXBBPAddress"].ToString();
                     txtUserName.Text = dr1["UserName"].ToString();
+                    txtEmailAddress.Text = dr1["EmailAddress"].ToString();
+                    txtForumRewardsAddress.Text = dr1["ForumRewardsAddress"].ToString();
+                    chkUnsubscribe.Checked = GetDouble(dr1["Unsubscribe"]) == 1 ? true : false;
                 }
                 _id = dr1["id"].ToString();
                 _picture = NotNull(dr1["picture"]);
@@ -51,6 +53,17 @@ namespace Saved
             {
                 _picture = "<img src=/Images/emptyavatar.png width=250 height=250 />";
             }
+            sql = "Select RokuID from RokuMiner where Userid = '" + gUser(this).UserId.ToString() + "'";
+            DataTable dt1 = gData.GetDataTable(sql);
+            string rokuIDS = "";
+            for (int i = 0; i < dt1.Rows.Count; i++)
+            {
+                string rokuID = dt1.Rows[i]["rokuID"].ToString().Substring(0, 8);
+                rokuIDS += rokuID + ", ";
+            }
+            if (rokuIDS.Length > 2)
+                rokuIDS = rokuIDS.Substring(0, rokuIDS.Length - 2);
+            txtRokuMiners.Text = rokuIDS;
         }
         public string GetPictureLegacy()
         {
@@ -108,7 +121,7 @@ namespace Saved
         protected void btnSave_Click(object sender, EventArgs e)
         {
 
-            string sql = "Update Users set randomxbbpaddress=@rx,unsubscribe=@unsubscribe,updated=getdate() where id=@id";
+            string sql = "Update Users set forumrewardsAddress=@fra,randomxbbpaddress=@rx,unsubscribe=@unsubscribe,updated=getdate() where id=@id";
 
             SqlCommand command = new SqlCommand(sql);
             /*
@@ -119,6 +132,7 @@ namespace Saved
             }
             */
             command.Parameters.AddWithValue("@rx", txtRandomXAddress.Text);
+            command.Parameters.AddWithValue("@fra", txtForumRewardsAddress.Text);
             command.Parameters.AddWithValue("@id", _id);
             object unsubscribe = chkUnsubscribe.Checked ? (object)"1" : DBNull.Value;
             command.Parameters.AddWithValue("@unsubscribe", unsubscribe);

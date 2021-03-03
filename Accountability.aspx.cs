@@ -34,7 +34,7 @@ namespace Saved
             string sql = "SELECT * FROM (select id,added as a1, FORMAT (added, 'MMMM yyyy') as Added,'DR' as Type,Amount,Charity, '' as Notes from expense "
                 + " union all  select id, added as a1, format(added, 'MMMM yyyy'), 'CR' as Type,Amount, Charity, Notes from Revenue ) b where year(b.a1)='" 
                 + nYear.ToString() + "' order by a1 ";
-            string html = GetTableHTML(sql);
+            string html = UICommon.GetTableHTML(sql);
             var result = Pdf.From(html).Portrait().Content();
             Response.Clear();
             Response.ContentType = "application/pdf";
@@ -53,7 +53,7 @@ namespace Saved
                 + " select id, added as a1, format(added, 'MMMM yyyy'), 'CR' as Type, Amount, Charity, Notes, added as dt1 from Revenue"
                 + "  ) b group by added, Type  order by max(dt1)";
 
-            string html = GetTableHTML(sql);
+            string html = UICommon.GetTableHTML(sql);
             var result = Pdf.From(html).Portrait().Content();
             Response.Clear();
             Response.ContentType = "application/pdf";
@@ -67,9 +67,10 @@ namespace Saved
         public void GenerateCharityReport(string sCharity)
         {
             string sql = "SELECT orphanexpense.id,orphanexpense.Amount,orphanexpense.Notes,orphanexpense.Added,orphanexpense.Charity,orphanexpense.ChildID,orphanexpense.Balance,sponsoredOrphan.Name "
-                + " from orphanexpense inner join sponsoredorphan on sponsoredorphan.childid=orphanexpense.childid where sponsoredorphan.charity = '" + BMS.PurifySQL(sCharity, 50) + "' order by added";
+                + " from orphanexpense inner join sponsoredorphan on sponsoredorphan.childid=orphanexpense.childid where sponsoredorphan.charity = '" 
+                + BMS.PurifySQL(sCharity, 50) + "' order by added";
 
-            string html = GetCharityTableHTML(sql);
+            string html = UICommon.GetCharityTableHTML(sql);
             var result = Pdf.From(html).Portrait().Content();
             Response.Clear();
             Response.ContentType = "application/pdf";

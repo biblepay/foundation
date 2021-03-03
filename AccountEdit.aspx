@@ -27,10 +27,8 @@
 
        
         <tr><td>&nbsp;</td></tr>
-        <tr><td>RandomX BBP Mining Address:</asp:Label></td>
+        <tr><td>BBP Mining Address (Roku or RandomX):</asp:Label></td>
            <td><asp:TextBox ID="txtRandomXAddress" width="500px" runat="server" ></asp:TextBox></td></tr>
-
-
 
        <tr><td>User Name:</td></td>
            <td><asp:TextBox ID="txtUserName" readonly runat="server"></asp:TextBox></td></tr>
@@ -38,6 +36,12 @@
         <tr><td>Account Balance:</td></td>
            <td><asp:TextBox ID="txtMyBalance" readonly runat="server"></asp:TextBox></td></tr>
  
+        <tr><td>E-Mail Address:</td></td>
+           <td><asp:TextBox ID="txtEmailAddress" readonly runat="server"></asp:TextBox></td></tr>
+
+        <tr><td>My ROKU Miners:</asp:Label></td>
+           <td><asp:TextBox ID="txtRokuMiners" width="500px" readonly runat="server" ></asp:TextBox></td></tr>
+
         <tr><td>Unsubscribe from E-mails:</td>
             <td><asp:CheckBox ID="chkUnsubscribe" runat="server" /></asp:CheckBox>
             <font color="red"><small>Note: If you unsubscribe from our e-mails, you will no longer be eligibile for video rewards, bonuses, promotions, giveaways, tweet rewards, gospel rewards, or randomx bonsuses and you will be out of the loop on emergency notifications.</font></small>
@@ -51,6 +55,16 @@
            <td><asp:TextBox ID="txttwofactorcode" runat="server"></asp:TextBox></td></tr>
  
         <tr><td>&nbsp;</td></tr>
+                <tr><td>Forum Rewards Address:</asp:Label></td>
+           <td><asp:TextBox ID="txtForumRewardsAddress" width="500px" runat="server" ></asp:TextBox>
+               <br />
+                   <font color="red">
+                         <small>Note:  Populate this address to receive rewards for <a href="https://forum.biblepay.org/index.php?topic=517.new#new">posting in this forum thread</a>. The more your Benevolence rating rises, and quantity of posts, the higher the weekly reward.  Benevolence * Post Quantity * Forum_Budget_Factor = Reward.
+                   </font></small>
+           </td></tr>
+
+
+
         <tr><td>&nbsp;</td></tr>
 
 

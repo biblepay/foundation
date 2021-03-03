@@ -5,7 +5,10 @@
     <p>
 
     </p>
-    <h3><u>Getting Started</u></h3>
+
+
+
+    <h3><u>Getting Started as a RandomX Miner:</u></h3>
 
 
     <div>

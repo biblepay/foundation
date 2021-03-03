@@ -60,6 +60,24 @@ namespace Saved
         protected global::System.Web.UI.WebControls.TextBox txtMyBalance;
 
         /// <summary>
+        /// txtEmailAddress control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox txtEmailAddress;
+
+        /// <summary>
+        /// txtRokuMiners control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox txtRokuMiners;
+
+        /// <summary>
         /// chkUnsubscribe control.
         /// </summary>
         /// <remarks>
@@ -85,6 +103,15 @@ namespace Saved
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox txttwofactorcode;
+
+        /// <summary>
+        /// txtForumRewardsAddress control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox txtForumRewardsAddress;
 
         /// <summary>
         /// btnSave control.
