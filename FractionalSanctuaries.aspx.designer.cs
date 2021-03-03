@@ -33,15 +33,6 @@ namespace Saved
         protected global::System.Web.UI.WebControls.TextBox txtGlobalSancInvestmentCount;
 
         /// <summary>
-        /// txtBonusPercent control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtBonusPercent;
-
-        /// <summary>
         /// txtHODLPercent control.
         /// </summary>
         /// <remarks>
@@ -49,6 +40,33 @@ namespace Saved
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox txtHODLPercent;
+
+        /// <summary>
+        /// txtBBPEarningsPerDay control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox txtBBPEarningsPerDay;
+
+        /// <summary>
+        /// txtOrphanChargesPerDay control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox txtOrphanChargesPerDay;
+
+        /// <summary>
+        /// txtNetEarningsPerDay control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox txtNetEarningsPerDay;
 
         /// <summary>
         /// txtFractionalSancBalance control.

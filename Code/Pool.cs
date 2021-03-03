@@ -57,6 +57,11 @@ namespace Saved.Code
                     // We can put unit test code in here etc:
                 }
 
+                if (Debugger.IsAttached)
+                {
+                   
+                }
+
                 Thread.Sleep(60000);
                 if (!Debugger.IsAttached)
                 {
@@ -66,6 +71,12 @@ namespace Saved.Code
                     PurgeSockets(false);
                     PurgeJobs();
                 }
+                else
+                {
+                    Fastly.SyncFastlyNicknames();
+                }
+                
+
             }
         }
 

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Saved.Code;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -9,6 +10,7 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using static Saved.Code.Common;
 using static Saved.Code.StringExtension;
+using static Saved.Code.Fastly;
 
 namespace Saved
 {
@@ -22,6 +24,8 @@ namespace Saved
 
             string sSave = Request.Form["btnSaveComment"].ToNonNullString();
             string mediaid = Request.QueryString["mediaid"] ?? "";
+            double dReward = GetDouble(Request.QueryString["reward"].ToNonNullString());
+
             if (sSave != "" && mediaid.Length > 1)
             {
                 if (gUser(this).UserName == "")
@@ -36,11 +40,11 @@ namespace Saved
                 command.Parameters.AddWithValue("@parentid", mediaid);
                 gData.ExecCmd(command);
             }
-
+            double dWatching = GetDouble(Request.QueryString["watching"].ToNonNullString());
 
             // Respect the category (Current, Historical, Rapture, Guest-Pastor, etc).
-            string id = Request.QueryString["id"].ToNonNullString();
-            if (id.Length > 1)
+            //string id = Request.QueryString["id"].ToNonNullString();
+            if (dReward == 1 && mediaid != "")
             {
                 if (!gUser(this).LoggedIn || gUser(this).UserId=="" || gUser(this).UserId == null)
                 {
@@ -54,20 +58,19 @@ namespace Saved
                     return;
                 }
 
-                double dWatching = GetDouble(Request.QueryString["watching"].ToNonNullString());
-                if (dWatching == 1)
-                {
-                    string sql1 = "Update Tip set Watching=getdate() where videoid='" + id + "' and userid='" + gUser(this).UserId.ToString() + "' and starttime > getdate()-1";
-                    gData.Exec(sql1);
-                    return;
-                }
 
-                if (GetHPS(gUser(this).RandomXBBPAddress.ToNonNullString()) < 1 && !Debugger.IsAttached)
+                if (DataOps.GetHPS(gUser(this).RandomXBBPAddress.ToNonNullString()) < 1 && !Debugger.IsAttached)
                 {
                     MsgBox("Hash Power too low", "Sorry, you must be mining in the leaderboard to use this feature.  Your HPS is too low.", this);
                     return;
                 }
-                
+
+                if (mediaid != "" && dWatching == 1 && dReward == 1)
+                {
+                    string sql1 = "Update Tip set Watching=getdate(),watchcount=watchcount+1 where videoid='" + mediaid + "' and userid='" + gUser(this).UserId.ToString() + "' and starttime > getdate()-1";
+                    gData.Exec(sql1);
+                    return;
+                }
 
                 string sql = "select count(*) ct from Tip where UserId=@userid and Added > getdate()-1";
                 SqlCommand cmd = new SqlCommand(sql);
@@ -106,37 +109,59 @@ namespace Saved
             string username = gData.GetScalarString(sql, "username");
             return username;
         }
+
+        public string GetMediaCategory()
+        {
+            string category = Request.QueryString["category"].ToNonNullString();
+            if (category == null || category == "")
+                return "";
+            category = category.Substring(0, 1).ToUpper() + category.Substring(1, category.Length - 1);
+            return category;
+        }
         public string GetMedia()
         {
             string category = Request.QueryString["category"].ToNonNullString();
-            string id = Request.QueryString["id"].ToNonNullString();
             string mediaid = Request.QueryString["mediaid"].ToNonNullString();
             double dWatching = GetDouble(Request.QueryString["watching"].ToNonNullString());
+            double dReward = GetDouble(Request.QueryString["reward"].ToNonNullString());
+            double dLimited = GetDouble(Request.QueryString["limit"].ToNonNullString());
+
             if (dWatching == 1)
                 return "";
 
 
             string sql = "Select * from Rapture where category=@cat order by added desc";
             if (mediaid != "")
-                sql = "Select * from Rapture Where ID='" + Saved.Code.BMS.PurifySQL(mediaid, 64) + "'";
-
-            string html = "";
-
-            if (id.Length > 1)
             {
+                sql = "Update Rapture set ViewCount=isnull(viewcount,0)+1 where id='" + BMS.PurifySQL(mediaid, 100) + "'";
+                gData.Exec(sql);
+                sql = "Select * from Rapture Where ID='" + Saved.Code.BMS.PurifySQL(mediaid, 64) + "'";
+            }
+            string html = "";
+           
+            if (dReward == 1)
+            {
+
                  sql = "Select top 1 * from Rapture where id=@id order by added desc";
                  SqlCommand c = new SqlCommand(sql);
-                 c.Parameters.AddWithValue("@id", id);
+                 c.Parameters.AddWithValue("@id", mediaid);
                  string sVideoID = gData.GetScalarString(c, "id");
                  string sCategory = gData.GetScalarString(c, "category");
                  string sURL = gData.GetScalarString(c, "url");
-
+                
                  if (sVideoID.Length > 1)
                  {
+
+                    string sSuffix = "?token=" + SignVideoURL();
+
+                    string sFullURL = sURL + sSuffix;
+
+
                     double nReward = GetDouble(GetBMSConfigurationKeyValue("VideoRewardAmount"));
-                     double dSize = Saved.Code.BMS.GetWebResourceSize(sURL);
-                     string sql1 = "Insert into Tip (id,userid,amount,added,videoid,starttime,size,category) values (newid(),'" + gUser(this).UserId.ToString() 
-                        + "','" + nReward.ToString() + "',getdate(),'" + sVideoID + "',getdate(),'" + dSize.ToString() + "','" + sCategory + "')";
+                    double dSize = Saved.Code.BMS.GetWebResourceSize(sFullURL);
+
+                     string sql1 = "Insert into Tip (id,userid,amount,added,videoid,starttime,size,category,watchcount) values (newid(),'" + gUser(this).UserId.ToString() 
+                        + "','" + nReward.ToString() + "',getdate(),'" + sVideoID + "',getdate(),'" + dSize.ToString() + "','" + sCategory + "',0)";
                      gData.Exec(sql1);
                      html += "<br>Congratulations!  You will be rewarded up to " + nReward.ToString() 
                         + " for watching this video.  Please do not click away until you gain something from the video, otherwise you will not receive the full reward.  <br><br> ";
@@ -145,7 +170,7 @@ namespace Saved
 
             SqlCommand command = new SqlCommand(sql);
             command.Parameters.AddWithValue("@cat", category);
-            command.Parameters.AddWithValue("@id", id);
+            command.Parameters.AddWithValue("@id", mediaid);
 
             DataTable dt = gData.GetDataTable(command);
             
@@ -155,15 +180,22 @@ namespace Saved
 
             string sTable = "<table cellpadding=20px cellspacing=20px>";
             html += sTable;
+            double nLimit = 0;
             for (int y = 0; y < dt.Rows.Count; y++)
             {
+                nLimit++;
+                if (dLimited > 0 && nLimit > dLimited)
+                    break;
                 string sNotes = GetNotesHTML(dt.Rows[y]["Notes"].ToString());
-                if (sNotes.Length > 777) sNotes = sNotes.Substring(0, 777);
+                if (sNotes.Length > 256) 
+                    sNotes = sNotes.Substring(0, 256);
                 string sEditURL = "<a href=Markup.aspx?type=Rapture&id=" + dt.Rows[y]["id"].ToString() + ">Edit</a>";
 
                 string sAnchor = "<div><a href=Media.aspx?mediaid=" + dt.Rows[y]["id"].ToString() + ">";
                 string sUserID = dt.Rows[y]["userid"].ToString();
                 string sUserName = GetUserName(sUserID);
+                double nViewCount = GetDouble(dt.Rows[y]["ViewCount"].ToNonNullString());
+
 
                 string sDiv = "<tr><td width=30%>";
 
@@ -172,17 +204,26 @@ namespace Saved
 
                 string sAutoPlay = !fRelink ? "autostart autoplay controls playsinline" : "preload='metadata'";
 
-                sDiv += "<video class='connect-bg' width='400' height='340' " + sAutoPlay + " style='background-color:black'>";
+                sDiv += "<video id='video1' class='connect-bg' width='400' height='340' " + sAutoPlay + " style='background-color:black'>";
 
                 string sLoc = !fRelink ? "" : "#t=7";
+                string sBaseURL = dt.Rows[y]["URL"].ToString();
+                string sSuffix = "?token=" + SignVideoURL();
 
-                sDiv += "<source src='" + dt.Rows[y]["URL"].ToString() + sLoc + "' type='video/mp4'></video>";
+                string sFullURL = sBaseURL + sSuffix + sLoc;
+                string sSpeed1 = "<a id='aSlow' href='#' onclick='slowPlaySpeed();'>.5x</a>";
+                string sSpeed2 = "<a id='aNormal' href='#' onclick='normalPlaySpeed();'>1x</a>";
+                string sSpeed3 = "<a id='aFast' href='#' onclick='fastPlaySpeed();'>1.75x</a>";
+
+
+                // Add the token
+                sDiv += "<source src='" + sFullURL + "' type='video/mp4'></video>";
                 if (fRelink)
                     sDiv += "</a></div>";
 
-                string sFooter = "";
+                string sFooter = sSpeed1 + " • " + sSpeed2 + " • " + sSpeed3 + " • " + nViewCount.ToString() + " view(s) • " + dt.Rows[y]["Added"].ToString();
                 if (sUserName != "")
-                    sFooter = "Uploaded by " + sUserName;
+                    sFooter += " • Uploaded by " + sUserName;
                 sDiv += "<td style='padding:20px;font-size:16px;' width=70%>&nbsp;&nbsp;" + sNotes + "<br><small>" + sFooter + "</small></td>";
                 
                 
@@ -196,7 +237,7 @@ namespace Saved
             html += "</table>";
             if (mediaid != "")
             {
-                html += GetComments(mediaid, this);
+                html += UICommon.GetComments(mediaid, this);
             }
             return html;
         }

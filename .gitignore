@@ -61,3 +61,6 @@ Images/hashrate.png
 Images/blockssolved.png
 *.ide-shm
 Images/blockssolved.png
+.vs/Foundation/v16/Server/sqlite3/storage.ide-shm
+.vs/Foundation/v16/Server/sqlite3/storage.ide-wal
+Images/blockssolved.png

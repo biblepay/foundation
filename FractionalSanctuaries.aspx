@@ -4,7 +4,7 @@
 
 
     <br />
-    <h3>Active Fractional Sanctuaries</h3>
+    <h3>Active Fractional Sanctuaries with POOS (Proof-of-Orphan-Sponsorship)</h3>
 
     <hr />
 
@@ -17,11 +17,16 @@
 
         <tr><td>    Global Sanctuary Investment Amount:          <td>    <asp:TextBox ID="txtGlobalSancInvestments" width="200px" readonly runat="server" ></asp:TextBox></tr>
         <tr><td>    Global Sanctuary Investment Count:          <td>    <asp:TextBox ID="txtGlobalSancInvestmentCount" width="200px" readonly runat="server" ></asp:TextBox></tr>
-        <tr><td>    BONUS %:          <td>    <asp:TextBox ID="txtBonusPercent" width="200px" readonly runat="server" ></asp:TextBox></td></tr>
-   
+      
         <tr><td>    HODL %:          <td>    <asp:TextBox ID="txtHODLPercent" width="200px" readonly runat="server" ></asp:TextBox> 
             &nbsp;[<%=GetNonCompounded()%>% non-compounded]&nbsp;<small><font color="red">* Based on actual chain data over the last 7 days</font></small>
         <tr><td colspan="2">Note:  To receive compounded ROI on your HODL, you must transfer your earned BBP rewards into your fractional sanctuary once per month. </td></tr>
+        <!--POOS-->
+        <tr><td>    BiblePay Gross Earnings Per Day:       <td>    <asp:TextBox ID="txtBBPEarningsPerDay" width="200px" readonly runat="server" ></asp:TextBox></tr>
+        <tr><td>    Orphan Charges Deducted Per Day:       <td>    <asp:TextBox ID="txtOrphanChargesPerDay" width="200px" readonly runat="server" ></asp:TextBox></tr>
+        <tr><td>    Net Earnings Per Day for Fractional Sanctuary:       <td>    <asp:TextBox ID="txtNetEarningsPerDay" width="200px" readonly runat="server" ></asp:TextBox></tr>
+        
+
     </table>
     <hr />
 
@@ -54,7 +59,7 @@
     You will see the detailed transactions in the Fractional Sanctuary report, available here.
     <br />
     
-    You may add up to: <%=Saved.Code.Common.GetUserBalance(this) %>.
+    You may add up to: <%=Saved.Code.DataOps.GetUserBalance(this) %>.
     
     <br />
 
@@ -72,7 +77,7 @@
     Note: This option allows you to cash out, or liquidate, part of or all of your fractional sanctuary.  This will transfer the fractional balance back to your free BBP balance.
     But it will also cause you to stop earning rewards.  Note that you should not try to switch in and out of fractional sanctuaries, as we may put a hold on your balance for 24 hours.
     <br />
-    You may remove up to: <%=Saved.Code.Common.GetTotalSancInvestment(this) %>.
+    You may remove up to: <%=Saved.Code.DataOps.GetTotalSancInvestment(this) %>.
 
     <br />
 

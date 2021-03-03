@@ -23,24 +23,34 @@ namespace Saved
             if (Debugger.IsAttached)
                 CoerceUser(Session);
 
-            string sAPI = Request.Headers["apikey"] ?? "";
-            string sID = GetUserIDByAPIKey(sAPI);
-            double nBalance = GetUserBalance(sID);
+            // string sAPI = Request.Headers["apikey"] ?? "";
+            // string sID = GetUserIDByAPIKey(sAPI);
+            // double nBalance = GetUserBalance(sID);
+            // ToDo: Implement API
+
             string sOriginalName = Request.Headers["OriginalName"] ?? "";
+            int nDuration = (int)GetDouble(Request.Headers["Duration"] ?? "");
             int nDensityLevel = (int)GetDouble(Request.Headers["Density"] ?? "");
-            if (sOriginalName != "")
+            string sBlockHash = Request.Headers["BlockHash"] ?? "";
+            int nHeight = (int)GetDouble(Request.Headers["BlockHeight"] ?? "");
+
+            if (sOriginalName != "" && sBlockHash != "")
             {
-                string sXML = "";
                 int iPartNo = (int)GetDouble(Request.Headers["PartNumber"] ?? "");
                 int nTotalParts = (int)GetDouble(Request.Headers["TotalParts"] ?? "");
                 string sLocalFileName = iPartNo.ToString() + ".dat";
                 string sWebPath = Request.Headers["WebPath"] ?? "";
                 string sCPK = Request.Headers["CPK"] ?? "";
+                string sNetwork = Request.Headers["NetworkID"] ?? "";
                 string sTempArea = "SVR" + sOriginalName.GetHashCode().ToString();
-                string sCompleteTempPath = Path.Combine(Path.GetTempPath(), sTempArea);
+                string sCompleteTempPath = Path.Combine(Common.GetFolderUnchained("Temp"), sTempArea);
                 string sCompleteWritePath = Path.Combine(sCompleteTempPath, sLocalFileName);
+                double nFee = GetDouble(Request.Headers["Fee"] ?? "");
+                string sTXID = Request.Headers["TXID"] ?? "";
+                string sXML = "";
                 if (!Directory.Exists(sCompleteTempPath))
                     Directory.CreateDirectory(sCompleteTempPath);
+                
                 using (Stream output = File.OpenWrite(sCompleteWritePath))
                 using (Stream input = Request.InputStream)
                 {
@@ -57,23 +67,38 @@ namespace Saved
 
                 if (nTotalParts == iPartNo)
                 {
-                    string sResurrectionPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".dat");
+                    string sResurrectionPath = Path.Combine(Common.GetFolderUnchained("Temp"), Guid.NewGuid().ToString() + ".dat");
                     FileSplitter.ResurrectFile(sCompleteTempPath, sResurrectionPath);
                     FileInfo fi = new FileInfo(sResurrectionPath);
+                    Log("205");
+
                     long iLen = fi.Length;
                     FileSplitter.RelinquishSpace(sOriginalName);
                     // Make a temp file for the resurrected version here:
                     string sStoreKey = sCPK + "/" + sOriginalName;
-                    Task<List<string>> myTask = Uplink.Store2(sStoreKey, "MDN", "MV", sResurrectionPath, nDensityLevel);
+                    // This is File storage
+                    Saved.Code.Uplink.Response r = Uplink.Store3(sOriginalName, sCPK, sResurrectionPath, nDensityLevel);
+                    string sURL = r.Results;
                     System.IO.File.Delete(sResurrectionPath);
-                    if (myTask.Result.Count > 0)
+                    if (sURL != "")
                     {
-                        string t1 = "";
-                        sXML = "<status>1</status><complete>1</complete><url>" + myTask.Result[0] +  "</url><bytes>" + iLen.ToString() + "</bytes>";
-                        for (int i = 0; i < myTask.Result.Count; i++)
-                        {
-                            sXML += "<url" + i.ToString() + ">" + myTask.Result[i] + "</url" + i.ToString() + ">";
-                        }
+                        Log("207 " + sURL);
+
+                        Uplink.SidechainTransaction u1 = new Uplink.SidechainTransaction();
+                        u1.nFee = nFee;
+                        u1.TXID = sTXID;
+                        u1.FileName = sStoreKey;
+                        u1.URL = sURL;
+                        u1.nDensity = nDensityLevel;
+                        u1.nDuration = nDuration;
+                        u1.BlockHash = sBlockHash;
+                        u1.CPK = sCPK;
+                        u1.nHeight = nHeight;
+                        u1.nSize = iLen;
+                        u1.Network = sNetwork;
+                        bool fSuccess = Uplink.StoreTransaction(u1);
+                        sXML = "<status>1</status><complete>1</complete><url>" + sURL +  "</url><bytes>" + iLen.ToString() + "</bytes>";
+                        sXML += "<url0>" + sURL + "</url0>";
                         Response.Write(sXML);
                         Response.End();
                         return;
@@ -81,7 +106,7 @@ namespace Saved
                     else
                     {
                         sXML = "<status>0</status>";
-                        Log("Uplink failed " + myTask.Result);
+                        Log("Uplink failed ");
                         Response.Write(sXML);
                         Response.End();
                         return;
@@ -94,10 +119,13 @@ namespace Saved
                 return;
             }
 
-            if (!gUser(this).Admin)
+            if (true)
             {
+                if (!gUser(this).Admin)
+                {
                     MsgBox("Restricted", "Sorry this page is for admins only.", this);
                     return;
+                }
             }
 
             if (!IsPostBack)
@@ -124,7 +152,7 @@ namespace Saved
             if (FileUpload1.HasFile)
             {
                     sb.AppendFormat(" Uploading file: {0}", FileUpload1.FileName);
-                    string sPath = Path.Combine(System.IO.Path.GetTempPath() + "Uploads");
+                    string sPath = Common.GetFolderUnchained("Temp");
                     string extension = Path.GetExtension(FileUpload1.FileName);
                     string newName = Guid.NewGuid().ToString() + extension;
                     string fullpath = Path.Combine(sPath, newName);
@@ -142,7 +170,9 @@ namespace Saved
                         u.RecipientBBPAddress = "toaddress";
                         u.nTimestamp = UnixTimeStamp(DateTime.Now);
                         Unchained.SubmitUnchainedTransaction(u);
+                        // File storage
                         Task<List<string>> myTask = Uplink.Store2(newName, "MDN", "MV", fullpath, 3);
+
                         if (myTask.Result.Count < 1)
                         {
                            MsgBox("Object Storage Failed", "The server could not process the request.", this);
@@ -151,12 +181,12 @@ namespace Saved
                         string narr = "Thank you for using BiblePay Object Storage.  <br><br><a href=" + myTask.Result + ">Your URL is<br>" + myTask.Result[0] + "<br></a>";
                         MsgBox("Object Storage Successful", narr, this);
                         return;
-                    }
-                    else
-                    {
-                          MsgBox("Object Storage Failed", "The file extension provided is not allowed.", this);
-                          return;
-                    }
+                        }
+                        else
+                        {
+                              MsgBox("Object Storage Failed", "The file extension provided is not allowed.", this);
+                             return;
+                        }
             }
             else
             {
