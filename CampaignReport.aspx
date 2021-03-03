@@ -7,9 +7,5 @@
     <br />
 
     <%=GetCampaignReport() %>
-
-
-
-
-
+    
 </asp:Content>

@@ -139,11 +139,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="AddRokuMiner.aspx" />
     <Content Include="Fastly.aspx" />
     <Content Include="BMS\NewUser.aspx" />
     <Content Include="BMS\CheckReward.aspx" />
-    <Content Include="BMS\Roku.aspx" />
     <Content Include="BMS\BlockData.aspx" />
     <Content Include="BMS\LAST_MANDATORY_VERSION.aspx" />
     <Content Include="CampaignReport.aspx" />
@@ -151,7 +149,6 @@
     <Content Include="UnchainedPayPerView.aspx" />
     <Content Include="UnchainedMainMenu.aspx" />
     <Content Include="Wells.aspx" />
-    <Content Include="RokuLeaderboard.aspx" />
     <Content Include="MediaBlack.aspx" />
     <Content Include="Scratchpad.aspx" />
     <Content Include="Tip.aspx" />
@@ -258,13 +255,6 @@
     <Content Include="Bundle.config" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AddRokuMiner.aspx.cs">
-      <DependentUpon>AddRokuMiner.aspx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
-    </Compile>
-    <Compile Include="AddRokuMiner.aspx.designer.cs">
-      <DependentUpon>AddRokuMiner.aspx</DependentUpon>
-    </Compile>
     <Compile Include="Code\Fastly.cs" />
     <Compile Include="Code\FileSplitter.cs" />
     <Compile Include="Code\PoolWebServices.cs" />
@@ -294,13 +284,6 @@
     </Compile>
     <Compile Include="BMS\CheckReward.aspx.designer.cs">
       <DependentUpon>CheckReward.aspx</DependentUpon>
-    </Compile>
-    <Compile Include="BMS\Roku.aspx.cs">
-      <DependentUpon>Roku.aspx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
-    </Compile>
-    <Compile Include="BMS\Roku.aspx.designer.cs">
-      <DependentUpon>Roku.aspx</DependentUpon>
     </Compile>
     <Compile Include="BMS\BlockData.aspx.cs">
       <DependentUpon>BlockData.aspx</DependentUpon>
@@ -350,13 +333,6 @@
     </Compile>
     <Compile Include="Wells.aspx.designer.cs">
       <DependentUpon>Wells.aspx</DependentUpon>
-    </Compile>
-    <Compile Include="RokuLeaderboard.aspx.cs">
-      <DependentUpon>RokuLeaderboard.aspx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
-    </Compile>
-    <Compile Include="RokuLeaderboard.aspx.designer.cs">
-      <DependentUpon>RokuLeaderboard.aspx</DependentUpon>
     </Compile>
     <Compile Include="MediaBlack.aspx.cs">
       <DependentUpon>MediaBlack.aspx</DependentUpon>

@@ -215,11 +215,8 @@ namespace Saved.Code
             }
         }
 
-    
-
     public static void ConvertVideos()
     {
-
         string sVideoPath = GetBMSConfigurationKeyValue("convertvideospath");
         if (sVideoPath == "")
             return;
