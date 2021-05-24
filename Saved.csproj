@@ -145,9 +145,13 @@
     <Content Include="BMS\BlockData.aspx" />
     <Content Include="BMS\LAST_MANDATORY_VERSION.aspx" />
     <Content Include="CampaignReport.aspx" />
+    <Content Include="ROICalculator.aspx" />
+    <Content Include="NFTList.aspx" />
+    <Content Include="NFTOrphans.aspx" />
     <Content Include="UnchainedPayPerByte.aspx" />
     <Content Include="UnchainedPayPerView.aspx" />
     <Content Include="UnchainedMainMenu.aspx" />
+    <Content Include="NFTBrowse.aspx" />
     <Content Include="Wells.aspx" />
     <Content Include="MediaBlack.aspx" />
     <Content Include="Scratchpad.aspx" />
@@ -306,6 +310,27 @@
     <Compile Include="CampaignReport.aspx.designer.cs">
       <DependentUpon>CampaignReport.aspx</DependentUpon>
     </Compile>
+    <Compile Include="ROICalculator.aspx.cs">
+      <DependentUpon>ROICalculator.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="ROICalculator.aspx.designer.cs">
+      <DependentUpon>ROICalculator.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="NFTList.aspx.cs">
+      <DependentUpon>NFTList.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="NFTList.aspx.designer.cs">
+      <DependentUpon>NFTList.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="NFTOrphans.aspx.cs">
+      <DependentUpon>NFTOrphans.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="NFTOrphans.aspx.designer.cs">
+      <DependentUpon>NFTOrphans.aspx</DependentUpon>
+    </Compile>
     <Compile Include="UnchainedPayPerByte.aspx.cs">
       <DependentUpon>UnchainedPayPerByte.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -326,6 +351,13 @@
     </Compile>
     <Compile Include="UnchainedMainMenu.aspx.designer.cs">
       <DependentUpon>UnchainedMainMenu.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="NFTBrowse.aspx.cs">
+      <DependentUpon>NFTBrowse.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="NFTBrowse.aspx.designer.cs">
+      <DependentUpon>NFTBrowse.aspx</DependentUpon>
     </Compile>
     <Compile Include="Wells.aspx.cs">
       <DependentUpon>Wells.aspx</DependentUpon>

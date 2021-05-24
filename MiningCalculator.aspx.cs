@@ -40,8 +40,11 @@ namespace Saved
             {
                 // These 3 are assumptions, the miner can type these in
                 txtHPS.Text = "10000";
-                txtWatts.Text = "325";
+                txtWatts.Text = "400";
                 txtElectricCost.Text = ".08";
+                txtXMRMHS.Text = "842";
+                txtXMRBlocksFound.Text = "200";
+
                 // These are pulled from the pool
                 txtBBPBlocksFound.Text = GetAvgBlocksFound().ToString();
                 txtBBPMHS.Text = (GetAvgHashRate() / 1000000).ToString();
@@ -50,9 +53,9 @@ namespace Saved
                 txtCost.Text = "0";
                 int nMoneroBlocks = 0;
                 double nMoneroHashRate = 0;
-                BMS.GetMoneroHashRate(out nMoneroBlocks, out nMoneroHashRate);
-                txtXMRMHS.Text = nMoneroHashRate.ToString();
-                txtXMRBlocksFound.Text = nMoneroBlocks.ToString();
+               // BMS.GetMoneroHashRate(out nMoneroBlocks, out nMoneroHashRate);
+               // txtXMRMHS.Text = nMoneroHashRate.ToString();
+               // txtXMRBlocksFound.Text = nMoneroBlocks.ToString();
 
             }
             btnCalculate_Click(this, null);

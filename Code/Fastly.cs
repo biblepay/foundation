@@ -180,6 +180,12 @@ namespace Saved.Code
             }
         }
 
+        public static string SV(string URL)
+        {
+            URL += "?token=" + SignVideoURL();
+            return URL;
+        }
+
         public static string SignVideoURL()
         {
             string sKey2 = GetBMSConfigurationKeyValue("fastlysigner");
@@ -203,7 +209,6 @@ namespace Saved.Code
             var hash = new SHA1Managed().ComputeHash(Encoding.UTF8.GetBytes(input));
             return string.Concat(hash.Select(b => b.ToString("x2")));
         }
-
 
         public static string SignChrome(string sPrivKey, string sMessage, bool fProd)
         {

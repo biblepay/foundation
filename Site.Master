@@ -121,11 +121,8 @@
             </div>
 
             <%=Saved.Code.Common.GetGlobalAlert(this.Page) %>
-
         </div>
-
             <%=Saved.Code.UICommon.GetSideBar(this.Page) %>
-
             <div class="container body-content">
                 <asp:ContentPlaceHolder ID="MainContent" runat="server">
                 </asp:ContentPlaceHolder>

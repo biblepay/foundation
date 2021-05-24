@@ -90,11 +90,14 @@ namespace Saved
         {
             string[] vData = data.Split("\r\n");
             if (vData.Length < 2) return data;
-            string sTitle = "<h3>" + vData[0] + "</h3><br>";
+            string sTitle = "<h3>" + vData[0] + "</h3>";
 
             for (int i = 1; i < vData.Length; i++)
             {
-                sTitle += vData[i] + "<br>";
+                if (vData[i] != "")
+                {
+                    sTitle += vData[i] + "<br>";
+                }
             }
             sTitle = sTitle.Replace("\r\n", "<br>");
             return sTitle;
@@ -178,7 +181,7 @@ namespace Saved
             bool fAdmin = gUser(this).Admin;
             bool fRelink = dt.Rows.Count > 1;
 
-            string sTable = "<table cellpadding=20px cellspacing=20px>";
+            string sTable = "<table cellpadding=25px cellspacing=25px>";
             html += sTable;
             double nLimit = 0;
             for (int y = 0; y < dt.Rows.Count; y++)
@@ -196,15 +199,17 @@ namespace Saved
                 string sUserName = GetUserName(sUserID);
                 double nViewCount = GetDouble(dt.Rows[y]["ViewCount"].ToNonNullString());
 
-
-                string sDiv = "<tr><td width=30%>";
+                string sWidth = dt.Rows.Count == 1 ? "100%" : "40%";
+                string sDiv = "<tr><td width='" + sWidth + "'>";
 
                 if (fRelink)
                     sDiv += sAnchor;
 
                 string sAutoPlay = !fRelink ? "autostart autoplay controls playsinline" : "preload='metadata'";
 
-                sDiv += "<video id='video1' class='connect-bg' width='400' height='340' " + sAutoPlay + " style='background-color:black'>";
+                string sDims = dt.Rows.Count == 1 ? "width='1000' height='768'" : "width='400' height='240'";
+
+                sDiv += "<video id='video1' class='connect-bg' " + sDims + " " + sAutoPlay + " style='background-color:black'>";
 
                 string sLoc = !fRelink ? "" : "#t=7";
                 string sBaseURL = dt.Rows[y]["URL"].ToString();
@@ -224,7 +229,11 @@ namespace Saved
                 string sFooter = sSpeed1 + " • " + sSpeed2 + " • " + sSpeed3 + " • " + nViewCount.ToString() + " view(s) • " + dt.Rows[y]["Added"].ToString();
                 if (sUserName != "")
                     sFooter += " • Uploaded by " + sUserName;
-                sDiv += "<td style='padding:20px;font-size:16px;' width=70%>&nbsp;&nbsp;" + sNotes + "<br><small>" + sFooter + "</small></td>";
+                if (dt.Rows.Count == 1)
+                {
+                    sDiv += "</td></tr><tr>";
+                }
+                sDiv += "<td style='padding:10px;font-size:14px;' width=70%>" + sNotes + "<br><small>" + sFooter + "</small><br><br></td>";
                 
                 
                 if (fAdmin)

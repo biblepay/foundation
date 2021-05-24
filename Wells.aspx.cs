@@ -9,6 +9,7 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using static Saved.Code.Common;
 using static Saved.Code.EntityHelper;
+using static Saved.Code.Fastly;
 
 namespace Saved
 {
@@ -16,9 +17,8 @@ namespace Saved
     {
         protected void Page_Load(object sender, EventArgs e)
         {
+           
+
         }
-
-
-
     }
 }
