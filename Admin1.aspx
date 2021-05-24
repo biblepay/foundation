@@ -29,10 +29,16 @@
          <asp:Button ID="btnSave" runat="server" onclick="btnSave_Click"  Text="Save" style="width:85px" />
          <br /><br />
          <asp:Label ID="lblmessage" runat="server" />
-         <asp:Button ID="btnCopyToAWS" runat="server" onclick="btnCopyToAWS_Click"  Text="Copy-to-aws" style="width:85px" />
+
+
+         <asp:Button ID="btnBlockChair" runat="server" onclick="btnBlockChair_Click"  Text="BlockChair" style="width:85px" />
+
+
          <asp:Button ID="btnRemoveBounce" runat="server" onclick="btnRemoveBounce_Click"  Text="Remove Bounce" style="width:85px" />
          <asp:Button ID="btnDSQL" runat="server" onclick="btnDSQL_Click"  Text="Test DSQL" style="width:85px" />
-         <asp:Button ID="btnRemoveSancs" runat="server" onclick="btnRemoveSancs_Click"  Text="Remove Sancs" style="width:85px" />
+
+
+         <asp:Button ID="btnMailLetter" runat="server" onclick="btnMailLetter_Click"  Text="Mail Letter" style="width:85px" />
 
       </div>
 

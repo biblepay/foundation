@@ -48,7 +48,7 @@ namespace Saved
             
             command = new SqlCommand(sql);
             command.Parameters.AddWithValue("@email", txtEmailAddress.Text);
-            command.Parameters.AddWithValue("@password", Saved.Code.Common.GetSha256Hash(txtPassword.Text));
+            command.Parameters.AddWithValue("@password", Saved.Code.Common.GetSha256HashS(txtPassword.Text));
             command.Parameters.AddWithValue("@username", txtUserName.Text);
             gData.ExecCmd(command);
           

@@ -20,10 +20,12 @@ namespace Saved.Code
     {
         public static Dictionary<string, WorkerInfo> dictWorker = new Dictionary<string, WorkerInfo>();
         public static Dictionary<string, WorkerInfo> dictBan = new Dictionary<string, WorkerInfo>();
-        public static Dictionary<double, XMRJob> dictJobs = new Dictionary<double, XMRJob>();
+        public static Dictionary<string, XMRJob> dictJobs = new Dictionary<string, XMRJob>();
+        public static List<string> listBoughtNFT = new List<string>();
+
         public static int iThreadCount = 0;
         public static int nGlobalHeight = 0;
-        public static int pool_version = 1016;
+        public static int pool_version = 1018;
         public static int iXMRThreadID = 0;
         public static double iXMRThreadCount = 0;
         public static int iTitheNumber = 0;
@@ -39,7 +41,8 @@ namespace Saved.Code
         public struct XMRJob
         {
             public string blob;
-            public double jobid;
+            public double jobid0;
+            public string socketid;
             public int timestamp;
             public string target;
             public string seed;
@@ -197,19 +200,19 @@ namespace Saved.Code
         }
 
         private static ReaderWriterLockSlim dictLock = new ReaderWriterLockSlim();
-        public static XMRJob RetrieveXMRJob(double jobid)
+        public static XMRJob RetrieveXMRJob(string socketid)
         {
             try
             {
                 dictLock.EnterReadLock();
-                if (dictJobs.ContainsKey(jobid))
+                if (dictJobs.ContainsKey(socketid))
                 {
-                    return dictJobs[jobid];
+                    return dictJobs[socketid];
                 }
                 XMRJob x = new XMRJob();
                 x.timestamp = UnixTimeStamp();
-                x.jobid = jobid;
-                return x;
+                x.socketid = socketid;
+                 return x;
             }
             finally
             {
@@ -219,12 +222,12 @@ namespace Saved.Code
 
         public static void PutXMRJob(XMRJob x)
         {
-            if (x.jobid == 0)
+            if (x.socketid == "")
                 return;
             dictLock.EnterWriteLock();
             try
             {
-                dictJobs[x.jobid] = x;
+                dictJobs[x.socketid] = x;
             }
             finally
             {
@@ -241,7 +244,7 @@ namespace Saved.Code
                 {
                     dictLock.EnterWriteLock();
 
-                    foreach (KeyValuePair<double, XMRJob> entry in dictJobs.ToArray())
+                    foreach (KeyValuePair<string, XMRJob> entry in dictJobs.ToArray())
                     {
                         if (dictJobs.ContainsKey(entry.Key))
                         {
@@ -725,8 +728,7 @@ namespace Saved.Code
 
         public static void PaySanctuaryInvestors()
         {
-            Log("Pay sanctuary investors");
-
+            
             double nOrphanSancPct = GetOrphanFracSancPercentage();
 
             try
@@ -840,7 +842,6 @@ namespace Saved.Code
                 Saved.Code.WebServices.PayVideos("");
                 clearbans();
                 MailOut();
-                SyncUsers();
                 UserActivityRewards();
 
             }
@@ -915,30 +916,191 @@ namespace Saved.Code
             }
 
             return false;
-
         }
 
-        //Scan for the credit amount
-        public static string GetRawTransaction(string sTxid)
+        public struct NFT
+        {
+            public string Name;
+            public string Description;
+            public string LoQualityURL;
+            public string HiQualityURL;
+            public double nMinimumBidAmount;
+            public double nReserveAmount;
+            public double nBuyItNowAmount;
+            public double nLowestAcceptableAmount;
+            public bool fMarketable;
+            public bool fDeleted;
+            public string CPK;
+            public string Hash;
+            public bool found;
+            public string Type;
+        };
+
+        public static dynamic GetStatement(string sBusinessAddress, string sCustomerAddress, int nStartTime, int nEndTime)
         {
             try
             {
-                NBitcoin.RPC.RPCClient n = WebRPC.GetLocalRPCClient();
+                NBitcoin.RPC.RPCClient n = WebRPC.GetTestNetRPCClient();
+                object[] oParams = new object[4];
+                oParams[0] = sBusinessAddress;
+                oParams[1] = sCustomerAddress;
+                oParams[2] = nStartTime.ToString();
+                oParams[3] = nEndTime.ToString();
+                dynamic oOut = n.SendCommand("getstatement", oParams);
+                return oOut;
+            }
+            catch(Exception x)
+            {
+                Log("Unable to get statement " + x.Message);                
+            }
+            dynamic xz = null;
+            return xz;
+        }
+
+        public static bool InList(string sTypes, string sType)
+        {
+            if (sTypes == "all")
+            {
+                return true;
+            }
+            string[] vTypes = sTypes.Split(",");
+            for (int i = 0; i < vTypes.Length; i++)
+            {
+                if (vTypes[i] == sType)
+                    return true;
+            }
+            return false;
+        }
+        public static List<NFT> GetNFTList(string sTypes)
+        {
+            // Type = Orphan or Digital Goods
+            List<NFT> lNFTs= new List<NFT>();
+            try
+            {
+                NBitcoin.RPC.RPCClient n = WebRPC.GetTestNetRPCClient();
+                object[] oParams = new object[2];
+                oParams[0] = "1";
+                oParams[1] = "1";
+                dynamic oOut = n.SendCommand("listnfts", oParams);
+                // Loop Through the Vouts and get the recip ids and the amounts
+                foreach (var jNFT in oOut.Result)
+                {
+                    NFT n1 = new NFT();
+                    n1.Name = jNFT.Value["Name"].Value;
+                    n1.Description = jNFT.Value["Description"].Value;
+                    n1.nMinimumBidAmount = GetDouble(jNFT.Value["MinimumBidAmount"].Value);
+                    n1.nReserveAmount = GetDouble(jNFT.Value["ReserveAmount"].Value);
+                    n1.nBuyItNowAmount = GetDouble(jNFT.Value["BuyItNowAmount"].Value);
+                    n1.nLowestAcceptableAmount = GetDouble(jNFT.Value["LowestAcceptableAmount"].Value);
+                    n1.Hash = jNFT.Value["Hash"].Value;
+                    n1.found = true;
+                    n1.fMarketable = (bool)jNFT.Value["Marketable"].Value;
+                    n1.fDeleted = (bool)jNFT.Value["Deleted"].Value;
+                    n1.LoQualityURL = jNFT.Value["Lo Quality URL"].Value;
+                    n1.HiQualityURL = jNFT.Value["Hi Quality URL"].Value;
+
+                    n1.Type = jNFT.Value["Type"].Value;
+                    n1.Type = n1.Type.ToLower();
+                    bool fTest = n1.Name.ToLower().Contains("test");
+
+                    string[] vType = n1.Type.Split(" ");
+                    if (!fTest && n1.fMarketable && n1.nMinimumBidAmount > 0)
+                    {
+                        if (InList(sTypes, vType[0]))
+                        {
+                            if (!listBoughtNFT.Contains(n1.Hash))
+                            {
+                                lNFTs.Add(n1);
+                            }
+                            else
+                            {
+                                if (!n1.fMarketable)
+                                {
+                                    // The nft is in the bought list but is now not marketable, so remove it from the bought list
+                                    listBoughtNFT.Remove(n1.Hash);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                return lNFTs;
+            }
+            catch (Exception ex)
+            {
+                Log("GetNFTList: " + ex.Message);
+                return lNFTs;
+            }
+        }
+
+        public static string BuyNFT(string hash, string sNewBuyerCPK, double nTotal)
+        {
+            try
+            {
+                NBitcoin.RPC.RPCClient n = WebRPC.GetTestNetRPCClient();
+                object[] oParams = new object[3];
+                oParams[0] = sNewBuyerCPK;
+                oParams[1] = hash;
+                oParams[2] = nTotal.ToString();
+                dynamic oOut = n.SendCommand("buynft", oParams);
+                string sOut = oOut.Result["Result"].Value;
+                if (sOut == "Success")
+                {
+                    return "";
+                }
+                string sErr = oOut.Result["Error"].Value;
+
+                return sErr;
+
+            }
+            catch(Exception ex)
+            {
+                Log("buynft error " + ex.Message);
+                return ex.Message;
+            }
+        }
+        
+        public static string GetRawTransaction(string sTxid, bool fTestNet)
+        {
+            try
+            {
+                NBitcoin.RPC.RPCClient n;
+                if (fTestNet)
+                {
+                    n = WebRPC.GetTestNetRPCClient();
+                }
+                else
+                {
+                    n = WebRPC.GetLocalRPCClient();
+                }
                 object[] oParams = new object[2];
                 oParams[0] = sTxid;
                 oParams[1] = 1;
+                //Log("Connected to " + n.Address.OriginalString);
+
                 dynamic oOut = n.SendCommand("getrawtransaction", oParams);
                 // Loop Through the Vouts and get the recip ids and the amounts
                 string sOut = "";
+                double locktime = oOut.Result["locktime"] == null ? 0 : GetDouble(oOut.Result["locktime"].ToString());
+                double height1 = oOut.Result["height"] == null ? 0 : GetDouble(oOut.Result["height"].ToString());
+
+                double height = 0;
+                height = height1 > 0 ? height1 : locktime;
+
+               
                 for (int y = 0; y < oOut.Result["vout"].Count; y++)
                 {
                     string sPtr = "";
+              
                     try
                     {
                         sPtr = (oOut.Result["vout"][y] ?? "").ToString();
                     }
                     catch (Exception ey)
                     {
+
+                        Log("Strange error in GetRawTransaction=" + ey.Message);
+                        
                     }
 
                     if (sPtr != "")
@@ -949,9 +1111,10 @@ namespace Saved.Code
                         {
                             sAddress = oOut.Result["vout"][y]["scriptPubKey"]["addresses"][0].ToString();
                         }
-                        else { sAddress = "?"; } //Happens when pool pays itself
-                        string height = oOut.Result["height"].ToString();
-
+                        else 
+                        { 
+                            sAddress = "?";
+                        } //Happens when pool pays itself
                         sOut += sAmount + "," + sAddress + "," + height + "|";
                     }
                     else
@@ -961,9 +1124,11 @@ namespace Saved.Code
                 }
                 return sOut;
             }
+            //Harvest Mission Critical todo:  Pass back the instant send lock bool here as an object!
+
             catch (Exception ex)
             {
-                Log("GetRawTransaction: " + ex.Message);
+                Log("GetRawTransaction1: for " + sTxid + " " + ex.Message);
                 return "";
             }
         }
@@ -1009,7 +1174,7 @@ namespace Saved.Code
                 string address = d1.Rows[i]["Address"].ToString();
                 string sTxId = d1.Rows[i]["txid"].ToString();
 
-                string sRawTx = GetRawTransaction(sTxId);
+                string sRawTx = GetRawTransaction(sTxId, false);
                 int nHeight = 0;
 
                 double amt = GetAmtFromRawTx(sRawTx, address, out nHeight);
@@ -1039,7 +1204,7 @@ namespace Saved.Code
                 string address = d1.Rows[i]["Address"].ToString();
                 string sTxId = d1.Rows[i]["txid"].ToString();
 
-                string sRawTx = GetRawTransaction(sTxId);
+                string sRawTx = GetRawTransaction(sTxId, false);
                 int nHeight = 0;
 
                 double amt = GetAmtFromRawTx(sRawTx, address, out nHeight);
@@ -1203,7 +1368,7 @@ namespace Saved.Code
                         MailAddress r = new MailAddress("rob@saved.one", "BiblePay Team");
                         MailAddress t = new MailAddress(email, username);
                         MailMessage m = new MailMessage(r, t);
-                        m.Subject = "Sharing the Gospel, Reinventing the Wheel, and BiblePay";
+                        m.Subject = "Sharing the Gospel and BiblePay";
                         m.IsBodyHtml = true;
                         m.Body = body;
                         bool fSent = SendMail(m);
@@ -1418,11 +1583,13 @@ namespace Saved.Code
         public static bool fUseBanTable = false;
         public static bool fLogSql = false;
         static int nLastDeposited = 0;
+        static int nLastHourly = 0;
         static int nLastBoarded = 0;
         public static void Leaderboard()
         {
             int nElapsed = UnixTimeStamp() - nLastBoarded;
             int nDepositElapsed = UnixTimeStamp() - nLastDeposited;
+            int nHourlyElapsed = UnixTimeStamp() - nLastHourly;
             if (nElapsed < (60 * 2))
                 return;
             nLastBoarded = UnixTimeStamp();
@@ -1440,12 +1607,17 @@ namespace Saved.Code
                 GetChartOfWorkers();
                 GetChartOfHashRate();
                 GetChartOfBlocks();
-                Code.BMS.LaunchInterfaceWithWCG();
 
                 if (nDepositElapsed > (60 * 15))
                 {
                     nLastDeposited = UnixTimeStamp();
                     GetDepositTXIDList();
+                }
+
+                if (nHourlyElapsed > (60 * 60))
+                {
+                    nLastHourly = UnixTimeStamp();
+                    SyncUsers();
                 }
 
                 Fastly.SyncFastlyNicknames();

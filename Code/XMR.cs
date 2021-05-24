@@ -36,13 +36,16 @@ namespace Saved.Code
                 return false;
             }
         }
-        public bool SubmitBiblePayShare(double nJobID)
+        public bool SubmitBiblePayShare(string socketid)
         {
             try
             {
-                XMRJob x = RetrieveXMRJob(nJobID);
+                XMRJob x = RetrieveXMRJob(socketid);
                 if (x.hash == null || x.hash == "")
+                {
+                    Log("SubmitBBPShare::emptyhash", true);
                     return false;
+                }
 
                 byte[] oRX = PoolCommon.StringToByteArr(x.hash);
                 double nSolutionDiff = PoolCommon.FullTest(oRX);
@@ -59,9 +62,9 @@ namespace Saved.Code
                 {
                     if (false)
                     {
-                        Log("Submitting JOBID " + x.jobid + " with jobidsubmit " + x.jobid.ToString() + " with nonce " +
-                            x.nonce + " at height " + _pool._template.height.ToString() + " seed " + x.seed + " with target " + _pool._template.target + " and solution " + x.solution);
-                        Log("Submitting RXHash " + revBBPHash);
+                        Log("Submit::Submitting JOBID " + x.socketid + " with jobidsubmit nonce " +
+                            x.nonce + " at height " + _pool._template.height.ToString() 
+                            + " seed " + x.seed + " with target " + _pool._template.target + " and solution " + x.solution, true);
                     }
                     // We solved the block
                     string poolAddress = GetBMSConfigurationKeyValue("PoolAddress");
@@ -73,20 +76,27 @@ namespace Saved.Code
                         SqlCommand command = new SqlCommand(sql);
                         command.Parameters.AddWithValue("@height", _pool._template.height);
                         gData.ExecCmd(command, false, false, false);
-                        Log("SUBMIT_SUCCESS: Success for nonce " + x.nonce + " at height " + _pool._template.height.ToString() + " hex " + hex, true);
+                        Log("SUBMIT_SUCCESS: Success for nonce " + x.nonce + " at height " 
+                            + _pool._template.height.ToString() + " hex " + hex);
                     }
                     else
                     {
-                        Log("SUBMITBLOCK: Tried to submit the block for nonce " + x.nonce + " and target " + _pool._template.target + " with seed " + x.seed + " and solution " + x.solution + " with hex " + hex + " and failed");
+                        Log("SUBMITBLOCK: Tried to submit the block for nonce " + x.nonce + " and target " 
+                            + _pool._template.target + " with seed " + x.seed + " and solution " 
+                            + x.solution + " with hex " + hex + " and failed");
                     }
                    
-                    Thread.Sleep(1000);  // Give some time for blockchain to advance
                     _pool._template.updated = 0; // Forces us to get a new block
                     PoolCommon.GetBlockForStratum();
                 }
                 else
                 {
                     PoolCommon.GetBlockForStratum();
+                    if (false)
+                        Log("Submit::Submitting::HIGH_HASH JOBID " + x.socketid + " with jobidsubmit nonce " +
+                            x.nonce + " at height " + _pool._template.height.ToString()
+                                + " seed " + x.seed + " with target " + _pool._template.target + " and solution " + x.solution, false);
+
                 }
 
                 try
@@ -98,14 +108,14 @@ namespace Saved.Code
                 }
                 catch (Exception ex1)
                 {
-                    Log("cant find the job " + x.jobid.ToString());
+                    Log("cant find the job " + x.socketid.ToString());
                 }
 
                 return true;
             }
             catch(Exception ex)
             {
-                Log("Unable to submit bbp share:  " + ex.Message, true);
+                Log("submitshare::Unable to submit bbp share:  " + ex.Message);
             }
             return false;
         }
@@ -151,7 +161,7 @@ namespace Saved.Code
                     }
                     catch (ThreadAbortException abortException)
                     {
-                        Log("XMR thread(2) is going down...", true);
+                        //Log("XMR thread(2) is going down...", true);
                         return;
                     }
                     catch (Exception ex)
@@ -189,12 +199,13 @@ namespace Saved.Code
                                     string nonce = "00000000" + oStratum["params"]["nonce"].ToString();
                                     double nJobID = GetDouble(oStratum["params"]["job_id"].ToString());
                                     string hash = oStratum["params"]["result"].ToString();
-                                    XMRJob xmrJob = RetrieveXMRJob(nJobID);
+                                    XMRJob xmrJob = RetrieveXMRJob(socketid);
                                     string rxheader = xmrJob.blob;
                                     string rxkey = xmrJob.seed;
+                                     
                                     if (rxheader == null)
                                     {
-                                        //Log("cant even find the job " + nJobID.ToString());
+                                        //Log("cant find the job " + nJobID.ToString());
                                         PoolCommon.WorkerInfo wban = PoolCommon.Ban(socketid, 1, "CANT-FIND-JOB");
                                     }
                                     if (rxheader != null)
@@ -207,19 +218,22 @@ namespace Saved.Code
                                         xmrJob.nonce = nonce;
                                         xmrJob.bbpaddress = bbpaddress;
                                         xmrJob.moneroaddress = moneroaddress;
-                                       
+                                        if (false)
+                                            Log("submit::BBP socket " + xmrJob.socketid + " bbp=" + xmrJob.bbpaddress + ",[" + sJson + " ]", true);
+
+
                                         if (false)
                                         {
                                             PoolCommon.GetRandomXAudit(xmrJob.solution, xmrJob.seed, ref out_rx, ref out_rx_root);
                                             bool fMatches = xmrJob.hashreversed == out_rx_root;
                                             // out_rx_root should contain the RandomX hash; out_rx contains the blakehash
                                             // Nonce should be placed in monero location 78,8
-                                            //{"id":55,"jsonrpc":"2.0","method":"submit","params":{"id":"277677767004670","job_id":"536896777408374","nonce":"3f400200","result":"dd27f58fd8064c573000c21b7bc2eae95a9d01b62671ce43402d61bac9070000"}}
+                                            // {"id":55,"jsonrpc":"2.0","method":"submit","params":{"id":"277677767004670","job_id":"536896777408374","nonce":"3f400200","result":"dd27f58fd8064c573000c21b7bc2eae95a9d01b62671ce43402d61bac9070000"}}
                                             // Spec 2.0 (allow fully compatible xmr merge mining)
                                             // If out_rx_root > BBP_DIFF level, accept as a BBP share
                                         }
                                         PutXMRJob(xmrJob);
-                                        SubmitBiblePayShare(xmrJob.jobid);
+                                        SubmitBiblePayShare(xmrJob.socketid);
                                     }
                                 }
                             }
@@ -322,10 +336,12 @@ namespace Saved.Code
                                         // BiblePay Pool to Miner
                                         nTrace = 22;
                                         double nJobId = GetDouble(oStratum["result"]["job"]["job_id"].ToString());
-                                        XMRJob x = RetrieveXMRJob(nJobId);
+                                        XMRJob x = RetrieveXMRJob(socketid);
                                         x.blob = oStratum["result"]["job"]["blob"].ToString();
                                         x.target = oStratum["result"]["job"]["target"].ToString();
                                         x.seed = oStratum["result"]["job"]["seed_hash"].ToString();
+                                        if (false)
+                                            Log("blob " + sJson, true);
                                         PutXMRJob(x);
                                     }
                                     else if (id > 1 && status == "OK")
@@ -351,7 +367,7 @@ namespace Saved.Code
                                     JObject oStratum = JObject.Parse(sJson);
                                     nTrace = 27;
                                     double nJobId = GetDouble(oStratum["params"]["job_id"].ToString());
-                                    XMRJob x = RetrieveXMRJob(nJobId);
+                                    XMRJob x = RetrieveXMRJob(socketid);
                                     nTrace = 27.2;
                                     x.blob = oStratum["params"]["blob"].ToString();
                                     nTrace = 27.4;
@@ -359,6 +375,9 @@ namespace Saved.Code
                                     nTrace = 27.5;
                                     x.seed = oStratum["params"]["seed_hash"].ToString();
                                     nTrace = 27.6;
+                                    if (false)
+                                        Log("newjob " + x.socketid + "  " + sJson, true);
+                                        
                                     PutXMRJob(x);
                                     nTrace = 27.9;
                                 }
@@ -394,7 +413,7 @@ namespace Saved.Code
             }
             catch (ThreadAbortException abortException)
             {
-                Log("minerXMRThread is going down...", true);
+                //Log("minerXMRThread is going down...", true);
                 return;
             }
             catch (Exception ex)

@@ -1,4 +1,6 @@
-﻿using OpenHtmlToPdf;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using OpenHtmlToPdf;
 using Saved.Code;
 using System;
 using System.Data;
@@ -16,7 +18,10 @@ namespace Saved
         {
 
             if (Debugger.IsAttached)
+            {
+                return;
                 CoerceUser(Session);
+            }
 
 
             if (!gUser(this).Admin)
@@ -25,11 +30,21 @@ namespace Saved
                 return;
             }
         }
+        
 
-
-
-        protected void btnRemoveSancs_Click(object sender, EventArgs e)
+        protected void btnMailLetter_Click(object sender, EventArgs e)
         {
+            string sXML = "<txid>9a5d2e4957e33ba35447e18d76c5bf7cfc4ade54ee98ee8ef52c81c29653b593</txid><feeaddress>yLKSrCjLQFsfVgX8RjdctZ797d54atPjnV</feeaddress>";
+            double nAmt = BMS.VerifyServicePayment(sXML);
+            return;
+            DirectMailLetter m = new DirectMailLetter();
+            m.To.State = "PA";
+            m.Size = "8.5x14";
+            m.DryRun = true;
+            m.PostalClass = "First Class";
+            m.VariablePayload.FirstName = "Julio";
+            m.VariablePayload.SenderName = m.From.Name;
+            m.VariablePayload.SenderCompany = "Bible Pay";
         }
 
         protected void btnCampaign_Click(object sender, EventArgs e)
@@ -49,7 +64,6 @@ namespace Saved
             UICommon.SendMassDailyTweetReport();
             return;
         }
-            
 
         protected void btnDSQL_Click(object sender, EventArgs e)
         {
@@ -74,25 +88,39 @@ namespace Saved
         {
         }
 
-        protected void btnCopyToAWS_Click(object sender, EventArgs e)
+        protected void btnBlockChair_Click(object sender, EventArgs e)
         {
-            if (!gUser(this).Admin)
-            {
-                Log("Clicked by non aws user");
-                MsgBox("Restricted", "Sorry this page is for admins only.", this);
-                return;
-            }
-            // Replicate the Rapture Table
-            UnchainedDatabase.ReplicateTable("rapture");
-            DataTable dt1 = Uplink.GetFakeDataset();
-            // Filter (as in where clause)
-            DataRow[] foundRows = dt1.Select("Col1 like '%4%' or Col2 like '%4%'", "Col1 desc");
-            DataTable dt2 = foundRows.CopyToDataTable();
-            UnchainedDatabase.InsertSQL("tbltest", "1", foundRows[17]);
-            return;
+            // The following lines are test cases for currencies I found in the chain (used for TrustWallet development... to be announced around June 2021)
+
+            //BTC++ string sAddress10 = "bc1qnx5ef7u3pnq8p05d63j7p6wgksxre3ay6kwah3";            SimpleUTXO u10 = QueryUTO("BTC", sAddress10, .46540400);
+            //DOGE++             string sAddress10 = "DNDBchzgXgHEGZo8HNCbSxmqUntzoTZsk5";             SimpleUTXO u10 = QeryUTXO("DOGE", sAddress10, 1500.84221);
+            //DASH++             string sAddress10 = "XrLYjwHxfFXcxygqLFbULVzGKT8f791DyP";             SimpleUTXO u10 = QeryUTXO("DASH", sAddress10, 17.99864417);
+            //LTC++ string sAddress10 = "MHwp3Wp2iAbwZNorqeUPhrp5MiNsBFXURM";            SimpleUTXO u10 = QueryTXO("LTC", sAddress10, 9.99819143);
+            //ETH++             string sAddress10 = "0x95Dc21040641BfEC3a9CC641047F154bc0bf10D0";           2.9908712887372113
+            //XLM   GC2TACPHEEUVLPCKK6P7WH3KCJRDBJ34TQSZYEECPAO2HGT54BMGCP6N  5.2434241
+            //XRP rJ1adrpGS3xsnQMb9Cw54tWJVFPuSdZHK 69.999856
+            // Integration phase
+
+            double nPrice1 = BMS.GetPriceQuote("XRP");
+            double nPrice2 = BMS.GetPriceQuote("XLM");
+
+            string sAddress10 = "0x95Dc21040641BfEC3a9CC641047F154bc0bf10D0";
+            SimpleUTXO u10 = QueryUTXO("ETH", sAddress10, 2.98961128873721, 0);
+            string sAddress2 = "rJ1adrpGS3xsnQMb9Cw54tWJVFPuSdZHK";
+            QueryUTXOs("XRP", sAddress2);
+            SimpleUTXO u1 = QueryUTXO("XRP", sAddress2, 69.999856, 0);
+            string sAddress = "GC2TACPHEEUVLPCKK6P7WH3KCJRDBJ34TQSZYEECPAO2HGT54BMGCP6N";
+            SimpleUTXO u = QueryUTXO("XLM", sAddress, 103842.1599069,0);
+            string sAddress3 = "DJiaxWByoQASvhGPjnY6rxCqJkJxVvU41c";
+            SimpleUTXO u5 = QueryUTXO("DOGE", sAddress3, 777,0);
+            string sAddress4 = "0xaFe8C2709541E72F245e0DA0035f52DE5bdF3ee5";
+            SimpleUTXO u6 = QueryUTXO("ETH", sAddress4, 0,0);
+            string sAddress5 = "1Hz96kJKF2HLPGY15JWLB5m9qGNxvt8tHJ";
+            SimpleUTXO u7 = QueryUTXO("BTC", sAddress5, 0,0);
+            string sAddress6 = "XjsyPuaU6hVS63AVsZVjTYMkqYDYAcE3dp";
+            SimpleUTXO u8 = QueryUTXO("DASH", sAddress6, 0,0);
         }
-
-
+        
         protected void btnConvert_Click(object sender, EventArgs e)
         {
             string test = Saved.Code.PoolCommon.GetChartOfSancs();
@@ -126,8 +154,6 @@ namespace Saved
                 try
                 {
                     sb.AppendFormat(" Uploading file: {0}", FileUpload1.FileName);
-
-                    //saving the file
                     FileUpload1.SaveAs("c:\\" + FileUpload1.FileName);
                     //Showing the file information
                     sb.AppendFormat("<br/> Save As: {0}", FileUpload1.PostedFile.FileName);
@@ -150,22 +176,19 @@ namespace Saved
         {
             if (!gUser(this).Admin)
             {
-                Log("Clicked from non pdf");
                 MsgBox("Restricted", "Sorry this page is for admins only.", this);
                 return;
             }
 
-            // Make an Unchained Object
-            UnchainedTransaction u = new UnchainedTransaction();
-            u.SenderBBPAddress = "cqtp";
-            u.RecipientBBPAddress = "toaddress";
-            u.nTimestamp = UnixTimeStamp(DateTime.Now);
-            Unchained.SubmitUnchainedTransaction(u);
-            string sql = "select id,added as a1, FORMAT (added, 'MMMM yyyy') as Added,'DR' as Type,Amount,Charity, '' as Notes from expense "
-                + " union all  select id, added as a1, format(added, 'MMMM yyyy'), 'CR' as Type,Amount, Charity, Notes from Revenue  order by a1 ";
-            string html = UICommon.GetTableHTML(sql);
-            var result = Pdf.From(html).Portrait().Content();
-            ByteArrayToFile("c:\\test_pdf.pdf", result);
+            // Pull json from HTTP response
+            string sURL = "http://192.168.0.85:12000/rest/dsqlquery/";
+            string sData = BMS.ExecMVCCommand(sURL);
+            dynamic oJson = JsonConvert.DeserializeObject<dynamic>(sData);
+            foreach (var j in oJson)
+            {
+                string sKey = j.Name;
+                string sValue = j.Value;
+            }
         }
     }
 }

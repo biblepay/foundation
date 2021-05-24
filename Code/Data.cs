@@ -23,6 +23,7 @@ namespace Saved.Code
                 u.EmailAddress = dt.Rows[0]["EmailAddress"].ToString();
                 u.UserId = dt.Rows[0]["id"].ToString();
                 u.UserName = dt.Rows[0]["username"].ToString();
+                u.CPKAddress = dt.Rows[0]["CPKAddress"].ToString();
             }
             return u;
         }
@@ -268,6 +269,7 @@ namespace Saved.Code
 
         public static string GetSingleUTXO(string sTicker, string sTXID, int iOrdinal)
         {
+            return "";
             UTXO u = GetUTXOCache(sTicker, sTXID, iOrdinal);
             string data = SerializeUTXO(u);
             return data;
@@ -683,6 +685,35 @@ namespace Saved.Code
             }
             return 0;
         }
+
+        public double GetScalarAge(string sql, object vCol, bool bLog = true)
+        {
+            DataTable dt1 = GetDataTable(sql, bLog);
+            try
+            {
+                if (dt1.Rows.Count > 0)
+                {
+                    object oOut = null;
+                    if (vCol.GetType().ToString() == "System.String")
+                    {
+                        oOut = dt1.Rows[0][vCol.ToString()];
+                    }
+                    else
+                    {
+                        oOut = dt1.Rows[0][Convert.ToInt32(vCol)];
+                    }
+                    DateTime d1 = Convert.ToDateTime(oOut);
+                    TimeSpan vAge = DateTime.Now - d1;
+                    return vAge.TotalSeconds;
+
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+            return 0;
+        }
+
 
         public double GetScalarDouble(string sql, object vCol, bool bLog = true)
         {

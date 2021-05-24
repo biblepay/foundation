@@ -96,13 +96,13 @@ namespace Saved
         protected global::System.Web.UI.WebControls.Label lblmessage;
 
         /// <summary>
-        /// btnCopyToAWS control.
+        /// btnBlockChair control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Button btnCopyToAWS;
+        protected global::System.Web.UI.WebControls.Button btnBlockChair;
 
         /// <summary>
         /// btnRemoveBounce control.
@@ -123,12 +123,12 @@ namespace Saved
         protected global::System.Web.UI.WebControls.Button btnDSQL;
 
         /// <summary>
-        /// btnRemoveSancs control.
+        /// btnMailLetter control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Button btnRemoveSancs;
+        protected global::System.Web.UI.WebControls.Button btnMailLetter;
     }
 }

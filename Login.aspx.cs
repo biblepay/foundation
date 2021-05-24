@@ -19,6 +19,8 @@ namespace Saved
             {
                 // Clear the values
                 Session["CurrentUser"] = null;
+                // This line enhances security when a user clicks LogOff
+                ClearUser(this.Session);
                 MsgBox("Log Out", "You have been logged out - have a wonderful day.", this);
                 return;
             }
@@ -85,7 +87,7 @@ namespace Saved
             MailAddress t = new MailAddress(sEmail, sUserName);
             MailMessage m = new MailMessage(r, t);
             m.Subject = "Password Reset Request";
-            string sTempPassword = GetSha256Hash(System.DateTime.Now.ToString());
+            string sTempPassword = GetSha256HashS(System.DateTime.Now.ToString());
 
             m.Body = "Hello " + txtUserName.Text + ", <br><br>We have provided an alternate way to log into your account.  Please use this temporary password:  "
                 + "<br>" + sTempPassword + ".  Then, after you log in you may change your password using Account Edit.<br><br>  Best Regards,<br>The BiblePay Team<br>";

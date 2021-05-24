@@ -16,6 +16,7 @@ using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using static Saved.Code.DataOps;
+using Newtonsoft.Json;
 
 namespace Saved.Code
 {
@@ -63,8 +64,9 @@ namespace Saved.Code
 
 
 
-        public static string GetWebJsonApi(string url, string header, string value)
+        public static string GetWebJsonApi(string url, string header, string value, string sMethod, string sPostData)
         {
+            //GET, POST, DELETE
             try
             {
                 // Use this to automatically deflate or un-gzip a response stream
@@ -78,8 +80,17 @@ namespace Saved.Code
                     request.Headers.Add(header, value);
                 }
                 Encoding asciiEncoding = Encoding.ASCII;
-                request.Method = "GET";
+                request.Method = sMethod;
+
                 request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+
+                if (sPostData != "")
+                {
+                    Stream dataStream = request.GetRequestStream();
+                    byte[] array = Encoding.ASCII.GetBytes(sPostData);
+                    dataStream.Write(array, 0, array.Length);
+                }
+
                 using (System.Net.WebResponse response = request.GetResponse())
                 {
                     System.IO.StreamReader sr =
@@ -97,7 +108,7 @@ namespace Saved.Code
         public static void GetMoneroHashRate(out int nBlocks, out double nHashRate)
         {
             string url = "https://minexmr.com/api/pool/stats";
-            string sData = GetWebJsonApi(url, "", "");
+            string sData = GetWebJsonApi(url, "", "","","");
             if (sData != "")
             { //pool.stats.miners
                 JObject oData = JObject.Parse(sData);
@@ -159,42 +170,70 @@ namespace Saved.Code
 
         public static double GetPriceQuote(string ticker, int nAssessmentType = 0)
         {
-            int age = 0;
-            double dCachedQuote = GetCachedQuote(ticker, out age);
-            if (dCachedQuote > 0 && age < (60 * 60 * 1))
-                return dCachedQuote;
-
-            string sURL = "https://www.southxchange.com/api/price/" + ticker;
-            string sData = "";
-
             try
             {
+                int age = 0;
+                double dCachedQuote = GetCachedQuote(ticker, out age);
+                if (dCachedQuote > 0 && age < (60 * 60 * 4))
+                    return dCachedQuote;
+
+                string[] vTicker = ticker.Split("/");
+                string LeftTicker = "";
+                if (vTicker.Length == 2)
+                {
+                    LeftTicker = vTicker[0];
+                }
+                if (LeftTicker== "XRP" || LeftTicker == "XLM")
+                {
+                    string sCoinName = TickerToName(LeftTicker);
+
+                    string sURL1 = "https://api.blockchair.com/" + sCoinName + "/stats";
+                    string sData1 = ExecMVCCommand(sURL1);
+                    dynamic oJson = JsonConvert.DeserializeObject<dynamic>(sData1);
+
+                    double nMyValue = oJson["data"]["market_price_btc"].Value ?? 0;
+
+                    
+                    if (nMyValue > 0)
+                    {
+                        CacheQuote(ticker, nMyValue.ToString("0." + new string('#', 339)));
+                    }
+
+                    return nMyValue;
+
+
+                }
+
+
+                string sURL = "https://www.southxchange.com/api/price/" + ticker;
+                string sData = "";
+
                 sData = ExecMVCCommand(sURL);
-            }
-            catch (Exception ex)
-            {
-                Log("BAD PRICE ERROR" + ex.Message);
+                string bid = ExtractXML(sData, "Bid\":", ",").ToString();
+                string ask = ExtractXML(sData, "Ask\":", ",").ToString();
+                double dbid = GetDouble(bid);
+                double dask = GetDouble(ask);
+                double dTotal = dbid + dask;
 
-            }
-            string bid = ExtractXML(sData, "Bid\":", ",").ToString();
-            string ask = ExtractXML(sData, "Ask\":", ",").ToString();
-            double dbid = GetDouble(bid);
-            double dask = GetDouble(ask);
-            double dTotal = dbid + dask;
+                double dmid = dTotal / 2;
 
-            double dmid = dTotal / 2;
-
-            if (nAssessmentType == 1)
-                dmid = dbid;
-            if (dmid > 0)
-            {
-                CacheQuote(ticker, dmid.ToString("0." + new string('#', 339)));
+                if (nAssessmentType == 1)
+                    dmid = dbid;
+                if (dmid > 0)
+                {
+                    CacheQuote(ticker, dmid.ToString("0." + new string('#', 339)));
+                }
+                else
+                {
+                    return dCachedQuote;
+                }
+                return dmid;
             }
-            else
+            catch(Exception ex)
             {
-                return dCachedQuote;
+                Log("Bad Pricing error " + ex.Message);
+                return 0;
             }
-            return dmid;
         }
 
 
@@ -204,11 +243,12 @@ namespace Saved.Code
             string sResult = "<VERSION>" + nVersion.ToString() + "</VERSION><EOF></HTML>";
             return sResult;
         }
-        public static string BTC_PRICE_QUOTE()
+
+        public static string RetrieveQuote(string sTicker)
         {
             try
             {
-                double dPrice = GetPriceQuote("BTC/USD");
+                double dPrice = GetPriceQuote(sTicker);
                 string sPrice = dPrice.ToString("0." + new string('#', 339));
                 string sResult = "<MIDPOINT>" + sPrice + "</MIDPOINT><EOF>";
                 return sResult;
@@ -217,81 +257,51 @@ namespace Saved.Code
             {
                 return ex.Message;
             }
+        }
+
+        public static string BTC_PRICE_QUOTE()
+        {
+            return RetrieveQuote("BTC/USD");
         }
 
         public static string DASH_PRICE_QUOTE()
         {
-            try
-            {
-                double dPrice = GetPriceQuote("DASH/BTC");
-                string sPrice = dPrice.ToString("0." + new string('#', 339));
-                string sResult = "<MIDPOINT>" + sPrice + "</MIDPOINT><EOF>";
-                return sResult;
-            }
-            catch (Exception ex)
-            {
-                return ex.Message;
-            }
+            return RetrieveQuote("DASH/BTC");
         }
 
         public static string DOGE_PRICE_QUOTE()
         {
-            try
-            {
-                double dPrice = GetPriceQuote("DOGE/BTC");
-                string sPrice = dPrice.ToString("0." + new string('#', 339));
-                string sResult = "<MIDPOINT>" + sPrice + "</MIDPOINT><EOF>";
-                return sResult;
-            }
-            catch (Exception ex)
-            {
-                return ex.Message;
-            }
+            return RetrieveQuote("DOGE/BTC");
         }
 
         public static string LTC_PRICE_QUOTE()
         {
-            try
-            {
-                double dPrice = GetPriceQuote("LTC/BTC");
-                string sPrice = dPrice.ToString("0." + new string('#', 339));
-                string sResult = "<MIDPOINT>" + sPrice + "</MIDPOINT><EOF>";
-                return sResult;
-            }
-            catch (Exception ex)
-            {
-                return ex.Message;
-            }
+            return RetrieveQuote("LTC/BTC");
         }
 
+        public static string ETH_PRICE_QUOTE()
+        {
+            return RetrieveQuote("ETH/BTC");
+        }
+
+        public static string XRP_PRICE_QUOTE()
+        {
+            return RetrieveQuote("XRP/BTC");
+        }
+
+        public static string XLM_PRICE_QUOTE()
+        {
+            return RetrieveQuote("XLM/BTC");
+        }
+        
         public static string XMR_PRICE_QUOTE()
         {
-            try
-            {
-                double dPrice = GetPriceQuote("XMR/BTC");
-                string sPrice = dPrice.ToString("0." + new string('#', 339));
-                string sResult = "<MIDPOINT>" + sPrice + "</MIDPOINT><EOF>";
-                return sResult;
-            }
-            catch (Exception ex)
-            {
-                return ex.Message;
-            }
+            return RetrieveQuote("XMR/BTC");
         }
 
         public static string BBP_PRICE_QUOTE()
         {
-            try
-            {
-                double dPrice = GetPriceQuote("BBP/BTC");
-                string sPrice = dPrice.ToString("0." + new string('#', 339));
-                string sResult = "<MIDPOINT>" + sPrice + "</MIDPOINT><EOF>";
-                return sResult;
-            }
-            catch (Exception ex)
-            {
-                return ex.Message;
-            }
+            return RetrieveQuote("BBP/BTC");
         }
 
         public static byte[] StrToByteArray(string str)
@@ -1271,37 +1281,23 @@ public static string CheckReward(HttpRequest Request)
                 Log("DashPay has failed with a catastrophe::Message" + ex.Message);
                 return "<error>Error 803: IX Lock failed.  Please type 'trackdashpay bbp_txid' to track the transaction manually.</error><EOF></HTML>\r\n";
             }
-
         }
 
-
-        public static void LaunchInterfaceWithWCG()
+        public static double VerifyServicePayment(string sXML)
         {
-            string sXMLPath = GetFolderWWCerts("wcgrac.xml");
-            int nStored = UnixTimeStampFromFile(sXMLPath);
-            if (nStored < 0)
-                nStored = 0;
-            int myUnix = UnixTimestampHiResolution(DateTime.UtcNow);
-
-            int nElapsed = myUnix - nStored;
-            int mySpan = (60 * 60 * 8);
-
-            if (nElapsed > mySpan)
-            {
-                if (!Debugger.IsAttached)
-                {
-                    Console.WriteLine("Elapsed " + nElapsed.ToString() + ", UTCNOW: " + DateTime.UtcNow.ToString());
-
-                    string sMsg = "v2.5 PORT=Elpased for WCG, storedvalue: " + nStored.ToString() + ", elapsed: " +
-                        nElapsed.ToString() + ", CurTime " + myUnix.ToString() + ", mySpan " + mySpan.ToString() + ", myElapsed " + nElapsed.ToString();
-                    Console.WriteLine(sMsg);
-                    System.Threading.Thread.Sleep(5000);
-
-                    BOINC b = new BOINC();
-                    b.InterfaceWithWCG();
-                }
-            }
+            string sTXID = ExtractXML(sXML, "<txid>", "</txid>");
+            string sTo = ExtractXML(sXML, "<feeaddress>", "</feeaddress>");
+            // bool fBBPValid = ValidateAddress(sTo, "BBP");
+            bool fTestNet = sTo.StartsWith("y");
+            string sRawTx = PoolCommon.GetRawTransaction(sTXID, fTestNet);
+            int nHeight = 0;
+            Log("Looking for " + sTXID + " from " + sTo + " found " + sRawTx);
+            double amt = PoolCommon.GetAmtFromRawTx(sRawTx, sTo, out nHeight);
+            Log(amt.ToString());
+            // To do - persist this payment right here, so we can discern between new payments and seen payments
+            return amt;
         }
+
 
 
     }
@@ -1349,148 +1345,8 @@ public static string CheckReward(HttpRequest Request)
                 File.Delete(sNewPath);
             File.Copy(sOldPath, sNewPath);
         }
-       
-        
-        public void InterfaceWithWCG()
-        {
-            try
-            {
-                BiblePayClient wc = new BiblePayClient();
-                wc.SetTimeout(10 * 60);
-                string sURL = "https://download.worldcommunitygrid.org/boinc/stats/user.gz";
-                string sPath = GetFolderWWCerts("wcg.gz");
-                wc.DownloadFile(sURL, sPath);
-                FileInfo fi = new FileInfo(sPath);
-                Decompress(fi);
 
-                // Filter file down to what we need
-                string sDecPath = GetFolderWWCerts("wcg");
-                System.IO.StreamReader file = new System.IO.StreamReader(sDecPath);
-                string sLine = string.Empty;
-                string sData = "";
-
-                string sXMLPath = GetFolderWWCerts("wcgrac.xml");
-
-                string sXMLPath_NEW = GetFolderWWCerts("wcgrac_new.xml");
-
-                string sGZPath = GetFolderWWCerts("wcgrac.xml.gz");
-
-                System.IO.StreamWriter sw = new System.IO.StreamWriter(sXMLPath_NEW);
-
-                int iRC = 0;
-
-                while ((sLine = file.ReadLine()) != null)
-                {
-                    sData += sLine + "\r\n";
-                    if (sLine.Contains("</user>"))
-                    {
-                        //Process this user record
-                        double dTeam = GetDouble(ExtractXML(sData, "<teamid>", "</teamid>"));
-                        double dRac = GetDouble(ExtractXML(sData, "<expavg_credit>", "</expavg_credit>"));
-                        string sCPID = ExtractXML(sData, "<cpid>", "</cpid>").ToString();
-                        double nID = GetDouble(ExtractXML(sData, "<id>", "</id>"));
-                        //30513 == grc, 35006 = bbp
-                        if (dTeam == 35006)
-                        {
-                            sw.Write(sData);
-                            iRC++;
-                        }
-                        else if (dRac > 90)
-                        {
-                            // if not in BBP & GRC, we just store:  CPID, ID, RAC (expavg_credit)
-                            sData = "<user><id>" + nID.ToString() + "</id>" + "<expavg_credit>"
-                                + Math.Round(dRac, 2).ToString() + "</expavg_credit><cpid>" + sCPID + "</cpid>";
-                            // If whitelisted:
-                            if (dTeam == 35006 || dTeam == 30513)
-                            {
-                                sData += "<teamid>" + dTeam.ToString() + "</teamid>";
-                            }
-                            sData += "</user>";
-                            sw.Write(sData);
-                            iRC++;
-                        }
-
-
-                        sData = "";
-                    }
-
-                }
-
-                // Add the boinchash
-                string sBoincHash = "\r\n<boinchash>" + GetSha256Hash(iRC.ToString()) + "</boinchash>";
-                sw.Write(sBoincHash);
-                // Pad
-                for (int i = 0; i < 70; i++)
-                {
-                    sw.Write("<padding>" + i.ToString() + "</padding>");
-                }
-
-                file.Close(); // the source file that was decrompressed
-                sw.Write("\r\n<EOF></HTML>\r\n");
-                char c = (char)32;
-
-                sw.Write(new String(c, 65535));
-                sw.Write("\r\n");
-
-                sw.Write(new String(c, 65535));
-                sw.Write("\r\n");
-
-                sw.Write(new String(c, 65535));
-                sw.Write("\r\n");
-
-                sw.Write(new String(c, 65535));
-                sw.Write("\r\n");
-
-                sw.Write(new String(c, 65535));
-                sw.Write("\r\n");
-
-                sw.Write(new String(c, 65535));
-                sw.Write("\r\n");
-
-                sw.Write(new String(c, 65535));
-                sw.Write("\r\n");
-
-
-
-                sw.Close(); // the wcgrac.xml file
-
-                // Reserved for future GZ encoding.
-                /*
-                byte[] inputBytes = System.IO.File.ReadAllBytes(sXMLPath);
-                using (var outputStream = new MemoryStream())
-                {
-                    using (var gZipStream = new GZipStream(outputStream, CompressionMode.Compress))
-                        gZipStream.Write(inputBytes, 0, inputBytes.Length);
-
-                    var outputBytes = outputStream.ToArray();
-                    // Write GZ data to file
-                    using (var fs1 = new FileStream(sGZPath, FileMode.Create, FileAccess.Write))
-                    {
-                        fs1.Write(outputBytes, 0, outputBytes.Length);
-                        byte[] oBytes = Encoding.UTF8.GetBytes("\r\n<EOF></HTML>\r\n");
-                        fs1.Write(oBytes);
-
-                        fs1.Close();
-                    }
-
-                }
-                */
-                
-                Console.WriteLine("Researcher count: " + iRC.ToString());
-                if (iRC > 10000)
-                {
-                    // Move the new file in place
-                    BBPCopyFile(sXMLPath, sXMLPath + ".bak");
-                    BBPCopyFile(sXMLPath_NEW, sXMLPath);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log("InterfaceWithWCG::" + ex.Message);
-            }
-        }
     }
-    
 
     public class BiblePayClient : System.Net.WebClient
     {

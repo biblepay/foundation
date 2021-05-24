@@ -128,18 +128,22 @@ namespace Saved.Code
             s = s.TrimEnd(',').Replace('*', '"');
             return s;
         }
-        public static string GetTableHTML(string sql)
+
+        public static string GetTableBeginning(string sTableName)
         {
             string css = "<style> html {    font-size: 1em;    color: black;    font-family: verdana }  .r1 { font-family: verdana; font-size: 10; }</style>";
             string logo = "https://www.biblepay.org/wp-content/uploads/2018/04/Biblepay70x282_96px_color_trans_bkgnd.png";
-            string name = "BiblePay";
             string sLogoInsert = "<img width=300 height=100 src='" + logo + "'>";
-            string HTML = "<HTML>" + css + "<BODY><div><div style='margin-left:12px'><TABLE class=r1><TR><TD width=95%>" + sLogoInsert
-                + "<td width=5% align=right>Accountability</td><td>" + DateTime.Now.ToShortDateString() + "</td></tr>";
+            string HTML = "<HTML>" + css + "<BODY><div><div style='margin-left:12px'><TABLE class=r1><TR><TD width=70%>" + sLogoInsert
+                + "<td width=25% align=center>" + sTableName + "</td><td width=5%>" + DateTime.Now.ToShortDateString() + "</td></tr>";
 
             HTML += "<TR><TD><td></tr>" + "<TR><TD><td></tr>" + "<TR><TD><td></tr>";
             HTML += "</table>";
-
+            return HTML;
+        }
+        public static string GetTableHTML(string sql)
+        {
+            string HTML = GetTableBeginning("Accountability");
             string header = "<TR><Th width=20%>Date<Th>Type<th>Amount<th width=30%>Charity<Th width=30%>Notes</tr>";
             HTML += "<table width=100%>" + header + "<tr><td colspan=5 width=100%><hr></tr>";
             SqlCommand command = new SqlCommand(sql);
@@ -488,7 +492,8 @@ namespace Saved.Code
 
             html += AddMenuOption("Doctrine", "Guides.aspx;Study.aspx;Illustrations.aspx;Illustrations.aspx?type=wiki;MediaList.aspx;RequestVideo.aspx", "Guides for Christians;Theological Studies;Illustrations/Slides;Wiki Theology;Video Lists & Media;Request a Video", "fa-life-ring");
             html += AddMenuOption("Community", "Default.aspx;PrayerBlog.aspx;PrayerAdd.aspx;Dashboard.aspx;LandingPage?faucet=1", "Home;Prayer Requests List Blog;Add New Prayer Request;Salvation Dashboard;Faucet", "fa-ambulance");
-            html += AddMenuOption("Orphans", "SponsorOrphanList.aspx;DonorMatchList.aspx;Report?name=myorphans;Report?name=orphantx", "Sponsor An Orphan;Donor Match List;My Orphans;My Orphan Payments", "fa-child");
+            html += AddMenuOption("Orphans", "Report?name=orphantx", 
+                "My Orphan Payments", "fa-child");
             html += AddMenuOption("Reports", "Accountability.aspx;Viewer.aspx?target=collage;Partners.aspx", "Accountability;Orphan Collage;Partners", "fa-table");
             html += AddMenuOption("Pool", "Leaderboard.aspx;GettingStarted.aspx;PoolAbout.aspx;BlockHistory.aspx;Viewer.aspx?target="
                 + System.Web.HttpUtility.UrlEncode("https://minexmr.com/dashboard") + ";MiningCalculator.aspx",

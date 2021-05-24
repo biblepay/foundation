@@ -64,6 +64,16 @@ namespace Saved.Code
             }
         }
 
+        public static NBitcoin.RPC.RPCClient GetTestNetRPCClient()
+        {
+                NBitcoin.RPC.RPCCredentialString r = new NBitcoin.RPC.RPCCredentialString();
+                System.Net.NetworkCredential t = new System.Net.NetworkCredential(GetBMSConfigurationKeyValue("testnetrpcuser"), GetBMSConfigurationKeyValue("testnetrpcpassword"));
+                r.UserPassword = t;
+                string sHost = GetBMSConfigurationKeyValue("testnetrpchost");
+                NBitcoin.RPC.RPCClient n = new NBitcoin.RPC.RPCClient(r, sHost, NBitcoin.Network.BiblepayTest);
+                return n;
+        }
+
         private static NBitcoin.RPC.RPCClient _rpcclient = null;
 
         public static NBitcoin.RPC.RPCClient GetLocalRPCClient()
