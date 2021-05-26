@@ -19,7 +19,6 @@ namespace Saved
 
             if (Debugger.IsAttached)
             {
-                return;
                 CoerceUser(Session);
             }
 
@@ -37,14 +36,6 @@ namespace Saved
             string sXML = "<txid>9a5d2e4957e33ba35447e18d76c5bf7cfc4ade54ee98ee8ef52c81c29653b593</txid><feeaddress>yLKSrCjLQFsfVgX8RjdctZ797d54atPjnV</feeaddress>";
             double nAmt = BMS.VerifyServicePayment(sXML);
             return;
-            DirectMailLetter m = new DirectMailLetter();
-            m.To.State = "PA";
-            m.Size = "8.5x14";
-            m.DryRun = true;
-            m.PostalClass = "First Class";
-            m.VariablePayload.FirstName = "Julio";
-            m.VariablePayload.SenderName = m.From.Name;
-            m.VariablePayload.SenderCompany = "Bible Pay";
         }
 
         protected void btnCampaign_Click(object sender, EventArgs e)
@@ -72,16 +63,7 @@ namespace Saved
                 Log("DSQL CBNA");
                 MsgBox("Restricted", "Sorry this page is for admins only.", this);
                 return;
-            }
-
-            // Read in the rapture table, add a record, update the view, read the record
-            string sql = "Select * from Rapture order by added";
-            DataTable dt = gData.GetDataTable(sql);
-            for (int iRow = 0; iRow < dt.Rows.Count; iRow++)
-            {
-                DataRow dr1 = dt.Rows[iRow];
-                UnchainedDatabase.InsertSQL("rapture", dr1["id"].ToString(), dr1);
-            }
+            }  
         }
 
         public static void SubmitPart(string sURL)
@@ -106,10 +88,11 @@ namespace Saved
 
             string sAddress10 = "0x95Dc21040641BfEC3a9CC641047F154bc0bf10D0";
             SimpleUTXO u10 = QueryUTXO("ETH", sAddress10, 2.98961128873721, 0);
-            string sAddress2 = "rJ1adrpGS3xsnQMb9Cw54tWJVFPuSdZHK";
+            string sAddress2 = "r38WkhGgffX15bzqUbkKbMJCum7XPtkKZU";
             QueryUTXOs("XRP", sAddress2);
+
             SimpleUTXO u1 = QueryUTXO("XRP", sAddress2, 69.999856, 0);
-            string sAddress = "GC2TACPHEEUVLPCKK6P7WH3KCJRDBJ34TQSZYEECPAO2HGT54BMGCP6N";
+            string sAddress = "GA6AJKQRXT3TKJIASIA2DEN3GIMHADCC5UMPQY3HCRGDBOOF7YOE5IB2";
             SimpleUTXO u = QueryUTXO("XLM", sAddress, 103842.1599069,0);
             string sAddress3 = "DJiaxWByoQASvhGPjnY6rxCqJkJxVvU41c";
             SimpleUTXO u5 = QueryUTXO("DOGE", sAddress3, 777,0);
@@ -125,9 +108,10 @@ namespace Saved
         {
             string test = Saved.Code.PoolCommon.GetChartOfSancs();
             // Upgrade san.biblepay images to uplink images
+            /*
             string sql = "Select id,url from  SponsoredOrphan where url like '%san.biblepay%' ";
             DataTable dt = gData.GetDataTable(sql);
-            for (int i =0; i < dt.Rows.Count; i++)
+            for (int i = 0; i < dt.Rows.Count; i++)
             {
                 string bio = dt.Rows[i]["url"].ToString();
                 string sURL = Uplink.Replicate(bio);
@@ -135,6 +119,8 @@ namespace Saved
                 gData.Exec(sql);
             }
             lblStatus.Text = "Updated " + DateTime.Now.ToString();
+            */
+
         }
 
         protected void btnSave_Click(object sender, EventArgs e)

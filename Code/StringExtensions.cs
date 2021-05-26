@@ -68,7 +68,7 @@ namespace Saved.Code
                 double d = Convert.ToDouble(o.ToString());
                 return d;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return 0;
             }

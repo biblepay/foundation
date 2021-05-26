@@ -23,7 +23,6 @@ namespace Saved
             string tr = "<TR><TD width='55%'>" + key + ":</TD><TD>" + value + "</TD></TR>\r\n";
             return tr;
         }
-
         public string GetImgSource()
         {
             try
@@ -34,7 +33,7 @@ namespace Saved
                 string url = dt.Rows[nHour]["URL"].ToString();
                 return url;
             }
-            catch(Exception ex)
+            catch(Exception)
             {
                 return "https://i.ibb.co/W691XWC/Screen-Shot-2019-12-12-at-16-01-29.png";
             }

@@ -14,8 +14,7 @@ namespace Saved
         protected void Page_Load(object sender, EventArgs e)
         {
             double nHeight = Common.GetDouble(Request.QueryString["height"] ?? "");
-            string sResult = Code.Uplink.GetBlockData((int)nHeight);
-            Response.Write(sResult);
+            Response.Write("<eof></html>");
             Response.End();
         }
     }

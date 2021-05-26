@@ -267,14 +267,6 @@ namespace Saved.Code
             return sData;
         }
 
-        public static string GetSingleUTXO(string sTicker, string sTXID, int iOrdinal)
-        {
-            return "";
-            UTXO u = GetUTXOCache(sTicker, sTXID, iOrdinal);
-            string data = SerializeUTXO(u);
-            return data;
-        }
-
         private static int nLastUTXOReport = 0;
         private static string sCachedUTXOReport = "";
         public static string GetUTXOReport()
@@ -401,11 +393,9 @@ namespace Saved.Code
                     return dr[ordinal].ToString();
                 }
             }
-            catch(Exception ex)
+            catch(Exception)
             {
-                // No need to spam the satellite pool(s):
-                if (false)
-                    Log("GSS:" + ex.Message);
+                
             }
             return "";
         }
@@ -680,7 +670,7 @@ namespace Saved.Code
                     return dOut;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
             return 0;
@@ -708,7 +698,7 @@ namespace Saved.Code
 
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
             return 0;
@@ -736,7 +726,7 @@ namespace Saved.Code
                     return dOut;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
             return 0;
@@ -756,7 +746,7 @@ namespace Saved.Code
                     return dRow;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
             return null;
@@ -774,7 +764,7 @@ namespace Saved.Code
                     return dRow;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
             return null;
@@ -799,7 +789,7 @@ namespace Saved.Code
                     return oOut.ToString();
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
             return "";
@@ -824,7 +814,7 @@ namespace Saved.Code
                     return oOut.ToString();
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
             return "";

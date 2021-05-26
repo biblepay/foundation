@@ -56,7 +56,7 @@ namespace Saved.Code
                 FileInfo fi = new FileInfo(sPath);
                 return UnixTimestampHiResolution(fi.LastWriteTimeUtc);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return 0;
             }
@@ -98,17 +98,17 @@ namespace Saved.Code
                             response.GetResponseStream());
                     return sr.ReadToEnd();
                 }
-            }catch(Exception ex)
+            } catch (Exception)
             {
                 return "";
             }
         }
-    
-        
+
+
         public static void GetMoneroHashRate(out int nBlocks, out double nHashRate)
         {
             string url = "https://minexmr.com/api/pool/stats";
-            string sData = GetWebJsonApi(url, "", "","","");
+            string sData = GetWebJsonApi(url, "", "", "", "");
             if (sData != "")
             { //pool.stats.miners
                 JObject oData = JObject.Parse(sData);
@@ -118,7 +118,7 @@ namespace Saved.Code
                     nBlocks = j1.Count;
                     nHashRate = GetDouble(oData["pool"]["hashrate"]) / 1000000;
                     return;
-                }catch(Exception ex)
+                } catch (Exception ex)
                 {
                     Log("GMHRA:" + ex.Message);
                 }
@@ -136,10 +136,9 @@ namespace Saved.Code
                 string d = wc.FetchObject(URL).ToString();
                 return d;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 Console.WriteLine("Exec MVC Failed for " + URL);
-
                 return "";
             }
         }
@@ -183,7 +182,7 @@ namespace Saved.Code
                 {
                     LeftTicker = vTicker[0];
                 }
-                if (LeftTicker== "XRP" || LeftTicker == "XLM")
+                if (LeftTicker == "XRP" || LeftTicker == "XLM")
                 {
                     string sCoinName = TickerToName(LeftTicker);
 
@@ -193,7 +192,7 @@ namespace Saved.Code
 
                     double nMyValue = oJson["data"]["market_price_btc"].Value ?? 0;
 
-                    
+
                     if (nMyValue > 0)
                     {
                         CacheQuote(ticker, nMyValue.ToString("0." + new string('#', 339)));
@@ -229,7 +228,7 @@ namespace Saved.Code
                 }
                 return dmid;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Log("Bad Pricing error " + ex.Message);
                 return 0;
@@ -257,6 +256,13 @@ namespace Saved.Code
             {
                 return ex.Message;
             }
+        }
+
+        public static double RQ(string sTicker)
+        {
+            double dPrice = GetPriceQuote(sTicker);
+            return dPrice;
+
         }
 
         public static string BTC_PRICE_QUOTE()
@@ -926,11 +932,9 @@ public static string CheckReward(HttpRequest Request)
                 oParams[0] = sTXID;
                 oParams[1] = 1;
                 dynamic oOut = nLocal.SendCommand("getrawtransaction", oParams);
-                InstantLock IX = new InstantLock();
-                //confirmations, height, instantlock
                 return oOut.Result["vout"].Count;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return 0;
             }
@@ -1086,7 +1090,7 @@ public static string CheckReward(HttpRequest Request)
                             string sAddress = oTxOut["scriptPubKey"]["addresses"][0].ToString();
                             DashLog(sAddress);
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                             //opreturn nulldata
                         }

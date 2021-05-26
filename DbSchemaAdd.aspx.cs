@@ -29,16 +29,7 @@ namespace Saved
 
         protected void btnSave_Click(object sender, EventArgs e)
         {
-            string sResult = Saved.Code.UnchainedDatabase.CreateSchema(txtTableName.Text, txtColumnNames.Text, txtDataTypes.Text);
-            if (sResult != "")
-            {
-                MsgBox("Failure", sResult, this);
-
-            }
-            else
-            {
-                MsgBox("Success", "Schema saved.", this);
-            }
+            
         }
     }
 }

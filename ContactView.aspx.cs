@@ -120,7 +120,7 @@ namespace Saved
             {
                 gData.ExecCmd(command, false, false, true);
             }
-            catch(Exception ex)
+            catch(Exception)
             {
                 MsgBox("Error", "Unable to Edit the record.", this);
                 return;

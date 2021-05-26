@@ -24,8 +24,6 @@ namespace Saved
             if (WebServices.dicNicknames.ContainsKey(_cpk))
                 _mynickname = WebServices.dicNicknames[_cpk];
 
-            string mytest = "";
-
         }
         protected string GetPlayURL()
         {

@@ -26,7 +26,7 @@ namespace Saved
                 string s = RenderGauge(250, "HODL %", (int)(GetEstimatedHODL(true, 0, out n1, out n2) * 100));
                 return s;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return "";
             }

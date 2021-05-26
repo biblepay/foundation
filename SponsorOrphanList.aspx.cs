@@ -28,7 +28,7 @@ namespace Saved
                 try
                 {
                     dAmt = gData.GetScalarDouble(sql, "MonthlyAmount");
-                }catch(Exception ex)
+                }catch(Exception)
                 {
                     MsgBox("Error", "Please contact rob@biblepay.org for more information", this);
                     return;

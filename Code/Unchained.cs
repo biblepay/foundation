@@ -32,6 +32,7 @@ namespace Saved.Code
     public static class UnchainedDatabase
     {
 
+        /*
         public static string CreateSchema(string sTableName, string colnames, string datatypes)
         {
             string[] vcolnames = colnames.Split(",");
@@ -58,6 +59,8 @@ namespace Saved.Code
             Saved.Code.Uplink.StoreAndDelete("schema", sTableName, sSchema);
             return "";
         }
+        */
+
 
         public static string SerializeDataTable(DataTable dt)
         {
@@ -162,6 +165,7 @@ namespace Saved.Code
             return _datarow;
         }
 
+        /* Replaced by DSQL
         public static string InsertSQL(string sTable, string sPrimaryKey, DataRow dr)
         {
             string sFullKey = "table-" + sTable + "/" + sPrimaryKey;
@@ -178,6 +182,9 @@ namespace Saved.Code
                 System.IO.File.Delete(sFullpath);
             return myTask.Result[0];
         }
+        */
+
+        /*
         public static string InsertJSON(string sTable, string ID, string sJsonObject)
         {
             string sFile = sJsonObject.GetHashCode() + ".dat";
@@ -189,6 +196,8 @@ namespace Saved.Code
             Task<List<string>> myTask = Uplink.Store2(sPrimaryKey, "", "", sFullpath);
             return myTask.Result[0];
         }
+        */
+
         public static string ConvertDataType(Type t)
         {
             string t1 = t.ToString();
@@ -218,7 +227,6 @@ namespace Saved.Code
             {
                 throw new Exception("Unknown Type");
             }
-            return tout;
         }
 
         public static Tuple<string,string> DescribeDataTableSchema(DataTable dt)
@@ -238,6 +246,7 @@ namespace Saved.Code
             Tuple<string, string> t = Tuple.Create(colnames, datatypes);
             return t;
         }
+        /*
         public static void ReplicateTable(string tablename)
         {
             string sql = "Select * from " + tablename + " order by added";
@@ -249,6 +258,7 @@ namespace Saved.Code
                 InsertSQL(tablename, dt.Rows[i]["id"].ToString(), dt.Rows[i]);
             }
         }
+        */
 
     }
 
@@ -302,6 +312,7 @@ namespace Saved.Code
             public string Key;
             public string TableName;
         }
+        /*
         public static async Task<List<DataRowObject>> ListContentsOfTable(string sTableName)
         {
             uplinkClient = new AmazonS3Client(GetBMSConfigurationKeyValue("s3key"), GetBMSConfigurationKeyValue("s3secret"), Amazon.RegionEndpoint.CACentral1);
@@ -319,8 +330,11 @@ namespace Saved.Code
             }
             return lDROs;
         }
+        */
 
-        public static string Replicate(string sURL)
+
+        /*
+        public static string ReplicateIntoAWS(string sURL)
         {
             Saved.Code.MyWebClient w = new MyWebClient();
             string sFileName = Guid.NewGuid().ToString();
@@ -333,6 +347,8 @@ namespace Saved.Code
             System.IO.File.Delete(sPath);
             return t.Result[0];
         }
+        */
+
 
         private static Amazon.RegionEndpoint GetEndpoint(int iDensity, out string sBucketName)
         {
@@ -445,6 +461,7 @@ namespace Saved.Code
         }
         // These endpoints are disabled.  We no longer deal with AWS since they appear to be abusive big tech.
         // In addition, AWS has no easy way to throttle bandwidth (without putting a CDN in front of it), so whats the use.
+        /*
         public static async Task<List<string>> Store2(string sKey, string sMetadataName, string sMetadataValue, string sFilePath, int iDensityLevel = 1)
         {
             List<string> out_url = new List<string>();
@@ -479,6 +496,8 @@ namespace Saved.Code
             }
             return out_url;
         }
+        */
+
 
         public static DataTable GetFakeDataset()
         {
@@ -512,7 +531,7 @@ namespace Saved.Code
                 // Gives us a chance to return a 403
                 return "";
             }
-            catch(Exception ex)
+            catch(Exception)
             {
                 return "";
             }
@@ -534,6 +553,7 @@ namespace Saved.Code
 
         }
 
+        /*
         public static void StoreAndDelete(string sTableType, string sTableName, string sData)
         {
             string sFullKey = sTableType + "-" + sTableName;
@@ -545,6 +565,9 @@ namespace Saved.Code
             if (System.IO.File.Exists(sFullpath))
                 System.IO.File.Delete(sFullpath);
         }
+        */
+
+
 
         private static ReaderWriterLockSlim dictLock = new ReaderWriterLockSlim();
 
@@ -566,73 +589,10 @@ namespace Saved.Code
         public static string msBlockData = "";
         public static int nHitCount = 0;
         public static bool fDirtyBlockData = false;
-        public static string GetBlockData(int nHeight)
-        {
-            return "<eof></html>";
-
-            nHitCount++;
-
-            if (nHeight > 1 && nHeight < 170000)
-            {
-                return "<eof></html>";
-            }
-
-            int nElapsed = UnixTimeStamp() - nLastBlockData;
-            if (nElapsed > (60 * 60 * 2))
-            {
-                fDirtyBlockData = true;
-            }
-
-            try
-            {
-                if (dictSideChain.Count == 0 || fDirtyBlockData)
-                {
-                    GetRawBlockData();
-                    nLastBlockData = UnixTimeStamp();
-                }
-                else
-                {
-                    if (nHitCount % 20 == 0)
-                    {
-                        Log("BlockData Len=" + msBlockData.Length);
-                         
-                    }
-                    return msBlockData;
-                }
-
-                string sData = "<blocks>";
-                int iRecs = 0;
-                lock (cs_block)
-                {
-                    foreach (KeyValuePair<string, string> entry in dictSideChain.ToArray())
-                    {
-                        double nKey = KeyToBlockHeight(entry.Key);
-
-                        //if (nKey > nHeight - 5000 && nKey < nHeight + 5000)
-
-                        {
-                            string sRow = "<data>" + entry.Value + "</data>";
-                            sData += sRow;
-                            iRecs++;
-                        }
-                    }
-                }
-                sData += "</blocks><eof></html>";
-                //                 Log("Getting new rawblockdata of " + sData.Length.ToString() + " Containing " + iRecs.ToString());
-
-
-                msBlockData = sData;
-                return sData;
-            }
-            catch(Exception ex)
-            {
-                Log("GetBlockData:: " + ex.Message);
-            }
-            return "";
-        }
-
+ 
         public static void GetRawBlockData()
         {
+            /*
             string sBlockPrefix = "table-blocks-";
             lock (cs_block)
             {
@@ -653,10 +613,12 @@ namespace Saved.Code
                     }
                 }
             }
+            */
         }
         
         public static void CreateView(string sTableName)
         {
+            /*
             DataTable dt = new DataTable();
             dt.Clear();
             Task<List<DataRowObject>> taskDROS = Uplink.ListContentsOfTable(sTableName);
@@ -683,8 +645,7 @@ namespace Saved.Code
             StoreAndDelete("view", sTableName, sView);
             // Deserialize the View
             DataTable dt999 = UnchainedDatabase.DeserializeDataTable(sView);
-
-            string test = "";
+            */
         }
 
         public static string Store(string sKey, string sMetadataName, string sMetadataValue, string sFilePath)
@@ -716,7 +677,7 @@ namespace Saved.Code
             {
                 File.SetLastWriteTimeUtc(path, ts);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 Log("Unable to set UTC on " + path);
             }

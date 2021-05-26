@@ -182,7 +182,6 @@ namespace Saved.Code
         {
             string css = "<style> html {    font-size: 1em;    color: black;    font-family: verdana }  .r1 { font-family: verdana; font-size: 10; }</style>";
             string logo = "https://www.biblepay.org/wp-content/uploads/2018/04/Biblepay70x282_96px_color_trans_bkgnd.png";
-            string name = "BiblePay";
             string sLogoInsert = "<img width=300 height=100 src='" + logo + "'>";
             string HTML = "<HTML>" + css + "<BODY><div><div style='margin-left:12px'><TABLE class=r1><TR><TD width=95%>" + sLogoInsert
                 + "<td width=5% align=right>Accountability</td><td>" + DateTime.Now.ToShortDateString() + "</td></tr>";
@@ -201,7 +200,7 @@ namespace Saved.Code
             {
                 dt = gData.GetDataTable(command, false, true);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return "";
             }
@@ -329,7 +328,7 @@ namespace Saved.Code
                 // Now we need a manifest of tweets that have gone out in the last 30 days
                 sql = "Select id from tweet where added > getdate()-2 order by added desc";
                 string TweetID = gData.GetScalarString(sql, "id");
-                sql = "Select top 500 * from Users where verification='Deliverable' and isnull(emailaddress,'') != '' and Unsubscribe is null and isnull(LastEmail,'1-1-1970') < getdate()-2 and Users.ID not in (Select userid from tweetread where parentid='" + TweetID + "')";
+                sql = "Select top 500 * from Users where isnull(emailaddress,'') != '' and Unsubscribe is null and isnull(LastEmail,'1-1-1970') < getdate()-2 and Users.ID not in (Select userid from tweetread where parentid='" + TweetID + "')";
                 DataTable dt1 = gData.GetDataTable(sql);
                 MailAddress rTo = new MailAddress("rob@biblepay.org", "BiblePay Team");
                 MailAddress r = new MailAddress("rob@saved.one", "BiblePay Team");
@@ -432,7 +431,7 @@ namespace Saved.Code
             {
                 sData = w.DownloadString(sURL);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
 
             }

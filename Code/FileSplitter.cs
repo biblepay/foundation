@@ -20,7 +20,7 @@ namespace Saved.Code
             }
             catch (Exception ex)
             {
-                Common.Log("Unable to relinquish space in " + sPath);
+                Common.Log("Unable to relinquish space in " + sPath + "." + ex.Message);
             }
             return false;
         }

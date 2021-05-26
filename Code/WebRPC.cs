@@ -93,9 +93,8 @@ namespace Saved.Code
                 try
                 {
                     var nbal = _rpcclient.GetBalance();
-                    var n0 = 0;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     _rpcclient = null;
                     return GetLocalRPCClient();

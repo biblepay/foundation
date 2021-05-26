@@ -44,19 +44,15 @@ namespace Saved
                 txtElectricCost.Text = ".08";
                 txtXMRMHS.Text = "842";
                 txtXMRBlocksFound.Text = "200";
-
                 // These are pulled from the pool
                 txtBBPBlocksFound.Text = GetAvgBlocksFound().ToString();
                 txtBBPMHS.Text = (GetAvgHashRate() / 1000000).ToString();
                 txtBBPPrice.Text = Code.BMS.GetPriceQuote("BBP/USD").ToString();
                 txtXMRPrice.Text = Code.BMS.GetPriceQuote("XMR/USD").ToString();
                 txtCost.Text = "0";
-                int nMoneroBlocks = 0;
-                double nMoneroHashRate = 0;
                // BMS.GetMoneroHashRate(out nMoneroBlocks, out nMoneroHashRate);
                // txtXMRMHS.Text = nMoneroHashRate.ToString();
                // txtXMRBlocksFound.Text = nMoneroBlocks.ToString();
-
             }
             btnCalculate_Click(this, null);
 

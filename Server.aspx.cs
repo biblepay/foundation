@@ -28,6 +28,16 @@ namespace Saved
                 Response.End();
                 return;
             }
+            else if (sAction == "TEST1")
+            {
+
+                string t = GetChartOfIndex();
+                for (int i = -180; i < 0; i++)
+                {
+                    StoreQuotes(i);
+                }
+
+            }
             else if (sAction == "QUERY_UTXO")
             {
                 string sXML= Request.Headers["Action"].ToNonNullString();

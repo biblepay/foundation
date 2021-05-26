@@ -64,7 +64,7 @@ namespace Saved
                 gData.ExecCmd(command, false, false, true);
             }catch(Exception ex)
             {
-                MsgBox("Error", "Unable to add the record.", this);
+                MsgBox("Error", "Unable to add the record." + ex.Message, this);
                 return;
             }
 

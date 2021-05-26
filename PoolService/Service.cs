@@ -87,7 +87,7 @@ namespace PoolService
                                 //  System.IO.File.Delete(localFileName);
                                 webClient.DownloadFile(sURL, localFileName);
                             }
-                            catch (Exception ex)
+                            catch (Exception)
                             {
 
                             }
@@ -162,11 +162,9 @@ namespace PoolService
                     string xml = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\" ?>\r\n";
                     xml += "<Content>\r\n";
 
-
                     sql = "Select * from Rapture where category = '" + sCategory + "' order by Title";
                     DataTable dt = Saved.Code.Common.gData.GetDataTable(sql);
-                    int x = 0;
-                    int y = 0;
+                    
                     for (int i = 0; i < dt.Rows.Count; i++)
                     {
                         string sTitle = Saved.Code.Common.Left(dt.Rows[i]["title"].ToString(), 50);
@@ -241,16 +239,15 @@ namespace PoolService
                     {
                         Saved.Code.Common.Log("AddRDI" + ex1.Message);
                     }
+                    /*
                     if (false)
                     {
 
                         string sSourceURL = "https://foundation.biblepay.org/MediaBlack?category=" + dt.Rows[i]["category"].ToString() + "&limit=3";
-
                         for (int j = 0; j < 7; j++)
                         {
                             try
                             {
-                                /*
                                 var screenshotJob = ScreenshotJobBuilder.Create(sSourceURL)
                                   .SetBrowserSize(1100, 700)
                                   .SetCaptureZone(CaptureZone.FullPage) // Set what should be captured
@@ -266,18 +263,15 @@ namespace PoolService
                                 sOutURL = sOutURL.Replace(" ", "%20");
                                 sql = "Insert into RaptureCategories (id,category,url) values (newid(), '" + dt.Rows[i]["category"].ToString() + "','" + sOutURL + "')";
                                 Saved.Code.Common.gData.Exec(sql);
-                                */
-
-
                                 break;
                             }
                             catch (Exception ex)
                             {
-                                string myErr = "";
-
+                                
                             }
-                        }
                     }
+            */
+
                 }
             }
             catch (Exception ex)
@@ -401,13 +395,13 @@ namespace PoolService
 
                     if (fTotaled)
                     {
-                        string sql = "update Leads set Advertised=getdate(), verification = 'totaled' where email='" + mysentto + "'";
+                        string sql = "update Leads set Advertised=getdate() where email='" + mysentto + "'";
                         Saved.Code.Common.gData.Exec(sql);
                         p3.DeleteMessage(i);
                     }
 
                     }
-                    catch (Exception ex1)
+                    catch (Exception)
                     {
 
                     }
@@ -550,16 +544,16 @@ namespace PoolService
                     try
                     {
                         CleanUpInbox();
-                    }catch(Exception ex1)
+                    }
+                    catch(Exception)
                     {
-
                     }
                     try
                     {
                         MarketingCampaign();
-                    }catch(Exception ex2)
+                    }
+                    catch(Exception)
                     {
-
                     }
                     // Send 100 emails
                     SendMarketingEmail2();

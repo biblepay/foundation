@@ -156,37 +156,41 @@ namespace Saved
                     string extension = Path.GetExtension(FileUpload1.FileName);
                     string newName = Guid.NewGuid().ToString() + extension;
                     string fullpath = Path.Combine(sPath, newName);
-                    if (IsAllowableExtension(fullpath))
-                    {
-                        FileUpload1.SaveAs(fullpath);
-                        //Showing the file information
-                        sb.AppendFormat("<br/> Save As: {0}", FileUpload1.PostedFile.FileName);
-                        sb.AppendFormat("<br/> File type: {0}", FileUpload1.PostedFile.ContentType);
-                        sb.AppendFormat("<br/> File length: {0}", FileUpload1.PostedFile.ContentLength);
-                        sb.AppendFormat("<br/> File name: {0}", FileUpload1.PostedFile.FileName);
-                        // Make an Unchained Object
-                        UnchainedTransaction u = new UnchainedTransaction();
-                        u.SenderBBPAddress = "cqtp";
-                        u.RecipientBBPAddress = "toaddress";
-                        u.nTimestamp = UnixTimeStamp(DateTime.Now);
-                        Unchained.SubmitUnchainedTransaction(u);
-                        // File storage
-                        Task<List<string>> myTask = Uplink.Store2(newName, "MDN", "MV", fullpath, 3);
+                if (IsAllowableExtension(fullpath))
+                {
+                    FileUpload1.SaveAs(fullpath);
+                    //Showing the file information
+                    sb.AppendFormat("<br/> Save As: {0}", FileUpload1.PostedFile.FileName);
+                    sb.AppendFormat("<br/> File type: {0}", FileUpload1.PostedFile.ContentType);
+                    sb.AppendFormat("<br/> File length: {0}", FileUpload1.PostedFile.ContentLength);
+                    sb.AppendFormat("<br/> File name: {0}", FileUpload1.PostedFile.FileName);
+                    // Make an Unchained Object
+                    UnchainedTransaction u = new UnchainedTransaction();
+                    u.SenderBBPAddress = "cqtp";
+                    u.RecipientBBPAddress = "toaddress";
+                    u.nTimestamp = UnixTimeStamp(DateTime.Now);
 
-                        if (myTask.Result.Count < 1)
-                        {
-                           MsgBox("Object Storage Failed", "The server could not process the request.", this);
-                           return;
-                        }
-                        string narr = "Thank you for using BiblePay Object Storage.  <br><br><a href=" + myTask.Result + ">Your URL is<br>" + myTask.Result[0] + "<br></a>";
-                        MsgBox("Object Storage Successful", narr, this);
-                        return;
-                        }
-                        else
-                        {
-                              MsgBox("Object Storage Failed", "The file extension provided is not allowed.", this);
-                             return;
-                        }
+
+                    /*
+                    Unchained.SubmitUnchainedTransaction(u);
+                    // File storage
+                    Task<List<string>> myTask = Uplink.Store2(newName, "MDN", "MV", fullpath, 3);
+                    */
+
+                    MsgBox("Object Storage Failed", "The server could not process the request.", this);
+
+                    /*
+                     string narr = "Thank you for using BiblePay Object Storage.  <br><br><a href=" + myTask.Result + ">Your URL is<br>" + myTask.Result[0] + "<br></a>";
+                     MsgBox("Object Storage Successful", narr, this);
+                     return;
+                     }
+                     else
+                     {
+                          MsgBox("Object Storage Failed", "The file extension provided is not allowed.", this);
+                          return;
+                     }
+                     */
+                }
             }
             else
             {

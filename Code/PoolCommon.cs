@@ -25,7 +25,7 @@ namespace Saved.Code
 
         public static int iThreadCount = 0;
         public static int nGlobalHeight = 0;
-        public static int pool_version = 1018;
+        public static int pool_version = 1019;
         public static int iXMRThreadID = 0;
         public static double iXMRThreadCount = 0;
         public static int iTitheNumber = 0;
@@ -88,7 +88,7 @@ namespace Saved.Code
                 w = dictWorker[socketid];
                 return w;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // This is not supposed to happen, but I see this error in the log... 
                 WorkerInfo w = new WorkerInfo();
@@ -134,11 +134,10 @@ namespace Saved.Code
             {
                 c.Close();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
 
             }
-
         }
 
         public static void insBanDetails(string IP, string sWHY, double iLevel)
@@ -385,7 +384,7 @@ namespace Saved.Code
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
 
             }
@@ -682,12 +681,11 @@ namespace Saved.Code
                 if (sResult.ToLower().Contains("true")) return true;
                 return false;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return false;
             }
         }
-
 
 
         public static string SendMany(List<Payment> p, string sFromAccount, string sComment)
@@ -724,8 +722,7 @@ namespace Saved.Code
                 return "";
             }
         }
-
-
+        
         public static void PaySanctuaryInvestors()
         {
             
@@ -843,6 +840,8 @@ namespace Saved.Code
                 clearbans();
                 MailOut();
                 UserActivityRewards();
+                StoreQuotes(0);
+                GetChartOfIndex();
 
             }
             catch (Exception ex2)
@@ -1197,7 +1196,6 @@ namespace Saved.Code
             DataTable d1 = gData.GetDataTable(sql, false);
             NBitcoin.RPC.RPCClient n = WebRPC.GetLocalRPCClient();
 
-            string sOut = "";
             for (int i = 0; i < d1.Rows.Count; i++)
             {
                 string id = d1.Rows[i]["id"].ToString();
@@ -1503,22 +1501,27 @@ namespace Saved.Code
 
             try
             {
-
-                // Check deliverability of those who we have not checked
-                string sql10 = "Select top 100 * from Users where verification is null and isnull(emailaddress,'') != ''";
-                DataTable dt = gData.GetDataTable(sql10);
-                for (int i = 0; i < dt.Rows.Count; i++)
+                if (false)
                 {
-                    string email = dt.Rows[i]["emailAddress"].ToString();
-                    string id = dt.Rows[i]["id"].ToString();
-                    string response = WebServices.VerifyEmailAddress(email, id);
-                    string sql11 = "Update users set verification='" + response + "' where id = '" + id + "'";
-                    gData.Exec(sql11);
+                    /*
+                    // Check deliverability of those who we have not checked
+                    string sql10 = "Select top 100 * from Users where verification is null and isnull(emailaddress,'') != ''";
+                    DataTable dt = gData.GetDataTable(sql10);
+                    for (int i = 0; i < dt.Rows.Count; i++)
+                    {
+                        string email = dt.Rows[i]["emailAddress"].ToString();
+                        string id = dt.Rows[i]["id"].ToString();
+                        string response = WebServices.VerifyEmailAddress(email, id);
+                        string sql11 = "Update users set verification='" + response + "' where id = '" + id + "'";
+                        gData.Exec(sql11);
 
+                    }
+                    Log("SyncUsers - Updated " + dt.Rows.Count.ToString());
+                    */
                 }
-                Log("SyncUsers - Updated " + dt.Rows.Count.ToString());
-                 
-            }catch(Exception ex)
+
+            }
+            catch(Exception ex)
             {
                 Log("SyncUsers()::" + ex.Message);
             }
@@ -2008,7 +2011,7 @@ namespace Saved.Code
                 randomxhashes.Add(bbphash);
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
 
             }
@@ -2018,10 +2021,6 @@ namespace Saved.Code
         private static object cs_stratum = new object();
         public static void GetBlockForStratum()
         {
-            if (_pool._template.updated == null)
-            {
-                _pool._template.updated = 0;
-            }
             int nAge = UnixTimeStamp() - _pool._template.updated;
             if (nAge < 60)
                 return;

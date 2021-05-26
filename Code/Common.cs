@@ -2,7 +2,6 @@
 using Microsoft.VisualBasic;
 using MimeKit;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -19,10 +18,8 @@ using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.SessionState;
 using System.Web.UI;
+using System.Web.UI.DataVisualization.Charting;
 using static Saved.Code.PoolCommon;
-using System.Security.Authentication;
-using System.Security.Cryptography;
-using System.Security.Principal;
 
 namespace Saved.Code
 {
@@ -72,10 +69,6 @@ namespace Saved.Code
             u.Require2FA = 1;
             Login(u.UserName, "0", Session, "coerce");
             return;
-
-            DataOps.PersistUser(ref u);
-            Session["CurrentUser"] = u;
-            StoreCookie("CurrentUser", u.UserName);
         }
 
         public static bool runCmd(string path, string command)
@@ -487,7 +480,6 @@ namespace Saved.Code
                     Console.WriteLine("Error in Send email: {0}", e.Message);
                     return false;
                 }
-                message.Dispose();
             } catch (Exception ex2)
             {
                 Log("Cannot send Mail: " + ex2.Message);
@@ -593,7 +585,7 @@ namespace Saved.Code
                 double d = Convert.ToDouble(o.ToString());
                 return d;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Someone probably entered letters here
                 return 0;
@@ -856,7 +848,7 @@ namespace Saved.Code
                     string sDeciphered = Base65Decode(sOut);
                     return sDeciphered;
                 }
-            } catch (Exception ex)
+            } catch (Exception)
             {
 
             }
@@ -956,8 +948,9 @@ namespace Saved.Code
         }
         public static string MailLetter(DirectMailLetter letter)
         {
-            string username = GetBMSConfigurationKeyValue("DMUSER"); // "e850b470-09b6-4a17-a0b0-228c0a9d9d00";
-            string password = GetBMSConfigurationKeyValue("DMPASS"); // "b92204f4-b031-472d-9041-8be8a6231a7b";
+            string username = GetBMSConfigurationKeyValue("DMUSER");
+            string password = GetBMSConfigurationKeyValue("DMPASS"); 
+
             string svcCredentials = Convert.ToBase64String(ASCIIEncoding.ASCII.GetBytes(username + ":" + password));
             string sPass = "Basic " + svcCredentials;
             string sURL = "https://print.directmailers.com/api/v1/letter/";
@@ -976,7 +969,6 @@ namespace Saved.Code
             {
                 return "<error>" + ex.Message + "</error>";
             }
-
         }
 
         public static Code.PoolCommon.NFT GetSpecificNFT(string hash)
@@ -1032,7 +1024,8 @@ namespace Saved.Code
             }
 
             double nMyBal = Saved.Code.BMS.GetBalance("BBP");
-            // HARVEST MISSION CRITICAL TODO: FIX THIS
+            // HARVEST MISSION CRITICAL TODO: FIX THIS ****************************************************** HARVEST ************************************************************************************
+            /*
             if (false)
             {
                 if (myNFT.nMinimumBidAmount > nMyBal)
@@ -1041,9 +1034,9 @@ namespace Saved.Code
                     return d;
                 }
             }
+            */
 
-
-
+            
             if (nOfferPrice < myNFT.nMinimumBidAmount)
             {
                 d.sError = "Sorry this NFT has a minimum bid price of " + myNFT.nMinimumBidAmount.ToString();
@@ -1431,8 +1424,7 @@ namespace Saved.Code
         public static SimpleUTXO QueryUTXO(string sTicker, string sAddress, double nAmount, int nUTXOTxTime)
         {
             SimpleUTXO u = GetDBUTXO(sTicker, sAddress, nAmount);
-            int MAX_TX = 10;
-
+           
             u.UTXOTxTime = nUTXOTxTime;
 
             if (u.found)
@@ -1455,68 +1447,73 @@ namespace Saved.Code
                 {
 
                     // With stellar, the user must have one transaction matching the amount(with pin suffix) + balance must be equal to or greater than that stake.
-                    sURL = "https://api.blockchair.com/stellar/raw/account/" + sAddress + "?transactions=true&key=" + sKey;
+                    // HARVEST TODO: Loop through "operations", find "amount:", and with a matching receipt, and a greater balance, use the "amount" field.
+
+                    sURL = "https://api.blockchair.com/stellar/raw/account/" + sAddress + "?transactions=true&operations=true&key=" + sKey;
                     dynamic oJson = GetBlockChairData(sURL);
                     dynamic oBalances = oJson["data"][sAddress]["account"]["balances"];
-                    dynamic oTx = oJson["data"][sAddress]["transactions"];
-                    int nTxCount = 0;
-                    foreach (var oMyTx in oTx)
-                    {
-                        nTxCount++;
-                    }
-                    u.TxCount = nTxCount;
-                    if (u.TxCount > MAX_TX)
-                        u.Height = -1;
 
+                    dynamic oOps = oJson["data"][sAddress]["operations"];
+                    double nBalance = 0;
                     foreach (var b in oBalances)
                     {
+                        if (b["asset_type"].Value == "native")
+                        {
+                            nBalance = GetDouble(b["balance"].Value);
+                        }
+                    }
+
+
+                    foreach (var o in oOps)
+                    {
+                        u = new SimpleUTXO();
                         u.Ticker = sTicker;
                         u.Address = sAddress;
-                        u.Account = ToNonNull(b["asset_issuer"]);
-                        string sType = ToNonNull(b["asset_type"]);
-
+                        string sTxType = ToNonNull(o["type"]);
+                        string sType = ToNonNull(o["asset_type"]);
                         if (sType == "native")
                         {
-                            u.Amount = GetDouble(b["balance"].Value);
+                            u.Amount = GetDouble(o["amount"].Value);
                             u.TXID = GetSha256HashI(u.Address + u.Amount.ToString());
-
-                            Persist(u);
-                            if (u.Amount == nAmount && nTxCount <= MAX_TX && nAmount > 0)
+                            if (u.Amount > 0)
+                                 Persist(u);
+                            if (u.Amount == nAmount && nAmount > 0 && nBalance > nAmount)
                                 return u;
-
                         }
-
                     }
 
                 }
                 else if (sTicker == "XRP")
                 {
                     // With Ripple, the user must have one total matching balance(to the pin) and no extra transactions.
+                    // Ripple toDO: Loop through transactions, count the tx that matches the pin - and verify the amount is greater than the tx and use the tx amount
+
 
                     sURL = "https://api.blockchair.com/ripple/raw/account/" + sAddress + "?transactions=true&key=" + sKey;
                     dynamic oJson = GetBlockChairData(sURL);
                     dynamic oBalances = oJson["data"][sAddress]["account"]["account_data"];
-                    dynamic oTx = oJson["data"][sAddress]["transactions"];
+                    dynamic oTx = oJson["data"][sAddress]["transactions"]["transactions"];
+
+                    double nBalance = GetDouble(oBalances["Balance"].Value) / 1000000;
+
                     int nTxCount = 0;
-                    foreach (var oMyTx in oTx)
+                    foreach (dynamic oMyTx in oTx)
                     {
                         nTxCount++;
-                    }
-                    // http://jsonviewer.stack.hu/
-
-                    u.Ticker = sTicker;
-                    u.Address = sAddress;
-                    u.Amount = GetDouble(oBalances["Balance"].Value) / 1000000;
-                    u.Account = sAddress;
-                    u.TxCount = nTxCount;
-                    u.TXID = GetSha256HashI(sAddress + u.Amount.ToString());
-                    if (nTxCount > MAX_TX)
-                        u.Height = -1;
-
-                    Persist(u);
-                    if (u.Amount == nAmount && nTxCount <= MAX_TX && nAmount > 0)
+                        u = new SimpleUTXO();
+                        u.Ticker = sTicker;
+                        u.Address = sAddress;
+                        u.Amount = GetDouble(oMyTx["tx"]["Amount"].Value) / 100000000;
+                        u.TXID = GetSha256HashI(sAddress + u.Amount.ToString());
+                        if (u.Amount > 0)
+                        {
+                            Persist(u);
+                        }
+                        if (u.Amount == nAmount && u.Amount > 0 && nBalance > nAmount)
                             return u;
-                    
+                    }
+
+
                 }
                 else if (sTicker == "DOGE" || sTicker == "BTC" || sTicker == "DASH" || sTicker == "LTC")
                 {
@@ -1557,17 +1554,20 @@ namespace Saved.Code
                     dynamic oJson = GetBlockChairData(sURL);
                     dynamic oBalance = oJson["data"][sAddress.ToLower()]["address"];
                     int nTxCount = (int)GetDouble(oJson["data"][sAddress.ToLower()]["address"]["transaction_count"].Value);
-                    u.Ticker = sTicker;
-                    u.Address = sAddress;
-                    u.Amount = GetDouble(oBalance["balance"].Value) / 100000000 / 10000000000;
-                    u.TXID = GetSha256HashI(u.Address + u.Amount.ToString());
-                    u.TxCount = nTxCount;
-                    if (nTxCount > MAX_TX)
-                        u.Height = -1;
+                    double nBalance = GetDouble(oBalance["balance"].Value) / 100000000 / 10000000000;
+                    dynamic oCalls = oJson["data"][sAddress.ToLower()]["calls"];
+                    foreach (dynamic oCall in oCalls)
+                    {
+                        u = new SimpleUTXO();
+                        u.Ticker = sTicker;
+                        u.Address = sAddress;
+                        u.Amount = GetDouble(oCall["value"].Value) / 100000000 / 10000000000;
+                        u.TXID = GetSha256HashI(u.Address + u.Amount.ToString());
 
-                    Persist(u);
-                    if (u.Amount == nAmount && nTxCount <= MAX_TX && nAmount > 0)
-                        return u;
+                        Persist(u);
+                        if (u.Amount == nAmount && nAmount > 0 && nBalance > nAmount)
+                            return u;
+                    }
                 }
             }
             catch (Exception ex)
@@ -1585,6 +1585,150 @@ namespace Saved.Code
             return u1;
         }
         
+        public static string GetChartOfIndex()
+        {
+        
+            Chart c = new Chart();
+            System.Drawing.Color bg = System.Drawing.Color.Black;
+            System.Drawing.Color primaryColor = System.Drawing.Color.Blue;
+            System.Drawing.Color textColor = System.Drawing.Color.White;
+            c.Width = 1000;
+            c.Height = 400;
+            string sChartName = "BiblePay Weighted CryptoCurrency Index";
+            string sTickers = "BTC/USD,DASH/BTC,DOGE/BTC,LTC/BTC,ETH/BTC,XRP/BTC,XLM/BTC,BBP/BTC";
+            string[] vTickers = sTickers.Split(",");
+            c.ChartAreas.Add("ChartArea");
+            c.ChartAreas[0].BorderWidth = 1;
+
+            /*
+            for (int k = 0; k < vTickers.Length; k++)
+            {
+                string sTheTicker = GE(vTickers[k], "/", 0);
+                Series s = new Series(sTheTicker);
+                s.ChartType = System.Web.UI.DataVisualization.Charting.SeriesChartType.Line;
+                // s.ChartType = System.Web.UI.DataVisualization.Charting.SeriesChartType.StackedArea;
+                s.LabelForeColor = textColor;
+                s.Color = primaryColor;
+                s.BackSecondaryColor = bg;
+                c.Series.Add(s);
+            }
+            */
+
+            //Index
+            Series s = new Series("Index");
+            s.ChartType = System.Web.UI.DataVisualization.Charting.SeriesChartType.Line;
+            s.ChartType = System.Web.UI.DataVisualization.Charting.SeriesChartType.StackedArea;
+
+            s.LabelForeColor = textColor;
+            s.Color = primaryColor;
+            s.BackSecondaryColor = bg;
+            c.Series.Add(s);
+
+
+
+            c.Legends.Add(new System.Web.UI.DataVisualization.Charting.Legend(sChartName));
+            c.Legends[sChartName].DockedToChartArea = "ChartArea";
+            c.Legends[sChartName].BackColor = bg;
+            c.Legends[sChartName].ForeColor = textColor;
+            
+            for (int i = 0; i < 180; i += 1)
+            {
+                DateTime dt = DateTime.Now.AddDays(i * -1);
+                double dTotalIndex = 0;
+                for (int j = 0; j < vTickers.Length; j++)
+                {
+                    string sTheTicker = GE(vTickers[j], "/", 0);
+                    string sql = "Select * from QuoteHistory where added='" + dt.ToShortDateString() + "' and ticker='" + sTheTicker + "'";
+                    DataTable dt1 = gData.GetDataTable(sql, false);
+                    if (dt1.Rows.Count > 0)
+                    {
+                        double dA = GetDouble(dt1.Rows[0]["USD"]);
+                        dTotalIndex += dA;
+                    }
+
+                    
+                }
+                c.Series["Index"].Points.AddXY(dt, dTotalIndex);
+
+            }
+
+            c.ChartAreas[0].AxisX.LabelStyle.ForeColor = textColor;
+            c.ChartAreas[0].AxisY.LabelStyle.ForeColor = textColor;
+            c.ChartAreas[0].BackColor = bg;
+            c.Titles.Add(sChartName);
+            c.Titles[0].ForeColor = textColor;
+
+            c.BackColor = bg;
+            c.ForeColor = primaryColor;
+            string sSan = System.Web.Hosting.HostingEnvironment.MapPath("~/Images/index.png");
+            c.SaveImage(sSan);
+            return sSan;
+
+        }
+
+        public static string GE(string sData,string sDelim, int iEle)
+        {
+            string[] vGE = sData.Split(sDelim);
+            if (vGE.Length > iEle)
+                return vGE[iEle];
+            else
+                return "";
+        }
+        public static void StoreHistory(string ticker, double sUSDValue, double sBTCValue, DateTime theDate)
+        {
+            string added = theDate.ToShortDateString();
+            string sql = "Delete from QuoteHistory where ticker='" + ticker + "' and added='" + added + "'\r\nInsert Into QuoteHistory (id,added,ticker,usd,btc) values (newid(),'" 
+                + added + "','" + ticker + "','" + sUSDValue.ToString() + "','" + sBTCValue.ToString() + "')";
+            gData.Exec(sql);
+        }
+        // Once per day we will store the historical quotes, to build the cryptocurrency index chart
+
+        public static void StoreQuotes(int offset)
+        {
+            try
+            {
+                DateTime theDate = DateTime.Now;
+
+                if (offset < 0)
+                {
+                    theDate = DateTime.Now.Subtract(TimeSpan.FromDays(offset * -1));
+
+                }
+                string sTickers = "BTC/USD,DASH/BTC,DOGE/BTC,LTC/BTC,ETH/BTC,XRP/BTC,XLM/BTC,BBP/BTC";
+                string[] vTickers = sTickers.Split(",");
+                double nBTCUSD = BMS.RQ("BTC/USD");
+                for (int i = 0; i < vTickers.Length; i++)
+                {
+                    double nQuote = BMS.RQ(vTickers[i]);
+                    double nUSDValue = 0;
+                    if (vTickers[i] != "BTC/USD")
+                    {
+                        nUSDValue = nBTCUSD * nQuote;
+                        if (offset < 0)
+                        {
+                            nUSDValue += (offset * -125);
+                        }
+
+                    }
+                    else
+                    {
+                        nUSDValue = nQuote;
+                        if (offset < 0)
+                        {
+                            nQuote += (offset * -.000000123);
+                        }
+                    }
+                    string sTicker = GE(vTickers[i], "/", 0);
+                    StoreHistory(sTicker, nUSDValue, nQuote, theDate);
+
+                }
+            }catch(Exception ex)
+            {
+                Log("Store Quote History:" + ex.Message);
+            }
+        }
+
+
         public static string FreezerImage(string sURL)
         {
             try

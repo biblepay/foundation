@@ -60,12 +60,14 @@ namespace Saved.Code
 
                 if (aBBP.CompareTo(aTarget) == -1)
                 {
+                    /*
                     if (false)
                     {
                         Log("Submit::Submitting JOBID " + x.socketid + " with jobidsubmit nonce " +
                             x.nonce + " at height " + _pool._template.height.ToString() 
                             + " seed " + x.seed + " with target " + _pool._template.target + " and solution " + x.solution, true);
                     }
+                    */
                     // We solved the block
                     string poolAddress = GetBMSConfigurationKeyValue("PoolAddress");
                     string hex = PoolCommon.GetBlockForStratumHex(poolAddress, x.seed, x.solution);
@@ -93,9 +95,13 @@ namespace Saved.Code
                 {
                     PoolCommon.GetBlockForStratum();
                     if (false)
+                    {
+                        /*
                         Log("Submit::Submitting::HIGH_HASH JOBID " + x.socketid + " with jobidsubmit nonce " +
                             x.nonce + " at height " + _pool._template.height.ToString()
                                 + " seed " + x.seed + " with target " + _pool._template.target + " and solution " + x.solution, false);
+                                */
+                    }
 
                 }
 
@@ -108,7 +114,7 @@ namespace Saved.Code
                 }
                 catch (Exception ex1)
                 {
-                    Log("cant find the job " + x.socketid.ToString());
+                    Log("cant find the job " + x.socketid.ToString() + ex1.Message);
                 }
 
                 return true;
@@ -144,6 +150,9 @@ namespace Saved.Code
             string bbpaddress = "";
             string moneroaddress = "";
             double nTrace = 0;
+            string sData = "";
+            string sParseData = "";
+
             try
             {
                 client.ReceiveTimeout = 7777;
@@ -159,7 +168,7 @@ namespace Saved.Code
                         size = client.Receive(data);
                         nTrace = 1;
                     }
-                    catch (ThreadAbortException abortException)
+                    catch (ThreadAbortException)
                     {
                         //Log("XMR thread(2) is going down...", true);
                         return;
@@ -180,8 +189,22 @@ namespace Saved.Code
                     if (size > 0)
                     {
                         nTrace = 2;
-                        string sData = Encoding.UTF8.GetString(data, 0, data.Length);
+                        sData = Encoding.UTF8.GetString(data, 0, data.Length);
                         sData = sData.Replace("\0", "");
+                        // {"id":107,"jsonrpc":"2.0","method":"submit","params":{"id":"1","job_id":"5","nonce":"08af0200","result":"542      
+                        // We are seeing nTrace==2, with a truncation occurring around position 107 having no json terminator:
+                        if (sData.Contains("jsonrpc") && sData.Contains("submit") && sData.Contains("params") && sData.Length < 128)
+                        {
+                            if (sData.Contains("{") && sData.Contains("id") && !sData.Contains("}"))
+                            {
+                                Log("XMRPool::Received " + socketid + " truncated message.  ", true);
+                                PoolCommon.iXMRThreadCount--;
+                                client.Close();
+                                PoolCommon.WorkerInfo wban = PoolCommon.Ban(socketid, 1, "BAD-CONFIG");
+                                return;
+                            }
+                        }
+
                         // The Stratum data is first split by \r\n
                         string[] vData = sData.Split("\n");
                         for (int i = 0; i < vData.Length; i++)
@@ -192,9 +215,7 @@ namespace Saved.Code
                                 // See if this is a biblepay share:
                                 if (PoolCommon.fMonero2000)
                                 {
-                                    string out_rx = "";
-                                    string out_rx_root = "";
-                                    // Store the result on the work record
+                                    sParseData = sJson;
                                     JObject oStratum = JObject.Parse(sJson);
                                     string nonce = "00000000" + oStratum["params"]["nonce"].ToString();
                                     double nJobID = GetDouble(oStratum["params"]["job_id"].ToString());
@@ -218,10 +239,12 @@ namespace Saved.Code
                                         xmrJob.nonce = nonce;
                                         xmrJob.bbpaddress = bbpaddress;
                                         xmrJob.moneroaddress = moneroaddress;
+                                        /*
                                         if (false)
                                             Log("submit::BBP socket " + xmrJob.socketid + " bbp=" + xmrJob.bbpaddress + ",[" + sJson + " ]", true);
+                                            */
 
-
+                                        /*
                                         if (false)
                                         {
                                             PoolCommon.GetRandomXAudit(xmrJob.solution, xmrJob.seed, ref out_rx, ref out_rx_root);
@@ -232,6 +255,7 @@ namespace Saved.Code
                                             // Spec 2.0 (allow fully compatible xmr merge mining)
                                             // If out_rx_root > BBP_DIFF level, accept as a BBP share
                                         }
+                                        */
                                         PutXMRJob(xmrJob);
                                         SubmitBiblePayShare(xmrJob.socketid);
                                     }
@@ -241,6 +265,16 @@ namespace Saved.Code
                             {
                                 //{"id":1,"jsonrpc":"2.0","method":"login","params":{"login":"41s2xqGv4YLfs5MowbCwmmLgofywnhbazPEmL2jbnd7p73mtMH4XgvBbTxc6fj4jUcbxEqMFq7ANeUjktSiZYH3SCVw6uat","pass":"x","agent":"bbprig/5.10.0 (Windows NT 6.1; Win64; x64) libuv/1.34.0 gcc/9.2.0","algo":["cn/0","cn/1","cn/2","cn/r","cn/fast","cn/half","cn/xao","cn/rto","cn/rwz","cn/zls","cn/double","","cn-lite/0","cn-lite/1","cn-heavy/0","cn-heavy/tube","cn-heavy/xhv","cn-pico","cn-pico/tlo","rx/0","rx/wow","rx/loki","rx/arq","rx/sfx","rx/keva","argon2/chukwa","argon2/wrkz","astrobwt"]}}
                                 nTrace = 8;
+                                sParseData = sJson;
+                                if (sJson.Contains("User-Agent:") || sJson.Contains("HTTP/1.1"))
+                                {
+                                    // Someone is trying to connect to the pool with a web browser?  (Instead of a miner):
+                                    Log("XMRPool::Received " + socketid + " Web browser Request ", true);
+                                    PoolCommon.iXMRThreadCount--;
+                                    client.Close();
+                                    PoolCommon.WorkerInfo wban = PoolCommon.Ban(socketid, 1, "BAD-CONFIG");
+                                    return;
+                                }
                                 JObject oStratum = JObject.Parse(sJson);
                                 dynamic params1 = oStratum["params"];
                                 if (PoolCommon.fMonero2000)
@@ -262,21 +296,6 @@ namespace Saved.Code
                                     PersistWorker(w);
                                 }
                                 nTrace = 10;
-                                // As per 3-3-2021, we cease to collect the 10% orphan tithe from the mining side (we still of course have orphan charity in governance, and our sanctuaries each must sponsor one orphan)
-                                // We are doing this to open the floodgates for merge mining BBP+XMR, in hope we pick up mass users. (Like DOGE+LTC).
-                                if (false)
-                                {
-                                    PoolCommon.iTitheNumber++;
-                                    var poolPubCharityAddress = GetBMSConfigurationKeyValue("MoneroAddress");
-                                    bool fTithe = (moneroaddress.Length > 10 && PoolCommon.iTitheNumber % 10 == 0);
-                                    if (fTithe)
-                                    {
-                                        string newData = sData.Replace(moneroaddress, poolPubCharityAddress);
-                                        data = Encoding.ASCII.GetBytes(newData);
-                                        size = newData.Length;
-                                        fCharity = true;
-                                    }
-                                }
                             }
                             else if (sJson != "")
                             {
@@ -318,7 +337,7 @@ namespace Saved.Code
                         if (bytesIn > 0)
                         {
                             nTrace = 20;
-                            string sData = Encoding.UTF8.GetString(bIn, 0, bytesIn);
+                            sData = Encoding.UTF8.GetString(bIn, 0, bytesIn);
                             sData = sData.Replace("\0", "");
                             string[] vData = sData.Split("\n");
                             for (int i = 0; i < vData.Length; i++)
@@ -340,8 +359,10 @@ namespace Saved.Code
                                         x.blob = oStratum["result"]["job"]["blob"].ToString();
                                         x.target = oStratum["result"]["job"]["target"].ToString();
                                         x.seed = oStratum["result"]["job"]["seed_hash"].ToString();
+                                        /*
                                         if (false)
                                             Log("blob " + sJson, true);
+                                            */
                                         PutXMRJob(x);
                                     }
                                     else if (id > 1 && status == "OK")
@@ -375,9 +396,10 @@ namespace Saved.Code
                                     nTrace = 27.5;
                                     x.seed = oStratum["params"]["seed_hash"].ToString();
                                     nTrace = 27.6;
+                                    /*
                                     if (false)
                                         Log("newjob " + x.socketid + "  " + sJson, true);
-                                        
+                                      */  
                                     PutXMRJob(x);
                                     nTrace = 27.9;
                                 }
@@ -411,7 +433,7 @@ namespace Saved.Code
                     Thread.Sleep(100);
                 }
             }
-            catch (ThreadAbortException abortException)
+            catch (ThreadAbortException)
             {
                 //Log("minerXMRThread is going down...", true);
                 return;
@@ -428,7 +450,13 @@ namespace Saved.Code
                 }
                 else if (!ex.Message.Contains("being aborted"))
                 {
-                    Log("minerXMRThread2 : " + ex.Message);
+                    //This is where we see Unexpected end of content while loading JObject. Path 'params.job_id', line 1, position 72.
+                    // and Unterminated string. Expected delimiter: ". Path 'params.result', line 1, position 108.
+                    // and Unterminated string. Expected delimiter: ". Path 'params.result', line 1, position 144.
+                    //Invalid character after parsing property name. Expected ':' but got:
+                    // and Unterminated string. Expected delimiter: ". Path 'params.id', line 1, position 72.
+                    Log("minerXMRThread2 v2.0: " + ex.Message + " [sdata=" + sData + "], Trace=" + nTrace.ToString() + ", PARSEDATA     \r\n" + sParseData);
+
                 }
             }
 
@@ -485,7 +513,7 @@ namespace Saved.Code
                         }
                     }
                 }
-                catch (ThreadAbortException abortException)
+                catch (ThreadAbortException)
                 {
                     Log("XMR Pool is going down...");
                     return;

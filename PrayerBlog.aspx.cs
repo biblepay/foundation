@@ -28,7 +28,7 @@ namespace Saved
             try
             {
                 dt = gData.GetDataTable(sql);
-            }catch(Exception ex)
+            }catch(Exception)
             {
                 MsgBox("Error", "Contact rob@biblepay.org", this);
             }

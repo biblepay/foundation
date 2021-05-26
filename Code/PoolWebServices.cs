@@ -141,8 +141,6 @@ namespace Saved.Code
             {
                 Log("PayMonthlyOrphanSponsorships[2]:" + ex2.Message);
             }
-            string test = "";
-
         }
 
 
@@ -184,8 +182,6 @@ namespace Saved.Code
                 //https://media.biblepay.org/7001248974024.mp4
                 string vidArgs = "-ss 45 -i " + sURL + " -vframes 1 -filter scale=-1:300 " + sOutFile;
                 string res = run_cmd("c:\\inetpub\\wwwroot\\Saved\\bin\\ffmpeg.exe", vidArgs);
-                string test1 = "";
-
             }
             catch (Exception ex)
             {
@@ -248,7 +244,7 @@ namespace Saved.Code
                     System.IO.File.Copy(sPath, sTargetPath);
                     bOK = true;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
 
                 }
