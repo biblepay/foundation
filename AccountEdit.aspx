@@ -35,6 +35,12 @@
                            </small></asp:Label></td>
            <td><asp:TextBox ID="txtCPKAddress" width="500px" runat="server" ></asp:TextBox></td></tr>
 
+        <tr><td>&nbsp;</td></tr>
+        <tr><td>TestNet CPK BBP Address <small>(This allows purchase of TestNet NFTs):
+                           </small></asp:Label></td>
+           <td><asp:TextBox ID="txtCPKAddressTestnet" width="500px" runat="server" ></asp:TextBox></td></tr>
+
+
        <tr><td>User Name:</td></td>
            <td><asp:TextBox ID="txtUserName" readonly runat="server"></asp:TextBox></td></tr>
 
@@ -43,6 +49,14 @@
  
         <tr><td>E-Mail Address:</td></td>
            <td><asp:TextBox ID="txtEmailAddress" readonly runat="server"></asp:TextBox></td></tr>
+
+
+        <tr><td>Unsubscribe from Daily Digest E-Mails:</td>
+            <td><asp:CheckBox ID="chkUnsubscribeDailyDigest" runat="server" /></asp:CheckBox>
+            <font color="red"><small>This option unsubscribes you from the daily digest meaning that you will not see forum.biblepay.org changes via e-mail.</font></small>
+                </td>
+        </tr>
+        
 
         <tr><td>Unsubscribe from E-mails:</td>
             <td><asp:CheckBox ID="chkUnsubscribe" runat="server" /></asp:CheckBox>
@@ -56,28 +70,23 @@
        <tr><td>2FA Code:</asp:Label></td>
            <td><asp:TextBox ID="txttwofactorcode" runat="server"></asp:TextBox></td></tr>
  
-        <tr><td>&nbsp;</td></tr>
-                <tr><td>Forum Rewards Address:</asp:Label></td>
-           <td><asp:TextBox ID="txtForumRewardsAddress" width="500px" runat="server" ></asp:TextBox>
-               <br />
-                   <font color="red">
-                         <small>Note:  Populate this address to receive rewards for <a href="https://forum.biblepay.org/index.php?topic=517.new#new">posting in this forum thread</a>. The more your Benevolence rating rises, and quantity of posts, the higher the weekly reward.  Benevolence * Post Quantity * Forum_Budget_Factor = Reward.
-                   </font></small>
-           </td></tr>
-
-
+       
+        <tr><td>Chain:</asp:Label></td>
+           <td><asp:TextBox ID="txtChain" readonly runat="server"></asp:TextBox>&nbsp;
+               <asp:Button class='button' ID="btnTestNet" runat="server" Text="Switch to TestNet" OnClick="btnSwitchToTestNet_Click" />
+            <asp:Button class='button' ID="btnProd" runat="server" Text="Switch to MainNet" OnClick="btnSwitchToMainNet_Click" />
+          </td></tr>
 
         <tr><td>&nbsp;</td></tr>
 
 
        <tr><td colspan="3">
-       <asp:Button ID="btnSave" runat="server" Text="Save" OnClick="btnSave_Click" />
-           <!--            <asp:Button ID="btnChangePassword" runat="server" Text="Change Password" OnClick="btnChangePassword_Click" />-->
+       <asp:Button ID="btnSave" runat="server" Text="Save" class='button' OnClick="btnSave_Click" />
 
+            <asp:Button ID="btnSetTwoFactor" class='button' onclientclick="alert('Once you see the QR code, click Add New Site in your authenticator app.  You may scan the code or add it manually.  Then, test it by viewing your next 2fa pin, and pasting it in the two-factor pin box, and then click Validate 2FA.  ');" runat="server" Text="Set Up 2FA" OnClick="btnSetTwoFactor_Click" />
+            <asp:Button ID="btnCheckTwoFactor" class='button' runat="server" Text="Test 2FA" OnClick="btnValidateTwoFactor_Click" />
 
-            <asp:Button ID="btnSetTwoFactor"  onclientclick="alert('Once you see the QR code, click Add New Site in your authenticator app.  You may scan the code or add it manually.  Then, test it by viewing your next 2fa pin, and pasting it in the two-factor pin box, and then click Validate 2FA.  ');" runat="server" Text="Set Up 2FA" OnClick="btnSetTwoFactor_Click" />
-            <asp:Button ID="btnCheckTwoFactor" runat="server" Text="Test 2FA" OnClick="btnValidateTwoFactor_Click" />
-
+        
            </td></td></tr>
 
 

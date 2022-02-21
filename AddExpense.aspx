@@ -9,6 +9,7 @@
     <hr />
 
     <table>
+        <tr><td>    Expense ADDED Date:             <td>    <asp:TextBox ID="txtAdded" width="200px"  runat="server" ></asp:TextBox></tr>
         <tr><td>    Expense Amount:                  <td>    <asp:TextBox ID="txtExpenseAmount" width="200px"  runat="server" ></asp:TextBox></tr>
         <tr><td>    Current Balance:                 <td>    <asp:TextBox ID="txtBalance" width="200px"  runat="server" ></asp:TextBox></tr>
 

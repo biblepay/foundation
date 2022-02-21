@@ -41,25 +41,18 @@ namespace Saved
             double dSong = GetDouble(txtSong.Text);
             double dXMRRate = GetDouble(txtXMRRate.Text);
             double camAmt = 35 * 40;
-            double kairAmt = 25 * 10;
+            double kairAmt = 25 * 19;
             string sql = "Insert into Expense (id,added,amount,url,charity,handledBy, superblock) values (newid(), getdate(), '" + camAmt.ToString() + "', 'CAMEROON-ONE','bible_pay','CAMEROON-ONE')";
             gData.Exec(sql);
             sql = "       Insert into Expense (id,added,amount,url,charity,handledBy, superblock) values (newid(), getdate(), '" + kairAmt.ToString() + "','KAIROS','bible_pay','KAIROS')";
             gData.Exec(sql);
-            double nTotalRaised = dPool + dSong;
-            double nAmount = dXMRRate * nTotalRaised;
-            string sNotes = "XMR " + dPool.ToString() + " foundation + " + dSong.ToString() + " miningpool_fun";
-            double dBTCRaised = nAmount / (dBTC + .01);
+            //ouble nTotalRaised = dPool + dSong;
+            //double nAmount = dXMRRate * nTotalRaised;
+            //double dBTCRaised = nAmount / (dBTC + .01);
+            // sql = "Insert into revenue (id,added,bbpamount,btcraised,btcprice,amount,notes,handledBy,Charity) values (newid(),getdate(),0,'" + dBTCRaised.ToString() + "','" + dBTC.ToString() + "','" 
+            //     + nAmount.ToString() + "','" + sNotes + "','bible_pay','CAMEROON-ONE')";
+            MsgBox("Success", "Added monthly expense", this);
 
-            sql = "Insert into revenue (id,added,bbpamount,btcraised,btcprice,amount,notes,handledBy,Charity) values (newid(),getdate(),0,'" + dBTCRaised.ToString() + "','" + dBTC.ToString() + "','" 
-                + nAmount.ToString() + "','" + sNotes + "','bible_pay','CAMEROON-ONE')";
-
-            string sNarr = "BiblePay RandomX Mining Operations Report - " + System.DateTime.Now.ToShortDateString() + "\r\n\r\nFoundation - XMR: " + dPool.ToString()
-                + "\r\nMining Pool Fun - XMR: " + dSong.ToString() + "\r\nXMR Rate: " + dXMRRate.ToString() + "\r\nTotal Raised: " + nAmount.ToString();
-
-
-            gData.Exec(sql);
-            MsgBox("Success", sNarr, this);
 
         }
 
@@ -69,6 +62,11 @@ namespace Saved
             {
                 MsgBox("Log In Error", "Sorry, you must be an admin.", this);
                 return;
+            }
+            string sAdded = txtAdded.Text;
+            if (sAdded == "")
+            {
+                sAdded = DateTime.Now.ToString();
             }
 
             string sql = "Select count(*) ct from SponsoredOrphan where childid = '" + txtChildID.Text.ToString() + "' and active=1 ";
@@ -88,8 +86,8 @@ namespace Saved
             }
             if (!fUpdateAll)
             {
-                sql = "Select charity from sponsoredOrphan where ChildID = '" + txtChildID.Text.ToString() + "' and active = 1 ";
-                string sCharity = gData.GetScalarString(sql, "charity");
+                sql = "Select charity from sponsoredOrphan where ChildID = '" + BMS.PurifySQL(txtChildID.Text.ToString(),20) + "' and active = 1 ";
+                string sCharity = gData.GetScalarString2(sql, "charity");
                 sql = "Select top 1 Balance balance from OrphanExpense where childID = '" + txtChildID.Text + "' order by Added desc";
                 double dBalance = gData.GetScalarDouble(sql, "Balance");
                 double dBalance2 = GetDouble(txtBalance.Text.ToString());
@@ -105,8 +103,8 @@ namespace Saved
             }
             else
             {
-                sql = "Select * from SponsoredOrphan where charity='" + txtChildID.Text + "' and active = 1 ";
-                DataTable dt = gData.GetDataTable(sql);
+                sql = "Select * from SponsoredOrphan where charity='" + BMS.PurifySQL(txtChildID.Text,20) + "' and active = 1 ";
+                DataTable dt = gData.GetDataTable2(sql);
                 double dAdjAmt = GetDouble(txtExpenseAmount.Text);
 
                 if (dt.Rows.Count == 0 || dAdjAmt == 0)
@@ -128,7 +126,7 @@ namespace Saved
                     double dBalance = gData.GetScalarDouble(sql, "Balance");
                     dBalance += dAdjAmt;
 
-                    sql = "Insert into OrphanExpense (id,added,Amount,Charity,HandledBy,ChildID,Balance,Notes) values (newid(),getdate(),'" + dAdjAmt.ToString() + "','" + sCharity
+                    sql = "Insert into OrphanExpense (id,added,Amount,Charity,HandledBy,ChildID,Balance,Notes) values (newid(),'" + sAdded + "','" + dAdjAmt.ToString() + "','" + sCharity
                         + "','bible_pay','" + sChildID + "','" + dBalance.ToString() + "','" + txtNotes.Text + "')";
                     gData.Exec(sql);
 

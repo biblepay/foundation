@@ -96,14 +96,14 @@ namespace Saved
                 return;
             }
 
-            bool bValid = ValidateBiblepayAddress(txtWithdrawalAddress.Text);
+            bool bValid = ValidateBiblepayAddress(false,txtWithdrawalAddress.Text);
             if (!bValid)
             {
                 MsgBox("Invalid Address", "Sorry, the withdrawal address is invalid.", this);
                 return;
             }
 
-            string email = gData.GetScalarString("Select emailaddress from Users where id = '" + gUser(this).UserId.ToString() + "'", "emailaddress");
+            string email = gData.GetScalarString2("Select emailaddress from Users where id = '" + BMS.PurifySQL(gUser(this).UserId.ToString(),50) + "'", "emailaddress");
             if (email == "")
             {
                 MsgBox("Email Address Invalid", "Sorry, the email address is not valid.  Please update it.  If the problem persists please email rob@biblepay.org.", this);
@@ -136,7 +136,7 @@ namespace Saved
         {
             // If their Deposit address is empty, repopulate
             string sql = "Select * from Users where ID='" + gUser(this).UserId.ToString() + "'";
-            DataTable dt = gData.GetDataTable(sql, false);
+            DataTable dt = gData.GetDataTable2(sql, false);
             if (dt.Rows.Count > 0)
             {
                 string dep = dt.Rows[0]["DepositAddress"].ToString() ?? "";

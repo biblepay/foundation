@@ -51,6 +51,15 @@ namespace Saved
         protected global::System.Web.UI.WebControls.TextBox txtCPKAddress;
 
         /// <summary>
+        /// txtCPKAddressTestnet control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox txtCPKAddressTestnet;
+
+        /// <summary>
         /// txtUserName control.
         /// </summary>
         /// <remarks>
@@ -76,6 +85,15 @@ namespace Saved
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox txtEmailAddress;
+
+        /// <summary>
+        /// chkUnsubscribeDailyDigest control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.CheckBox chkUnsubscribeDailyDigest;
 
         /// <summary>
         /// chkUnsubscribe control.
@@ -105,13 +123,31 @@ namespace Saved
         protected global::System.Web.UI.WebControls.TextBox txttwofactorcode;
 
         /// <summary>
-        /// txtForumRewardsAddress control.
+        /// txtChain control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtForumRewardsAddress;
+        protected global::System.Web.UI.WebControls.TextBox txtChain;
+
+        /// <summary>
+        /// btnTestNet control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnTestNet;
+
+        /// <summary>
+        /// btnProd control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnProd;
 
         /// <summary>
         /// btnSave control.
@@ -121,15 +157,6 @@ namespace Saved
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button btnSave;
-
-        /// <summary>
-        /// btnChangePassword control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Button btnChangePassword;
 
         /// <summary>
         /// btnSetTwoFactor control.

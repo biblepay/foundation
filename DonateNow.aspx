@@ -4,6 +4,5 @@
     <h2>Donate Now (One Time Donation)</h2>
 
        
-   <asp:Button ID="btnDonateNow" runat="server" onclick="btnDonateNow_Click"  Text="Make One Time Donation" style="width:85px" />
 
 </asp:Content>

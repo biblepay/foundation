@@ -40,7 +40,7 @@ namespace Saved
                 +" and bbpaddress like '" + BMS.PurifySQL(txtAddress.Text, 100) + "%' and height > " + nHeight.ToString() + "-205 order by height desc, bbpaddress";
             
 
-            DataTable dt = gData.GetDataTable(sql);
+            DataTable dt = gData.GetDataTable2(sql);
             string html = "<table class=saved><tr><th width=20%>Height</th><th>BBP Address<th>Percentage<th>Reward<th>Block Subsidy<th>TXID</tr>";
 
             double _height = 0;

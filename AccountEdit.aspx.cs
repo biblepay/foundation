@@ -28,6 +28,7 @@ namespace Saved
                 }
             }
 
+            txtChain.Text = GetDouble(Session["ChainTestNet"]) == 1 ? "TESTNET" : "MAINNET";
             txtTwoFactorEnabled.Text = gUser(this).Require2FA == 1 ? "Enabled" : "Disabled";
             txtMyBalance.Text = GetUserBalance(this).ToString();
             string sql = "Select * from users where username=@username";
@@ -41,9 +42,11 @@ namespace Saved
                 {
                     txtRandomXAddress.Text = dr1["RandomXBBPAddress"].ToString();
                     txtCPKAddress.Text = dr1["CPKAddress"].ToString();
+                    txtCPKAddressTestnet.Text = dr1["CPKAddressTestNet"].ToString();
                     txtUserName.Text = dr1["UserName"].ToString();
                     txtEmailAddress.Text = dr1["EmailAddress"].ToString();
-                    txtForumRewardsAddress.Text = dr1["ForumRewardsAddress"].ToString();
+                    //txtForumRewardsAddress.Text = dr1["ForumRewardsAddress"].ToString();
+                    chkUnsubscribeDailyDigest.Checked = GetDouble(dr1["unsubscribedailydigest"]) == 1 ? true : false;
                     chkUnsubscribe.Checked = GetDouble(dr1["Unsubscribe"]) == 1 ? true : false;
                 }
                 _id = dr1["id"].ToString();
@@ -61,7 +64,7 @@ namespace Saved
             string p = "<img src='" + _picture + "' width=256 height=256 />";
             return p;
         }
-
+        
         protected void btnValidateTwoFactor_Click(object sender, EventArgs e)
         {
             TwoFactorAuthenticator tfa = new TwoFactorAuthenticator();
@@ -87,6 +90,18 @@ namespace Saved
                 MsgBox(sSucNar, sNarr, this);
             }
         }
+        protected void btnSwitchToTestNet_Click(object sender, EventArgs e)
+        {
+            Session["ChainTestNet"] = "1";
+            txtChain.Text = GetDouble(Session["ChainTestNet"]) == 1 ? "TESTNET" : "MAINNET";
+        }
+
+        protected void btnSwitchToMainNet_Click(object sender, EventArgs e)
+        {
+            Session["ChainTestNet"] = "0";
+            txtChain.Text = GetDouble(Session["ChainTestNet"]) == 1 ? "TESTNET" : "MAINNET";
+        }
+
 
 
         protected void btnSetTwoFactor_Click(object sender, EventArgs e)
@@ -112,7 +127,7 @@ namespace Saved
         protected void btnSave_Click(object sender, EventArgs e)
         {
 
-            string sql = "Update Users set forumrewardsAddress=@fra,cpkaddress=@cpk,randomxbbpaddress=@rx,unsubscribe=@unsubscribe,updated=getdate() where id=@id";
+            string sql = "Update Users set UnsubscribeDailyDigest=@unsubscribedailydigest,cpkaddresstestnet=@cpktestnet,cpkaddress=@cpk,randomxbbpaddress=@rx,unsubscribe=@unsubscribe,updated=getdate() where id=@id";
 
             SqlCommand command = new SqlCommand(sql);
             /*
@@ -124,16 +139,18 @@ namespace Saved
             */
             command.Parameters.AddWithValue("@rx", txtRandomXAddress.Text);
             command.Parameters.AddWithValue("@cpk", txtCPKAddress.Text);
-            command.Parameters.AddWithValue("@fra", txtForumRewardsAddress.Text);
+            command.Parameters.AddWithValue("@cpktestnet", txtCPKAddressTestnet.Text);
             command.Parameters.AddWithValue("@id", _id);
             object unsubscribe = chkUnsubscribe.Checked ? (object)"1" : DBNull.Value;
+            object unsubscribeDailyDigest = chkUnsubscribeDailyDigest.Checked ? (object)"1" : DBNull.Value;
             command.Parameters.AddWithValue("@unsubscribe", unsubscribe);
+            command.Parameters.AddWithValue("@unsubscribedailydigest", unsubscribeDailyDigest);
             gData.ExecCmd(command);
             User gu =(User)Session["CurrentUser"];
             gu.RandomXBBPAddress = txtRandomXAddress.Text;
             gu.CPKAddress = txtCPKAddress.Text;
+            gu.CPKAddressTestNet = txtCPKAddressTestnet.Text;
             Session["CurrentUser"] = gu;
-            
             MsgBox("Account Updated", "Your Account has been updated.", this);
         }
         

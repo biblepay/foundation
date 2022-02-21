@@ -98,8 +98,6 @@ namespace Saved
             html += "<tr><td><a href=Accountability?type=kairos>Kairos Report</a></td></tr>\r\n";
             html += "</table>";
 
-
-
             return html;
         }
     }

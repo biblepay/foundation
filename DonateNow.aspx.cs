@@ -53,7 +53,7 @@ namespace Saved
             BBP_USD = BBP_BTC * BTC_USD;
 
             string sql = "Select * from DonorMatch Inner Join Users on Users.ID = DonorMatch.UserID";
-            DataTable dt = gData.GetDataTable(sql);
+            DataTable dt = gData.GetDataTable2(sql);
             string html = "<table class=saved><tr><th>User Name</th><th>Total Donation Amount<th>Added</tr>";
 
             for (int y = 0; y < dt.Rows.Count; y++)

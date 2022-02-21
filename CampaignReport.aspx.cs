@@ -29,7 +29,7 @@ namespace Saved
 
             string sql = "Select sum(amount) amt from Campaign (nolock)";
             double dAmt = gData.GetScalarDouble(sql, "amt");
-            DataTable dt = gData.GetDataTable(sql);
+            DataTable dt = gData.GetDataTable2(sql);
             string html = "TOTAL REPORT GIVEAWAYS: 30,000,000 BBP\r\n\r\n";
             html += "<pre>Dash Address                                                                      Claim Date\r\n";
             html += "All DASH receive addresses that sent DASH between Block 1 and Block 1,395,000 (Dec 31, 2020) are being included!  This is 73,000,000 addresses!";
