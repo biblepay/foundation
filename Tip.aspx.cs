@@ -39,7 +39,7 @@ namespace Saved
         
         protected void btnTip_Click(object sender, EventArgs e)
         {
-            bool bValid = PoolCommon.ValidateBiblepayAddress(txtAddress.Text);
+            bool bValid = PoolCommon.ValidateBiblepayAddress(IsTestNet(this),txtAddress.Text);
             double nBalance = DataOps.GetUserBalance(gUser(this).UserId);
             double dAmt = GetDouble(txtAmount.Text);
             string sReferrer = Request.QueryString["referrer"].ToNonNullString();

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Web.UI;
 using static Saved.Code.Common;
+using static Saved.Code.Fastly;
 
 namespace Saved
 {
@@ -17,10 +18,19 @@ namespace Saved
             return s;
         }
 
+        public static string Coalesce(string a, string b)
+        {
+            if (a != null && a != "")
+                return a;
+            return b;
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
             
             string sAction = Request.QueryString["action"].ToNonNullString();
+            Log("SERVER::" + sAction);
+
             if (sAction == "BBP_PRICE_QUOTE")
             {
                 string sBPQ = Saved.Code.BMS.BBP_PRICE_QUOTE();
@@ -28,29 +38,9 @@ namespace Saved
                 Response.End();
                 return;
             }
-            else if (sAction == "TEST1")
-            {
-
-                string t = GetChartOfIndex();
-                for (int i = -180; i < 0; i++)
-                {
-                    StoreQuotes(i);
-                }
-
-            }
             else if (sAction == "QUERY_UTXO")
             {
-                string sXML= Request.Headers["Action"].ToNonNullString();
-                string sAddress = ExtractXML(sXML, "<address>", "</address>").ToString();
-                double nAmt = GetDouble(ExtractXML(sXML, "<amount>", "</amount>").ToString());
-                string sTicker = ExtractXML(sXML, "<ticker>", "</ticker>").ToString();
-                int nUTXOTime = (int)GetDouble(ExtractXML(sXML, "<utxotime>", "</utxotime>").ToString());
-
-                SimpleUTXO u = QueryUTXO(sTicker, sAddress, nAmt, nUTXOTime);
-                string sReply = SerializeUTXO(u);
-                sReply += "<eof>";
-                Log("Query utxo " + sXML + " == REPLY == " + sReply);
-                Response.Write(sReply);
+                Response.Write("<eof>");
                 Response.End();
             }
             else if (sAction == "QUERY_UTXOS")
@@ -58,9 +48,9 @@ namespace Saved
                 string sXML = Request.Headers["Action"].ToNonNullString();
                 string sAddress = ExtractXML(sXML, "<address>", "</address>").ToString();
                 string sTicker = ExtractXML(sXML, "<ticker>", "</ticker>").ToString();
-                int nUTXOTime = (int)GetDouble(ExtractXML(sXML, "<utxotime>", "</utxotime>").ToString());
-                
-                List<SimpleUTXO> l = QueryUTXOs(sTicker, sAddress);
+                int nUTXOTime = (int)GetDouble(ExtractXML(sXML, "<timestamp>", "</timestamp>").ToString());
+
+                List<SimpleUTXO> l = QueryUTXOs(sTicker, sAddress, nUTXOTime);
                 string sReply = "";
                 for (int i = 0; i < l.Count; i++)
                 {
@@ -69,19 +59,127 @@ namespace Saved
                 }
                 sReply += "<eof>";
 
-                Log("Query LISTOF(UTXO) " + sXML + " == REPLY == " + sReply);
+                //Log("Query LISTOF(UTXO) " + sXML + " == REPLY == " + sReply);
                 Response.Write(sReply);
+                Response.End();
+            }
+            else if (sAction == "PUBKEYDERIVE")
+            {
+                string sMinerID = Request.Headers["MinerID"].ToNonNullString();
+                string sHash = GetSha256HashI(sMinerID);
+                KeyType k = DeriveNewKey(sHash);
+                string sReply = k.PubKey + "|" + k.PrivKey + "|";
+                Response.Write(sReply);
+                Response.End();
+            }
+            else if (sAction == "QUERYADDRESSBALANCE")
+            {
+                string sAddress = Request.Headers["Address"].ToNonNullString();
+                string sAddress2 = Request.QueryString["Address"].ToNonNullString();
+                double b = QueryAddressBalance(Coalesce(sAddress, sAddress2));
+                string sReply = b.ToString();
+                Log("QUERYADDRBALANCE " + Coalesce(sAddress, sAddress2) + " REPLY " + sReply);
+                Response.Write(sReply);
+                Response.End();
+            }
+            else if (sAction == "QUERYROKUBALANCE")
+            {
+                string sHWID = Request.Headers["hwid"].ToNonNullString();
+                KeyType k = DeriveRokuKeypair(sHWID);
+                double b = QueryAddressBalance(k.PubKey);
+                string sReply = b.ToString();
+                Response.Write(sReply);
+                Response.End();
+            }
+            else if (sAction == "LISTROKUORPHANNFTS")
+            {
+                string sHWID = Request.Headers["hwid"].ToNonNullString();
+                string data = Common.ListRokuNFTS(sHWID, false);
+                Response.Write(data);
+                Response.End();
+            }
+            else if (sAction == "LISTMYROKUORPHANNFTS")
+            {
+                string sHWID = Request.Headers["hwid"].ToNonNullString();
+                string data = Common.ListRokuNFTS(sHWID, true);
+                Response.Write(data);
+                Response.End();
+            }
+            else if (sAction == "QUERYROKUADDRESS")
+            {
+                string sHWID = Request.Headers["hwid"].ToNonNullString();
+                KeyType k = DeriveRokuKeypair(sHWID);
+                Response.Write(k.PubKey);
+                Response.End();
+            }
+            else if (sAction == "QUERYROKUPRIVATEKEY")
+            {
+                string sHWID = Request.Headers["hwid"].ToNonNullString();
+                KeyType k = DeriveRokuKeypair(sHWID);
+                Response.Write(k.PrivKey);
+                Response.End();
+            }
+            else if (sAction == "BUYNFT")
+            {
+                // This lets a Roku TV viewer sponsor an orphan:
+                string sHWID = Request.Headers["hwid"].ToNonNullString();
+                string sAmt = Request.QueryString["amount"].ToNonNullString();
+                string sData = Request.Headers["base64data"].ToNonNullString();
+                string sDecoded = Base64Decode(sData);
+                string sLastOwner = ExtractXML(sDecoded, "<lastcpk>", "</lastcpk>").ToString();
+                double dAmt = GetDouble(sAmt);
+                if (dAmt > 0 && sHWID != "" && sLastOwner != "")
+                {
+                    KeyType k = DeriveRokuKeypair(sHWID);
+                    DACResult r = CreateFundingTransaction(dAmt, sLastOwner, k.PrivKey, sDecoded, true);
+                    string sResult = r.sTXID.ToNonNullString() + "|" + r.sResult.ToNonNullString() + "|" + r.sError.ToNonNullString();
+                    Log("SPENDING : " + sResult + ", Enc=" + sData + ", Data=" + sDecoded);
+                    string sDesc = ExtractXML(sDecoded, "<description>", "</description>").ToString();
+                    string sLo = ExtractXML(sDecoded, "<loqualityurl>", "</loqualityurl>").ToString();
+                    double nPrice = GetDouble(ExtractXML(sDecoded, "<buyitnowamount>", "</buyitnowamount>"));
+                    NotifyOfRokuSale(sDesc, "rob@biblepay.org", r.sTXID, true, sLo, nPrice);
+                    Response.Write(sResult);
+                    Response.End();
+                }
+                else
+                {
+                    Response.Write("Invalid Funding Transaction");
+                    Response.End();
+                }
+            }
+            else if (sAction == "SERIALIZENFT")
+            {
+                string sNFTID = Request.Headers["nftid"].ToNonNullString();
+                if (sNFTID == "")
+                {
+                    Response.Write("");
+                    Response.End();
+                }
+                string sHWID = Request.Headers["hwid"].ToNonNullString();
+                KeyType k = DeriveRokuKeypair(sHWID);
+                string sBuyerCPK = k.PubKey;
+                string sPayload = PoolCommon.SerializeNFT(sHWID, sNFTID, "BUY");
+                Response.Write(sPayload);
+                Response.End();
+            }
+            else if (sAction == "CREATEFUNDINGTRANSACTION")
+            {
+                string sPrivKey = Request.Headers["PRIVKEY"].ToNonNullString();
+                string sToAddress = Request.Headers["TOADDRESS"].ToNonNullString();
+                string sAmount = Request.Headers["AMOUNT"].ToNonNullString();
+                string sNotes = Request.Headers["NOTES"].ToNonNullString();
+                DACResult r = CreateFundingTransaction(GetDouble(sAmount), sToAddress, sPrivKey, sNotes, true);
+                string sResult = r.sTXID.ToNonNullString() + "|" + r.sResult.ToNonNullString() + "|" + r.sError.ToNonNullString();
+                Response.Write(sResult);
                 Response.End();
             }
             else if (sAction == "MAIL")
             {
                 string sXML1 = Request.Headers["Action"].ToNonNullString();
                 string sXML = Base64Decode(sXML1);
-
                 DirectMailLetter m = new DirectMailLetter();
                 string sTo = ExtractXML(sXML, "<to>", "</to>").ToString();
                 string sFrom = ExtractXML(sXML, "<from>", "</from>").ToString();
-                
                 m.To.Name = ExtractXML(sTo, "<Name>", "</Name>").ToString();
                 m.To.AddressLine1 = ExtractXML(sTo, "<AddressLine1>", "</AddressLine1>").ToString();
                 m.To.AddressLine2 = ExtractXML(sTo, "<AddressLine2>", "</AddressLine2>").ToString();
@@ -112,23 +210,13 @@ namespace Saved
                         System.Threading.Thread.Sleep(1000);
                     }
                 }
-
                 double nAmtPaidUSD = GetUSDAmountFromBBP(nPaidBBP);
-
                 Log("Mailing " + sXML + ", PAID=" + nPaidBBP.ToString() + ", amtusd = " + nAmtPaidUSD.ToString() + ", dryrun=" + m.DryRun.ToString());
-
-
                 // ************************************ DRY RUN ? ************************************************
-
-                if (m.DryRun == true && nAmtPaidUSD < .90)
+                if (m.DryRun == false && nAmtPaidUSD < .51)
                 {
-                    m.DryRun = false;
+                    m.DryRun = true;
                 }
-                // HARVEST MISSION CRITICAL TO DO  -  Change to Actual
-
-                m.DryRun = true;
-                // END OF HARVEST
-
                 m.PostalClass = "First Class";
                 m.Template = ExtractXML(sXML, "<Template>", "</Template>").ToNonNullString().ToLower();
                 m.Data = "ea659d20-6031-4f23-abab-3fe39abf381f"; // Easter template
@@ -236,14 +324,14 @@ namespace Saved
             else if (sAction == "TIP")
             {
                 string sToAddress = Request.QueryString["ToAddress"].ToNonNullString();
-                bool bValid = PoolCommon.ValidateBiblepayAddress(sToAddress);
+                bool bValid = PoolCommon.ValidateBiblepayAddress(false,sToAddress);
                 double dAmt = Code.Common.GetDouble(Request.QueryString["Amount"].ToNonNullString());
                 if (gUser(this).LoggedIn == false)
                 {
                     MsgBox("Log In Error", "Sorry, you must be logged in first.", this);
                     return;
                 }
-                double  nBalance = DataOps.GetUserBalance(gUser(this).UserId);
+                double nBalance = DataOps.GetUserBalance(gUser(this).UserId);
 
                 if (dAmt > nBalance)
                 {
@@ -295,6 +383,21 @@ namespace Saved
                 Response.End();
                 return;
             }
+            else if (sAction == "ZEC_PRICE_QUOTE")
+            {
+                string sBPQ = Saved.Code.BMS.ZEC_PRICE_QUOTE();
+                Response.Write(sBPQ);
+                Response.End();
+                return;
+            }
+            else if (sAction == "BCH_PRICE_QUOTE")
+            {
+                string sBPQ = Saved.Code.BMS.BCH_PRICE_QUOTE();
+                Response.Write(sBPQ);
+                Response.End();
+                return;
+
+            }
             else if (sAction == "XLM_PRICE_QUOTE")
             {
                 string sXLM = Saved.Code.BMS.XLM_PRICE_QUOTE();
@@ -316,7 +419,7 @@ namespace Saved
                 {
 
                     double nPQ = Saved.Code.BMS.GetPriceQuote(vTicker[3]);
-                    string sRes= nPQ.ToString("0." + new string('#', 339));
+                    string sRes = nPQ.ToString("0." + new string('#', 339));
                     string sResult = "<MIDPOINT>" + sRes + "</MIDPOINT><EOF>";
                     Response.Write(sResult);
                     Response.End();
@@ -337,6 +440,25 @@ namespace Saved
                 Response.End();
                 return;
 
+            }
+            else if (sAction == "MOBILE_API")
+            {
+                MobileAPI m = new MobileAPI();
+
+                //string sBPQ = Saved.Code.BMS.BTC_PRICE_QUOTE();
+                //string sBBP = Saved.Code.BMS.BBP_PRICE_QUOTE();
+                m.BTCUSD = BMS.GetPriceQuote("BTC/USD");
+                double nBBPBTC = BMS.GetPriceQuote("BBP/BTC");
+
+                m.BBPUSD = m.BTCUSD * nBBPBTC;
+                m.BBPBTC = nBBPBTC.ToString("0." + new string('#', 339));
+
+                String json = Newtonsoft.Json.JsonConvert.SerializeObject(m);
+
+
+                Response.Write(json);
+                Response.End();
+                return;
             }
             else if (sAction == "BTC_PRICE_QUOTE")
             {
@@ -388,19 +510,6 @@ namespace Saved
             }
             else if (sAction == "GetUTXO")
             {
-                /*
-                string sTXID = Request.QueryString["hash"].ToNonNullString();
-                string[] vHash = sTXID.Split("-");
-                if (vHash.Length > 1)
-                {
-                    double nOrdinal = GetDouble(vHash[1]);
-                    string sHash = vHash[0];
-                    string sResult = DataOps.GetSingleUTXO("DASH", sHash, (int)nOrdinal);
-                    Response.Write(sResult);
-                    Response.End();
-                    return;
-                }
-                */
                 Response.Write("<EOF></HTML>\r\n");
             }
             else if (sAction == "GetUTXOData")
@@ -428,6 +537,14 @@ namespace Saved
             {
                 Response.Write("<HTML>NOT FOUND</EOF>");
             }
+        }
+
+        public struct MobileAPI
+        {
+            public double BTCUSD;
+            public double BBPUSD;
+            public string BBPBTC;
+
         }
     }
 }

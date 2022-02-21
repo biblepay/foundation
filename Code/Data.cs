@@ -15,8 +15,8 @@ namespace Saved.Code
 
         public static User GetUserRecord(string id)
         {
-            string sql = "Select * from USERS where id = '" + id + "'";
-            DataTable dt = gData.GetDataTable(sql);
+            string sql = "Select * from USERS where id = '" + BMS.PurifySQL(id,50) + "'";
+            DataTable dt = gData.GetDataTable2(sql);
             User u = new User();
             if (dt.Rows.Count > 0)
             {
@@ -182,6 +182,8 @@ namespace Saved.Code
             }
             return sUserPic;
         }
+
+        /*
         public static void LiquidateAllSanctuaries()
         {
             string sql = "Select * from SanctuaryInvestments";
@@ -195,6 +197,8 @@ namespace Saved.Code
                 AdjBalance(nReq, sUserId, "Sanctuary Liquidation " + nReq.ToString());
             }
         }
+        */
+
         public static string GetSingleTweet(string id)
         {
             if (id == "")
@@ -244,7 +248,7 @@ namespace Saved.Code
                 gData.Exec(sql1);
             }
             string sql = "Select * from UTXO where txid='" + BMS.PurifySQL(txid, 100) + "'";
-            DataTable dt1 = gData.GetDataTable(sql);
+            DataTable dt1 = gData.GetDataTable2(sql);
             UTXO db1 = new UTXO();
             if (dt1.Rows.Count > 0)
             {
@@ -278,7 +282,7 @@ namespace Saved.Code
             }
             nLastUTXOReport = UnixTimeStamp();
             string sql = "Select * from UTXO";
-            DataTable dt1 = gData.GetDataTable(sql);
+            DataTable dt1 = gData.GetDataTable2(sql);
             string sData = "<utxos>";
             for (int i = 0; i < dt1.Rows.Count; i++)
             {
@@ -370,10 +374,8 @@ namespace Saved.Code
         {
             return GetTotalFrom(gUser(p).UserId.ToString(), "SanctuaryInvestments").ToString();
         }
-
-
-
     }
+
     public class MySQLData
     {
         private static string MySqlConn()
@@ -409,6 +411,7 @@ namespace Saved.Code
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(sql, conn);
                 rdr = cmd.ExecuteReader();
+                
             }
             catch (Exception ex)
             {
@@ -425,7 +428,7 @@ namespace Saved.Code
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
-                
+                conn.Close();
                 return true;
             }
             catch (Exception ex)
@@ -626,7 +629,7 @@ namespace Saved.Code
         }
 
 
-        public DataTable GetDataTable(string sql, bool bLog = true)
+        public DataTable GetDataTable2(string sql, bool bLog = true)
         {
             try
             {
@@ -678,7 +681,7 @@ namespace Saved.Code
 
         public double GetScalarAge(string sql, object vCol, bool bLog = true)
         {
-            DataTable dt1 = GetDataTable(sql, bLog);
+            DataTable dt1 = GetDataTable2(sql, bLog);
             try
             {
                 if (dt1.Rows.Count > 0)
@@ -692,6 +695,10 @@ namespace Saved.Code
                     {
                         oOut = dt1.Rows[0][Convert.ToInt32(vCol)];
                     }
+                    if (oOut.GetType().ToString() == "System.DBNull")
+                    {
+                        oOut = Convert.ToDateTime("1-1-1970");
+                    }
                     DateTime d1 = Convert.ToDateTime(oOut);
                     TimeSpan vAge = DateTime.Now - d1;
                     return vAge.TotalSeconds;
@@ -704,10 +711,16 @@ namespace Saved.Code
             return 0;
         }
 
+        public double GetScalarDoubleFromObject(string sTable, string sColName, string sID)
+        {
+            string sql = "Select * from " + sTable + " WHERE id='" + sID + "'";
+            double dOut = GetScalarDouble(sql, sColName);
+            return dOut;
+        }
 
         public double GetScalarDouble(string sql, object vCol, bool bLog = true)
         {
-            DataTable dt1 = GetDataTable(sql, bLog);
+            DataTable dt1 = GetDataTable2(sql, bLog);
             try
             {
                 if (dt1.Rows.Count > 0)
@@ -751,11 +764,11 @@ namespace Saved.Code
             }
             return null;
         }
-        public DataRow GetScalarRow(string sql)
+        public DataRow GetScalarRow2(string sql)
         {
             DataRow dRow;
 
-            DataTable dt1 = GetDataTable(sql);
+            DataTable dt1 = GetDataTable2(sql);
             try
             {
                 if (dt1.Rows.Count > 0)
@@ -795,9 +808,9 @@ namespace Saved.Code
             return "";
         }
 
-        public string GetScalarString(string sql, object vCol, bool bLog = true)
+        public string GetScalarString2(string sql, object vCol, bool bLog = true)
         {
-            DataTable dt1 = GetDataTable(sql);
+            DataTable dt1 = GetDataTable2(sql);
             try
             {
                 if (dt1.Rows.Count > 0)
@@ -820,7 +833,7 @@ namespace Saved.Code
             return "";
         }
 
-        public SqlDataReader GetDataReader(string sql)
+        public SqlDataReader GetDataReader2(string sql)
         {
             try
             {

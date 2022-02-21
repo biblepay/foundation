@@ -42,6 +42,9 @@ namespace Saved.Code
 
     public static class WebRPC
     {
+
+       
+
         public static string SendRawTx(string hex)
         {
             try
@@ -119,8 +122,6 @@ namespace Saved.Code
             return nBlocks;
 
         }
-
-        
 
     }
 }

@@ -70,33 +70,17 @@ namespace Saved
                     string sResurrectionPath = Path.Combine(Common.GetFolderUnchained("Temp"), Guid.NewGuid().ToString() + ".dat");
                     FileSplitter.ResurrectFile(sCompleteTempPath, sResurrectionPath);
                     FileInfo fi = new FileInfo(sResurrectionPath);
-                    Log("205");
 
                     long iLen = fi.Length;
                     FileSplitter.RelinquishSpace(sOriginalName);
                     // Make a temp file for the resurrected version here:
                     string sStoreKey = sCPK + "/" + sOriginalName;
-                    // This is File storage
-                    Saved.Code.Uplink.Response r = Uplink.Store3(sOriginalName, sCPK, sResurrectionPath, nDensityLevel);
-                    string sURL = r.Results;
+                    string sURL = "";
+
                     System.IO.File.Delete(sResurrectionPath);
                     if (sURL != "")
                     {
-                        Log("207 " + sURL);
 
-                        Uplink.SidechainTransaction u1 = new Uplink.SidechainTransaction();
-                        u1.nFee = nFee;
-                        u1.TXID = sTXID;
-                        u1.FileName = sStoreKey;
-                        u1.URL = sURL;
-                        u1.nDensity = nDensityLevel;
-                        u1.nDuration = nDuration;
-                        u1.BlockHash = sBlockHash;
-                        u1.CPK = sCPK;
-                        u1.nHeight = nHeight;
-                        u1.nSize = iLen;
-                        u1.Network = sNetwork;
-                        bool fSuccess = Uplink.StoreTransaction(u1);
                         sXML = "<status>1</status><complete>1</complete><url>" + sURL +  "</url><bytes>" + iLen.ToString() + "</bytes>";
                         sXML += "<url0>" + sURL + "</url0>";
                         Response.Write(sXML);

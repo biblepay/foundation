@@ -1,34 +1,13 @@
-﻿using Google.Authenticator;
-using Microsoft.VisualBasic;
-using MimeKit;
-using NBitcoin;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Data;
 using System.Data.SqlClient;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Mail;
-using System.Runtime.InteropServices;
-using System.Security.Authentication;
-using System.Security.Cryptography;
-using System.Security.Principal;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Web;
-using System.Web.SessionState;
 using System.Web.UI;
-using static Saved.Code.PoolCommon;
-using static Saved.Code.WebRPC;
 using static Saved.Code.Common;
 
 namespace Saved.Code
 {
-
-
 
     public static class UICommon
     {
@@ -206,6 +185,8 @@ namespace Saved.Code
             }
             string sCharity = "";
             string sOldDate = "";
+            double nBalance = 0;
+
             for (int i = 0; i < dt.Rows.Count; i++)
             {
                 double dAmt = GetDouble(dt.Rows[i]["Amount"]);
@@ -226,6 +207,7 @@ namespace Saved.Code
                 {
                     nCR += dAmt;
                 }
+                nBalance += dAmt;
 
                 if (sOldDate != dt1 && i > 1)
                 {
@@ -235,13 +217,9 @@ namespace Saved.Code
                 HTML += row;
                 sOldDate = dt1;
             }
-            sql = "update sponsoredOrphan set balance = (Select top 1 Balance from OrphanExpense where SponsoredOrphan.childid=orphanexpense.childid order by added desc)\r\n"
-                + "Select sum(Amount) balance from OrphanExpense where charity='" + sCharity + "' and childid in (select childid from SponsoredOrphan)";
-            double nAmt = gData.GetScalarDouble(sql, "balance");
-
 
             HTML += "<tr><td>&nbsp;</td></tr>";
-            HTML += "<tr><td>BALANCE:<td><td>" + DoFormat(nAmt) + "</tr>";
+            HTML += "<tr><td>BALANCE:<td><td>" + DoFormat(nBalance) + "</tr>";
             HTML += "</body></html>";
             return HTML;
         }
@@ -275,7 +253,7 @@ namespace Saved.Code
 
             string sql = "Select * from Tweet left Join Users on Users.ID = Tweet.UserID left join TweetRead on TweetRead.ParentID=Tweet.ID and TweetRead.UserID = '"
                 + sUserId + "' where tweet.added > getdate()-" + days.ToString() + " order by Tweet.Added desc";
-            DataTable dt = gData.GetDataTable(sql);
+            DataTable dt = gData.GetDataTable2(sql);
             string html = "<table class=saved><tr><th>Read?<th width=20%>User</th><th width=20%>Added<th width=50%>Subject";
             if (fExcludeUser)
             {
@@ -327,9 +305,9 @@ namespace Saved.Code
                     return true;
                 // Now we need a manifest of tweets that have gone out in the last 30 days
                 sql = "Select id from tweet where added > getdate()-2 order by added desc";
-                string TweetID = gData.GetScalarString(sql, "id");
+                string TweetID = gData.GetScalarString2(sql, "id");
                 sql = "Select top 500 * from Users where isnull(emailaddress,'') != '' and Unsubscribe is null and isnull(LastEmail,'1-1-1970') < getdate()-2 and Users.ID not in (Select userid from tweetread where parentid='" + TweetID + "')";
-                DataTable dt1 = gData.GetDataTable(sql);
+                DataTable dt1 = gData.GetDataTable2(sql);
                 MailAddress rTo = new MailAddress("rob@biblepay.org", "BiblePay Team");
                 MailAddress r = new MailAddress("rob@saved.one", "BiblePay Team");
                 MailMessage m = new MailMessage(r, rTo);
@@ -407,45 +385,6 @@ namespace Saved.Code
 
             return pag;
         }
-        public static string GetBioImg(string orphanid)
-        {
-            string sql = "Select BioURL from SponsoredOrphan where orphanid=@orphanid";
-            SqlCommand command = new SqlCommand(sql);
-            command.Parameters.AddWithValue("@orphanid", orphanid);
-            string bio = gData.GetScalarString(command, "URL", false);
-            return bio;
-        }
-        public static string ScrapeImage(string sURL, string sCharity, string sOrphanID)
-        {
-            // First check the database
-            string sImg1 = GetBioImg(sOrphanID);
-            if (sImg1 != "")
-                return sImg1;
-
-            const SslProtocols _Tls12 = (SslProtocols)0x00000C00;
-            const SecurityProtocolType Tls12 = (SecurityProtocolType)_Tls12;
-            ServicePointManager.SecurityProtocol = Tls12;
-            MyWebClient w = new MyWebClient();
-            string sData = "";
-            try
-            {
-                sData = w.DownloadString(sURL);
-            }
-            catch (Exception)
-            {
-
-            }
-            string sImg = ExtractXML(sData, "<img src=\"", "\"").ToString();
-            if (sImg == "")
-                return "";
-            if (sCharity == "kairos" && sImg != "")
-            {
-                sImg = "https://kairoschildrensfund.com/bios/" + sImg;
-            }
-            PersistBioImg(sImg, sOrphanID);
-            return sImg;
-
-        }
 
         public static string GetTd(DataRow dr, string colname, string sAnchor)
         {
@@ -469,6 +408,19 @@ namespace Saved.Code
             item = 0;
 
             string sKeys = gUser(p).TwoFactorAuthorized ? "<li><a href='AccountEdit.aspx'><i class='fa fa-key'></i></a></li>" : "";
+            string sMyBalance = "";
+
+            try
+            {
+                if (gUser(p).LoggedIn)
+                {
+                    double nTotalBalance = DataOps.GetTotalFrom(gUser(p).UserId.ToString(), "Deposit");
+                    sMyBalance = "$ " + ConvertBBPToUSDString(nTotalBalance);
+                }
+            }catch(Exception ex)
+            {
+                Log("Error " + ex.Message);
+            }
 
             string html = "<aside class='main-sidebar' id='mySidenav'>";
             html += "<section class='sidebar'><div class='user-panel' style='z-index: 9000;'>"
@@ -480,7 +432,7 @@ namespace Saved.Code
         + "		<div class='pull-left info'>"
         + "		<p>" + gUser(p).UserName + "</p>"
         + "	</div>"
-        + " <div class='myicons'><ul>" + sKeys + "</ul></div>"
+        + " <div class='myicons'><ul>" + sKeys + "</ul>" + sMyBalance + "</div>"
         + "	<!--<div class='myicons'>"
         + "		<ul><li><a href ='showposts' ><i class='fa fa-comments'></i></a></li>"
         + "	    <li><a href = 'https://forum.biblepay.org/index.php?action=pm' ><i class='fa fa-envelope'></i></a></li>"
@@ -488,19 +440,27 @@ namespace Saved.Code
         + "	</div>"
         + "	<ul class='sidebar-menu'>";
 
+             html += AddMenuOption("Account", "https://forum.biblepay.org/sso.php?source=https://foundation.biblepay.org/Default.aspx;Login.aspx?opt=logout;AccountEdit.aspx;Deposit.aspx;FractionalSanctuaries.aspx",
+                "Log In;Log Out;Account;Deposit/Withdrawal;Fractional Sanctuaries", "fa-unlock-alt");
 
-            html += AddMenuOption("Doctrine", "Guides.aspx;Study.aspx;Illustrations.aspx;Illustrations.aspx?type=wiki;MediaList.aspx;RequestVideo.aspx", "Guides for Christians;Theological Studies;Illustrations/Slides;Wiki Theology;Video Lists & Media;Request a Video", "fa-life-ring");
-            html += AddMenuOption("Community", "Default.aspx;PrayerBlog.aspx;PrayerAdd.aspx;Dashboard.aspx;LandingPage?faucet=1", "Home;Prayer Requests List Blog;Add New Prayer Request;Salvation Dashboard;Faucet", "fa-ambulance");
-            html += AddMenuOption("Orphans", "Report?name=orphantx", 
-                "My Orphan Payments", "fa-child");
-            html += AddMenuOption("Reports", "Accountability.aspx;Viewer.aspx?target=collage;Partners.aspx", "Accountability;Orphan Collage;Partners", "fa-table");
+            html += AddMenuOption("Community", "Default.aspx;https://social.biblepay.org/index.php?link1=memories&pagemode=modeprayerlist;Dashboard.aspx;ProposalAdd;ProposalsList",
+                   "Home;Prayer Requests;Salvation Dashboard;Add Proposal;Proposals List", "fa-ambulance");
+
+            html += AddMenuOption("Doctrine", "https://social.biblepay.org/index.php?link1=memories&pagemode=modetheologicalstudy;https://social.biblepay.org/movies/", 
+                "Theological Studies;Christian Videos", "fa-life-ring");
+
+            html += AddMenuOption("NFTs", "NFTBrowse;NFTList", "NFT Marketplace;My NFTs", "fa-database");
+
+            html += AddMenuOption("Orphans", "NFTOrphans;Viewer.aspx?target=collage", "NFT Orphans;Orphan Collage", "fa-child");
+
             html += AddMenuOption("Pool", "Leaderboard.aspx;GettingStarted.aspx;PoolAbout.aspx;BlockHistory.aspx;Viewer.aspx?target="
                 + System.Web.HttpUtility.UrlEncode("https://minexmr.com/dashboard") + ";MiningCalculator.aspx",
                 "Leaderboard;Getting Started;About;Block History;XMR Inquiry;Mining Calculator", "fa-sitemap");
-            html += AddMenuOption("Account", "https://forum.biblepay.org/sso.php?source=https://foundation.biblepay.org/Default.aspx;Login.aspx?opt=logout;AccountEdit.aspx;Deposit.aspx;Deposit.aspx;FractionalSanctuaries.aspx",
-                "Log In;Log Out;Account;Deposit;Withdrawal;Fractional Sanctuaries", "fa-unlock-alt");
+
+            html += AddMenuOption("Reports", "Accountability.aspx;Partners.aspx", "Accountability;Partners", "fa-table");
             html += AddMenuOption("Tweets", "TweetList;TweetAdd", "Tweet List;Advertise a Tweet", "fa-line-chart");
-            html += AddMenuOption("Admin", "Markup.aspx", "Markup Edit", "fa-wrench");
+
+            // html += AddMenuOption("Admin", "Markup.aspx", "Markup Edit", "fa-wrench");
             html += "</section></aside>";
             return html;
         }

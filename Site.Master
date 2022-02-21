@@ -17,6 +17,7 @@
 	<link rel="stylesheet" type="text/css" href="https://forum.biblepay.org/Themes/default/css/webkit.css" />
     <link rel="stylesheet" type="text/css" id="admin_css" href="https://forum.biblepay.org/Themes/default/css/admin.css" />
     <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
+    <link href='~/Content/jquery-ui.css' rel="stylesheet" type="text/css" />
 
     <title><%: Page.Title %> - <%=Saved.Code.Common.GetLongSiteName(this.Page)%></title>
 
@@ -29,6 +30,25 @@
     <script type='text/javascript' src='https://www.google.com/jsapi'></script>
 
     <script>
+
+        function showModalDialog(title, body, width, height)
+        {
+                $("#divdialog").dialog({
+                    "body": body,
+                    "title": title,
+                    "show": true,
+                    "width": width,
+                    "height": height,
+                    buttons: {
+                        OK: function () { $(this).dialog("close"); }
+                    },
+                });
+            var e = document.getElementById("spandialog");
+            e.innerHTML = body;
+        }
+
+
+
         function afterload() {
             var pageheight = $(".Page").height() + 70;
            
@@ -103,7 +123,19 @@
                
             </Scripts>
         </asp:ScriptManager>
+
+    <script src="Scripts/jquery-ui-112.js"></script>
+    <!-- context menus -->
+    <script src="Scripts/jquery.contextMenu.js"></script>
+    <!-- Toast -->
+    <script src="Scripts/jquery.toast.js"></script>
+
+
         <div class="Page" id="main">
+
+            <div id="divdialog" title="" style="background-color:black;color:white;"><span id="spandialog"></span></div>
+
+
         <!--Above div height is used to calculate the whole page size (so the footer knows the page height)-->
 
         <div class="navbar navbar-inverse navbar-fixed-top" style="z-index:256;">

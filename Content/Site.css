@@ -22,6 +22,18 @@ textarea {
     max-width: 80%;
 }
 
+.button {
+    xbackground-color: maroon; /* Green */
+    xborder: none;
+    xcolor: gold;
+    padding: 8px 14px;
+    xopacity:.50;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 14px;
+    border-radius: 4px;
+}
 
 /* Responsive: Portrait tablets and up */
 @media screen and (min-width: 768px) {
@@ -156,6 +168,10 @@ table.saved td {
     background-color: lime;
     margin: 12px 12px 12px 12px;
     padding: 12px 12px 12px 12px;
+}
+
+table.saved td a:link {
+    color: Maroon;
 }
 
 table.saved {

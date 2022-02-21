@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -46,7 +47,9 @@ namespace PoolService
             try
             {
                 string sql = "Select top 50 * from Rapture where isnull(url,'') <> '' and category = '" + sCategory + "' order by Title";
-                DataTable dt = Saved.Code.Common.gData.GetDataTable(sql);
+                SqlCommand command = new SqlCommand(sql);
+                
+                DataTable dt = Saved.Code.Common.gData.GetDataTable(command);
                 int x = 0;
                 int y = 0;
                 int cols = 3;
@@ -139,94 +142,15 @@ namespace PoolService
 }
 
 
-        public static string Clean(string sTitle)
-        {
-            sTitle = sTitle.Replace("\"", "`");
-            sTitle = sTitle.Replace("&", " and ");
-            sTitle = sTitle.Replace("\r", " ");
-            sTitle = sTitle.Replace("\n", " ... ");
-            return sTitle;
-        }
-        public static void GenerateMediaListXML()
-        {
-        
-            try
-            {
-                //mediaplaygrid.xml = The Rapture drill in CATEGORIES
-                string sql = "Select * from RaptureCategories order by Category";
-                DataTable dt0 = Saved.Code.Common.gData.GetDataTable(sql);
-                for (int k = 0; k < dt0.Rows.Count; k++)
-                {
-                    string sCategory = dt0.Rows[k]["category"].ToString();
 
-                    string xml = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\" ?>\r\n";
-                    xml += "<Content>\r\n";
-
-                    sql = "Select * from Rapture where category = '" + sCategory + "' order by Title";
-                    DataTable dt = Saved.Code.Common.gData.GetDataTable(sql);
-                    
-                    for (int i = 0; i < dt.Rows.Count; i++)
-                    {
-                        string sTitle = Saved.Code.Common.Left(dt.Rows[i]["title"].ToString(), 50);
-
-                        string sNotes = Saved.Code.Common.Left(dt.Rows[i]["notes"].ToString(), 200);
-                        sNotes = Clean(sNotes);
-                        sTitle = Clean(sTitle);
-                        
-                        string sItem = "<item hdposterurl=\"" + dt.Rows[i]["thumbnail"].ToString() + "\" streamformat=\"mp4\" url=\"" + dt.Rows[i]["url"].ToString() + "\" "
-                            + " title=\"" + sTitle + "\" description=\"" + sNotes + "\" />";
-
-                        xml += sItem + "\r\n";
-                    }
-                    xml += "</Content>";
-                    System.IO.File.WriteAllText(sUploads + "list_" + sCategory + ".xml", xml);
-
-                }
-
-            }
-            catch (Exception ex)
-            {
-                Saved.Code.Common.Log("GMLX " + ex.Message);
-            }
-        }
-
-        public static void GenerateMediaPlayGrid()
-        {
-            try
-            {
-                //mediaplaygrid.xml = The Rapture drill in CATEGORIES
-                string sql = "Select * from RaptureCategories order by Category";
-                DataTable dt = Saved.Code.Common.gData.GetDataTable(sql);
-                string xml = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\" ?>\r\n";
-                xml += "<Content>\r\n";
-                int x = 0;
-                int y = 0;
-                for (int i = 0; i < dt.Rows.Count; i++)
-                {
-                    string sItem = "<item hdgridposterurl=\"" + dt.Rows[i]["url"].ToString() + "\" shortdescriptionline1=\"" + dt.Rows[i]["category"].ToString()
-                        + "\" shortdescriptionline2=\"componentVideoList\" x=\"" + x.ToString() + "\" y=\"" + y.ToString() + "\" />";
-                    x++;
-                    if (x == 2)
-                    {
-                        y++;
-                        x = 0;
-                    }
-
-                    xml += sItem + "\r\n";
-                }
-                xml += "</Content>";
-                System.IO.File.WriteAllText(sUploads + "mediaplaygrid.xml", xml);
-            }catch(Exception ex)
-            {
-                Saved.Code.Common.Log("WMPG " + ex.Message);
-            }
-        }
         public static void AddRaptureDrillImages()
         {
             try
             {
                 string sql = "Select distinct category from rapture where category not in (Select category from RaptureCategories where url is not null) order by Category";
-                DataTable dt = Saved.Code.Common.gData.GetDataTable(sql);
+                SqlCommand command = new SqlCommand(sql);
+
+                DataTable dt = Saved.Code.Common.gData.GetDataTable(command);
 
                 for (int i = 0; i < dt.Rows.Count; i++)
                 {
@@ -427,7 +351,9 @@ namespace PoolService
             try
             {
                 string sql = "Select top 10 * from Leads where Advertised is null and verification='deliverable'";
-                DataTable dt = Saved.Code.Common.gData.GetDataTable(sql);
+                SqlCommand command = new SqlCommand(sql);
+
+                DataTable dt = Saved.Code.Common.gData.GetDataTable(command);
                 int nMax = 5;
                 int nSent = 0;
                 if (dt.Rows.Count > 0)
@@ -515,9 +441,7 @@ namespace PoolService
                 }
             }
             file.Close();
-
         }
-
 
         public static void ServiceLoop()
         {
@@ -527,44 +451,14 @@ namespace PoolService
                 i++;
                 if (i % 5 == 0)
                 {
-                    //Saved.Code.Common.AddThumbnails();
+                    Saved.Code.WebServices.AddThumbnails();
                     Console.WriteLine("Done with Thumbs");
-                    // If running locally, run the bbp-campaign 
-
-                    AddRaptureDrillImages();
-                    GenerateMediaListXML();
-                    GenerateMediaPlayGrid();
-                }
-
-
-                string sBBPCampaign = Saved.Code.Common.GetBMSConfigurationKeyValue("BBPCampaign");
-                if (sBBPCampaign == "1")
-                {
-                    // Check 10 new emails
-                    try
-                    {
-                        CleanUpInbox();
-                    }
-                    catch(Exception)
-                    {
-                    }
-                    try
-                    {
-                        MarketingCampaign();
-                    }
-                    catch(Exception)
-                    {
-                    }
-                    // Send 100 emails
-                    SendMarketingEmail2();
                 }
 
                 System.Threading.Thread.Sleep(10000);
                 Console.WriteLine("Working on videos");
-                // NOTE: We have to disable this since "Store2" no longer works
                 Saved.Code.WebServices.ConvertVideos();
                 Console.WriteLine("Done with videos");
-         
             }
         }
     }

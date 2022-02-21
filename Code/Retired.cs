@@ -199,34 +199,30 @@ namespace Saved.Code
             impersonationContext.Undo();
         }
 
-        */
+           
 
-
-
-
-
-        public static void PayRokuMiners()
+        public static void PaykuMiners()
         {
             try
             {
 
-                string sql = "Select count(*) from RokuMiner where Paid > getdate()-1 and userid is not null";
+                string sql = "Select count(*) from Miner where Paid > getdate()-1 and userid is not null";
                 DataTable dt2 = gData.GetDataTable(sql);
                 if (dt2.Rows.Count < 1)
                     return;
 
                 string batchID = Guid.NewGuid().ToString();
 
-                sql = "Update RokuMiner Set BatchID = '" + batchID + "' where userid is not null and updated > getdate()-1";
+                sql = "Update Miner Set BatchID = '" + batchID + "' where userid is not null and updated > getdate()-1";
                 gData.Exec(sql);
-                sql = "Select sum(RAC) r1 from RokuMiner where batchid = '" + batchID + "'";
+                sql = "Select sum(RAC) r1 from Miner where batchid = '" + batchID + "'";
                 double dTotalRAC = gData.GetScalarDouble(sql, "r1");
                 if (dTotalRAC < 1)
                 {
-                    Log("Pay Roku Miners less than 1 rac.");
+                    Log("Pay  Miners less than 1 rac.");
                     return;
                 }
-                sql = "Select * from RokuMiner where batchid = '" + batchID + "' order by rac";
+                sql = "Select * from Miner where batchid = '" + batchID + "' order by rac";
                 DataTable dt1 = gData.GetDataTable(sql);
                 double nTot = 0;
                 for (int i = 0; i < dt1.Rows.Count; i++)
@@ -236,19 +232,21 @@ namespace Saved.Code
                     double nAmt = 100000 * nPct;
                     if (nAmt > 1)
                     {
-                        DataOps.AdjBalance(nAmt, dt1.Rows[i]["UserId"].ToString(), "ROKU Mining " + Math.Round(nPct * 100, 2) + "%, Sanctitude " + nMyRac.ToString());
+                        DataOps.AdjBalance(nAmt, dt1.Rows[i]["UserId"].ToString(), " Mining " + Math.Round(nPct * 100, 2) + "%, Sanctitude " + nMyRac.ToString());
                         nTot += nAmt;
                     }
                 }
-                sql = "Update RokuMiner Set Paid=getdate() where 1=1";
+                sql = "Update Miner Set Paid=getdate() where 1=1";
                 gData.Exec(sql);
-                Log("Paid the roku guys " + nTot.ToString() + "!");
+                Log("Paid the  guys " + nTot.ToString() + "!");
             }
             catch (Exception ex)
             {
-                Log("Error while paying ROKU Miners " + ex.Message);
+                Log("Error while paying  Miners " + ex.Message);
             }
         }
+        */
+
 
     }
 

@@ -1,12 +1,15 @@
 ﻿using NBitcoin;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using static Saved.Code.Common;
+using static Saved.Code.Fastly;
 using static Saved.Code.Utils;
 using static Saved.Code.WebServices;
 
@@ -14,6 +17,57 @@ namespace Saved.Code
 {
     public static class Fastly
     {
+
+        public static KeyType DeriveRokuKeypair(string sHWID)
+        {
+            string sHash = GetSha256HashI(sHWID);
+            KeyType k = DeriveNewKey(sHash);
+            return k;
+        }
+
+        public static string Mid(string data, int nStart, int nLength)
+        {
+            // Ported from VB6, except this version is 0 based (NOT 1 BASED)
+            if (nStart > data.Length)
+            {
+                return "";
+            }
+
+            int nNewLength = nLength;
+            int nEndPos = nLength + nStart;
+            if (nEndPos > data.Length)
+            {
+                nNewLength = data.Length - nStart;
+            }
+            if (nNewLength < 1)
+                return "";
+
+            string sOut = data.Substring(nStart, nNewLength);
+            if (sOut.Length > nLength)
+            {
+                sOut = sOut.Substring(0, nLength);
+            }
+            return sOut;
+        }
+
+
+
+        public struct KeyType
+        {
+            public string PrivKey;
+            public string PubKey;
+        }
+        public static KeyType DeriveNewKey(string sSha)
+        {
+            NBitcoin.Mnemonic m = new NBitcoin.Mnemonic(sSha);
+            ExtKey k = m.DeriveExtKey(null);
+            KeyType k1 = new KeyType();
+            k1.PrivKey = k.PrivateKey.GetWif(Network.BiblepayTest).ToWif().ToString();
+            k1.PubKey = k.ScriptPubKey.GetDestinationAddress(Network.BiblepayTest).ToString();
+            return k1;
+        }
+
+
         public static void SyncFastlyNicknames()
         {
             try
@@ -47,10 +101,8 @@ namespace Saved.Code
                     string sNN = GetEle(sValue, "|", 1);
                     if (sType == "CPK" && sCPK != "" && sNN != "")
                     {
-
                         string sRow = sType + "|" + sCPK + "|" + sNN + "\r\n";
                         data += sRow;
-
                     }
                 }
 
@@ -79,7 +131,7 @@ namespace Saved.Code
             Unchained.WriteToFile(path, json);
         }
 
-
+        /*
         public static void UpdFastlyBalance(string sKey, double nSize, double nCharge)
         {
             string sql = "Update fastlybalance set requests=isnull(requests,0)+1, balance=isnull(balance,0) + "
@@ -89,18 +141,16 @@ namespace Saved.Code
         }
         public static void ProcessFastlyInvoices()
         {
-            /*
              * 1.  For every non-processed item in the request log, loop through it
              * 2. Move unspent utxos into another table
              * 3. Update debit/credit balances
              * 4.  Mark items paid
              * 5.  Delete items from request log that are old
-             */
-
+     
             try
             {
                 string sql = "Select * from FastlyRequestLog where processed is null order by timestamp";
-                DataTable dt = gData.GetDataTable(sql, false);
+                DataTable dt = gData.GetDataTable2(sql, false);
                 for (int i = 0; i < dt.Rows.Count; i++)
                 {
                     string sURL = dt.Rows[i]["url"].ToString();
@@ -179,6 +229,8 @@ namespace Saved.Code
                 Log("ProcessFastlyBalances: " + ex.Message);
             }
         }
+*/
+
 
         public static string SV(string URL)
         {
@@ -281,6 +333,7 @@ namespace Saved.Code
             }
         }
 
+        /*
         public static void ProcessFastly(string sData)
         {
             string sIndData = "";
@@ -342,6 +395,101 @@ namespace Saved.Code
             }
 
         }
+        */
+
+
+
 
     }
-}
+
+
+
+
+    public static class BBPTransaction
+    {
+        public static List<UTXO> ListSpentUTXO = new List<UTXO>();
+
+
+        public struct UTXO
+        {
+            public string Address;
+            public NBitcoin.Money Amount;
+            public NBitcoin.uint256 TXID;
+            public NBitcoin.uint256 SpentToTXID;
+            public int index;
+            public int Height;
+            public int SpentToIndex;
+            public NBitcoin.Money SpentToNewChangeAmount;
+
+        };
+
+        public static string GetChosenSanctuary()
+        {
+            // Mission Critical Todo - Whitelist for business partners; list of sancs from DNS registry (IE some type of DNS like query that returns 5-10 sancs)....
+            string sURL = "http://nft.biblepay.org:19998";
+            return sURL;
+        }
+        
+
+        public static List<UTXO> GetSpecifiedUTXO(string sAddress, NBitcoin.Money nTotalAmount)
+        {
+            List<UTXO> lUTXO = new List<UTXO>();
+
+            try
+            {
+                string sURL = GetChosenSanctuary() + "/rest/getaddressutxos/" + sAddress;
+                MyWebClient w = new MyWebClient();
+                string sData = w.DownloadString(sURL);
+                dynamic oJson = JsonConvert.DeserializeObject<dynamic>(sData);
+                UTXO u = new UTXO();
+                NBitcoin.Money nTotalAdded = 0;
+                foreach (var j in oJson)
+                {
+                    u.index = (int)j["outputIndex"].Value;
+                    u.Amount = new NBitcoin.Money((decimal)j["value"], NBitcoin.MoneyUnit.BTC);
+                    u.TXID = new NBitcoin.uint256((string)j["txid"]);
+                    u.Height = (int)j["height"].Value;
+                    u.Address = j["address"].Value;
+
+                    // Pointers to spent coins
+                    for (int i = 0; i < ListSpentUTXO.Count; i++)
+                    {
+                        UTXO SpentUTXO = ListSpentUTXO[i];
+                        if (SpentUTXO.TXID.ToString() == u.TXID.ToString())
+                        {
+                            bool bAlreadyUsed = false;
+                            for (int k = 0; k < lUTXO.Count; k++)
+                            {
+                                if (lUTXO[k].TXID == SpentUTXO.SpentToTXID)
+                                    bAlreadyUsed = true;
+                            }
+                            if (!bAlreadyUsed)
+                            {
+                                u.TXID = new NBitcoin.uint256(SpentUTXO.SpentToTXID);
+                                u.Amount = SpentUTXO.SpentToNewChangeAmount;
+                                u.index = SpentUTXO.SpentToIndex;
+                            }
+                        }
+                    }
+
+                    // End of spent coins
+                    if (u.Amount > 0)
+                    {
+                        lUTXO.Add(u);
+                        nTotalAdded += u.Amount;
+                        if (nTotalAdded > nTotalAmount)
+                            return lUTXO;
+                    }
+                }
+                return lUTXO;
+
+            }
+            catch (Exception ex)
+            {
+                Log("Error in GetSpecifiedUTXO::" + ex.Message);
+                return lUTXO;
+            }
+        }
+
+      }
+    }
