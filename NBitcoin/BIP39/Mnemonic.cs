@@ -23,6 +23,9 @@ namespace NBitcoin
                 throw new ArgumentNullException("mnemonic");
             this._Mnemonic = mnemonic.Trim();
 
+            if (wordlist == null)
+                return;
+
             if(wordlist == null)
                 wordlist = Wordlist.AutoDetect(mnemonic) ?? Wordlist.English;
 

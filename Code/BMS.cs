@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using static Saved.Code.DataOps;
 using Newtonsoft.Json;
+using System.Security.Authentication;
 
 namespace Saved.Code
 {
@@ -153,8 +154,8 @@ namespace Saved.Code
 
         public static double GetCachedQuote(string ticker, out int age)
         {
-            string sql = "Select updated,Value from System where systemkey='PRICE_" + ticker + "'";
-            DataTable dt = gData.GetDataTable(sql, false);
+            string sql = "Select updated,Value from System where systemkey='PRICE_" + BMS.PurifySQL(ticker ,20) + "'";
+            DataTable dt = gData.GetDataTable2(sql, false);
             if (dt.Rows.Count < 1)
             {
                 age = 0;
@@ -169,10 +170,13 @@ namespace Saved.Code
 
         public static double GetPriceQuote(string ticker, int nAssessmentType = 0)
         {
+            string sData1 = "";
+            double dCachedQuote = 0;
+
             try
             {
                 int age = 0;
-                double dCachedQuote = GetCachedQuote(ticker, out age);
+                dCachedQuote = GetCachedQuote(ticker, out age);
                 if (dCachedQuote > 0 && age < (60 * 60 * 4))
                     return dCachedQuote;
 
@@ -182,27 +186,29 @@ namespace Saved.Code
                 {
                     LeftTicker = vTicker[0];
                 }
-                if (LeftTicker == "XRP" || LeftTicker == "XLM")
+                if (LeftTicker == "XRP" || LeftTicker == "XLM" || LeftTicker == "BCH" || LeftTicker == "ZEC")
                 {
                     string sCoinName = TickerToName(LeftTicker);
+                    
+                    string sKey = GetBMSConfigurationKeyValue("blockchairkey");
 
-                    string sURL1 = "https://api.blockchair.com/" + sCoinName + "/stats";
-                    string sData1 = ExecMVCCommand(sURL1);
+                    string sURL1 = "https://api.blockchair.com/" + sCoinName + "/stats?key=" + sKey;
+
+                    sData1 = ExecMVCCommand(sURL1);
                     dynamic oJson = JsonConvert.DeserializeObject<dynamic>(sData1);
 
                     double nMyValue = oJson["data"]["market_price_btc"].Value ?? 0;
-
 
                     if (nMyValue > 0)
                     {
                         CacheQuote(ticker, nMyValue.ToString("0." + new string('#', 339)));
                     }
-
+                    if (nMyValue == 0)
+                    {
+                        Log("For some reason my quote is very low for " + LeftTicker + ", " + sData1 + ": " + nMyValue.ToString());
+                    }
                     return nMyValue;
-
-
                 }
-
 
                 string sURL = "https://www.southxchange.com/api/price/" + ticker;
                 string sData = "";
@@ -230,12 +236,11 @@ namespace Saved.Code
             }
             catch (Exception ex)
             {
-                Log("Bad Pricing error " + ex.Message);
-                return 0;
+                Log("Bad Pricing error " + ex.Message + " " + sData1);
+                return dCachedQuote;
             }
         }
-
-
+        
         public static string LAST_MANDATORY_VERSION()
         {
             double nVersion = 1507;
@@ -283,6 +288,16 @@ namespace Saved.Code
         public static string LTC_PRICE_QUOTE()
         {
             return RetrieveQuote("LTC/BTC");
+        }
+
+        public static string ZEC_PRICE_QUOTE()
+        {
+            return RetrieveQuote("ZEC/BTC");
+        }
+
+        public static string BCH_PRICE_QUOTE()
+        {
+            return RetrieveQuote("BCH/BTC");
         }
 
         public static string ETH_PRICE_QUOTE()
@@ -419,7 +434,6 @@ namespace Saved.Code
             return sOut;
         }
 
-
         public static double GetWebResourceSize(string url)
         {
             System.Net.WebClient client = new System.Net.WebClient();
@@ -454,7 +468,6 @@ namespace Saved.Code
             SendBinaryFile(response, "kairoschildren.csv", bytes);
         }
 
-        // Todo: Ensure the DashPay Receive Address is correct
         public static string DashPayReceiveAddress = "BMnDFXTo4mwi4QCuYwA6yotSMTvRbaD5QF";
         public struct InstantLock
         {
@@ -587,20 +600,15 @@ namespace Saved.Code
         public static int GetBlockAge(string sTicker)
         {
             NBitcoin.RPC.RPCClient c = GetRPCClient(sTicker);
-
             string sHash = c.GetBestBlockHash().ToString();
             object[] oParams = new object[1];
             oParams[0] = sHash;
             dynamic oOut = c.SendCommand("getblock", oParams);
-
             int utcTime = UnixTimestampHiResolution(DateTime.UtcNow);
             int nBlockTime = oOut.Result["time"];
             double nDifficulty = GetDouble(oOut.Result["difficulty"]);
-
-
             int nElapsed = utcTime - nBlockTime;
             Log(" ticker " + sTicker + " elapsed " + nElapsed.ToString());
-
             if (sTicker == "BBP" && nElapsed > (60 * 60 * 2))
                 return 99999999;
             if (sTicker == "DASH" && nElapsed > (60 * 60 * 1))
@@ -614,8 +622,8 @@ namespace Saved.Code
         
         public static InstantLock GetDbInstantLock(string sTXID)
         {
-            string sql = "Select * from dashpay where bbptxid = '" + sTXID + "'";
-            DataTable dt = gData.GetDataTable(sql);
+            string sql = "Select * from dashpay where bbptxid = '" + BMS.PurifySQL(sTXID,60) + "'";
+            DataTable dt = gData.GetDataTable2(sql);
             InstantLock ix = new InstantLock();
             if (dt.Rows.Count > 0)
             {
@@ -646,10 +654,8 @@ namespace Saved.Code
 
         public static bool CheckDashAddress(string dash)
         {
-
             string sInPath = "c:\\inetpub\\wwwroot\\Saved\\Uploads\\dash2.log";
             System.IO.StreamReader fileIn = new System.IO.StreamReader(sInPath);
-
             string sLine = "";
             int i = 0;
             while ((sLine = fileIn.ReadLine()) != null)
@@ -663,12 +669,10 @@ namespace Saved.Code
             }
             fileIn.Close();
             return false;
-
         }
 
 
-
-public static string CheckReward(HttpRequest Request)
+        public static string CheckReward(HttpRequest Request)
         {
             //std::string sXML = "<non_bbp_pubkey>" + sPubKey + "</non_bbp_pubkey><non_bbp_keytype>" + RoundToString(nKeyType, 0) 
             //+ "</non_bbp_keytype><bbp_pubkey>" + myAddress + "</bbp_pubkey>";
@@ -701,7 +705,6 @@ public static string CheckReward(HttpRequest Request)
                 string sql = "Select count(*) ct from Campaign where ip='" + PurifySQL(sIP2, 50) 
                     + "' or nonbbpaddress='" + PurifySQL(nba, 100) + "' or bbpaddress='" + PurifySQL(bbpa, 100) + "'";
                 double dCt = gData.GetScalarDouble(sql, "ct");
-
                 if (dCt > 0)
                 {
                     nAmount = 0;
@@ -721,7 +724,6 @@ public static string CheckReward(HttpRequest Request)
                         if (rInt == 50)
                             d1 = 1000000;
                     }
-                    //                    double d1 = gData.GetScalarDou
                     if (d1 == 0)
                     {
                         nAmount = 0;
@@ -744,9 +746,7 @@ public static string CheckReward(HttpRequest Request)
             string sResp2 = "<amount>" + nAmount.ToString()
                 + "</amount><outcome>" + sOutcome + "</outcome><narr>" + sNarr + "</narr><EOF></HTML>";
             return sResp2;
-            
         }
-
 
         public static string CheckNewUserReward(HttpRequest Request)
         {
@@ -757,13 +757,11 @@ public static string CheckReward(HttpRequest Request)
             sNarr += "Please consider donating to our Orphan Foundation, by clicking Send Money and checking the Orphan Donation checkbox.  ";
             sNarr += "Also, please join our Forum and let us know you are a new member here " + sForum + ".   ";
             sNarr += "Please see our website at " + sWeb + ".  Finally, if you have any questions please post here " + sEaster + ".  Thank you for using BiblePay and God bless you!";
-
             string sIP = (HttpContext.Current.Request.UserHostAddress ?? "").ToString();
             sIP = sIP.Replace("::ffff:", "");
             string sData = Request.Headers["Action"].ToNonNullString();
             string bbp_reward_address = ExtractXML(sData, "<bbp_pubkey>", "</bbp_pubkey>");
             string email = ExtractXML(sData, "<email>", "</email>");
-
             double nAmount = 0;
             string sOutcome = "";
             string sIP2 = sIP.Replace(".", "-");
@@ -832,7 +830,6 @@ public static string CheckReward(HttpRequest Request)
             string sResp2 = "<amount>" + nAmount.ToString()
                 + "</amount><outcome>" + sOutcome + "</outcome><narr>" + sNarr + "</narr><EOF></HTML>";
             return sResp2;
-
         }
 
         public static string TrackDashPay(HttpRequest Request)
@@ -840,7 +837,7 @@ public static string CheckReward(HttpRequest Request)
             try
             {
                 string sql = "Select * from dashpay where STATUS not in ('COMPLETE','FAILED','SENDING','REFUNDED')";
-                DataTable dt = gData.GetDataTable(sql);
+                DataTable dt = gData.GetDataTable2(sql);
                 for (int i = 0; i < dt.Rows.Count; i++)
                 {
                     string txid = dt.Rows[i]["bbptxid"].ToString();
@@ -945,7 +942,6 @@ public static string CheckReward(HttpRequest Request)
             try
             {
                 InstantLock IX = new InstantLock();
-
                 // Give it up to 60 seconds before we look at it.
                 int nTime = UnixTimestampHiResolution(DateTime.Now);
 
@@ -1132,7 +1128,7 @@ public static string CheckReward(HttpRequest Request)
             }
         }
 
-        public static double GetBalance(string sTicker)
+        public static double GetWalletBalance(string sTicker)
         {
             try
             {
@@ -1194,15 +1190,12 @@ public static string CheckReward(HttpRequest Request)
                         return "<error>Dash Address is invalid.</error></HTML><EOF>\r\n";
                 }
 
-                if (fDiagnostics)
-                    sTXID = "c6da32d83e3880d836f2a992b7545caa4da6d486f8f891948592282936ae1f73";
-
                 //////////////////////////////////////// DRY RUN MODE ////////////////////////////////////////////////
                 if (sTXID == "")
                 {
                     // Dry run mode
                     // Verify the bank account balance in Dash
-                    double nDashBalance = GetBalance("DASH");
+                    double nDashBalance = GetWalletBalance("DASH");
                     if (nDashBalance < dDashAmount)
                     {
                         return "<error>Error 801: Dashpay is down.</error></HTML><EOF>\r\n";
@@ -1359,13 +1352,22 @@ public static string CheckReward(HttpRequest Request)
             return true;
         }
 
-
         private int DEFAULT_TIMEOUT = 30000;
 
         public object FetchObject(string URL)
         {
-            object o = this.DownloadString(URL);
-            return o;
+            try
+            {
+                const SslProtocols _Tls12 = (SslProtocols)0x00000C00;
+                const SecurityProtocolType Tls12 = (SecurityProtocolType)_Tls12;
+                ServicePointManager.SecurityProtocol = Tls12;
+                object o = this.DownloadString(URL);
+                return o;
+            }catch(Exception ex)
+            {
+                Log("FETCH OBJECT: unable " + URL + " " + ex.Message);
+                return "";
+            }
         }
 
         public void SetTimeout(int iTimeout)

@@ -28,6 +28,8 @@ namespace Saved
             if (Debugger.IsAttached)
                 CoerceUser(Session);
 
+            bool fTestNet = false;
+
             if (Session["chkDigital"] == null)
             {
                 // first time
@@ -70,7 +72,7 @@ namespace Saved
 
                 double nOffer = GetDouble(Request.QueryString["amount"] ?? "");
 
-                DACResult d = BuyNFT1(gUser(this).UserId, sID, nOffer, true);
+                DACResult d = BuyNFT1(gUser(this).UserId, sID, nOffer, true, fTestNet);
                 if (d.sError != "")
                 { 
                     MsgBox("NFT Bid Error", d.sError, this);
@@ -88,17 +90,20 @@ namespace Saved
                     MsgBox("NFT Buy Error", "Sorry, you must log in first to buy an NFT.", this);
                 }
 
-                Code.PoolCommon.NFT myNFT = GetSpecificNFT(sID);
+                Code.PoolCommon.NFT myNFT = GetSpecificNFT(sID, fTestNet);
 
-                DACResult d = BuyNFT1(gUser(this).UserId, sID, myNFT.nBuyItNowAmount, false);
+                DACResult d = BuyNFT1(gUser(this).UserId, sID, myNFT.nBuyItNowAmount, false, fTestNet);
+                bool fOrphan = myNFT.Type.ToLower().Contains("orphan");
+
                 if (d.sError != "")
                 {
                     MsgBox("NFT Buy Error", d.sError, this);
                 }
                 else
                 {
-                    MsgBox("Success", "You are now the proud new owner of an NFT.  Please see your biblepaycore home wallet NFT list to find " 
-                        + d.sTXID + ".   Please wait a few blocks for the ownership to be transferred.  ", this);
+                    string sNarr = fOrphan ? "You have successfully sponsored this Orphan!" : "You are now the proud new owner of an NFT.";
+                    MsgBox("Success", sNarr + "<br><br> Please see your biblepaycore home wallet NFT list to find " 
+                        + d.sTXID + ".  <br><br> Please wait a few blocks for the ownership to be transferred.  <br><br>You can also view your NFT <a href='NFTList'>here.</a>", this);
                 }
 
             }

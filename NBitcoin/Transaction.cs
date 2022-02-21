@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+
 using NBitcoin.Crypto;
 using NBitcoin.DataEncoders;
 using NBitcoin.Protocol;
@@ -650,6 +652,13 @@ namespace NBitcoin
         public TxOut()
         {
 
+        }
+        public TxOut(Money value, IDestination destination, string sTxOutMessage)
+        {
+            this.Value = value;
+            byte[] bytes = Encoding.ASCII.GetBytes(sTxOutMessage);
+            this.sTxOutMessage = bytes;
+            if (destination != null) this.ScriptPubKey = destination.ScriptPubKey;
         }
 
         public TxOut(Money value, IDestination destination)

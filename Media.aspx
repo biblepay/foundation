@@ -2,12 +2,7 @@
 
 <asp:Content ID="BodyContent" ContentPlaceHolderID="MainContent" runat="server">
 
-
-
-
     <script>
-
-
 
         function slowPlaySpeed() {
             var vid = document.getElementById("video1");
@@ -39,11 +34,14 @@
 
         var CT = 0;
         var interval = 60000;
-        var starttime = 0;      
+        var starttime = 0;
+
+
         function beacon() {
+            return;
+            /*
             queryString = window.location.search;
             var mediaid = getParameterByName('mediaid');
-
 
             if (mediaid == null)
                 return;
@@ -67,11 +65,9 @@
                 async: false,
                 url: 'Media.aspx' + queryString + '&watching=1'
             });
+            */
 
-
-            
         }
-
 
         window.onload = beacon();
 

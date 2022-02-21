@@ -34,7 +34,7 @@ namespace Saved
         protected string GetLeaderboard()
         {
             string sql = "Select * from Leaderboard order by bbpaddress";
-            DataTable dt = gData.GetDataTable(sql);
+            DataTable dt = gData.GetDataTable2(sql);
             string html = "<table class=saved><tr><th width=20%>BBP Address</th><th>BBP Shares<th>BBP Invalid<th>XMR Shares<th>XMR Charity Shares<th>Efficiency<th>Hash Rate<th>Updated<th>Height</tr>";
             for (int y = 0; y < dt.Rows.Count; y++)
             {
@@ -67,7 +67,7 @@ namespace Saved
             if (nQuizReward == 1)
             {
                 sql = "Select id,reward from Quiz where solved is null";
-                dt = gData.GetDataTable(sql, false);
+                dt = gData.GetDataTable2(sql, false);
                 if (dt.Rows.Count > 0)
                 {
                     string id = dt.Rows[0]["id"].ToString();
@@ -80,9 +80,11 @@ namespace Saved
                 }
             }
 
+
+            /*
             double nVideoReward = GetDouble(GetBMSConfigurationKeyValue("videoreward"));
 
-            if (nVideoReward == 1)
+            if (false)
             {
                 // Offer BBP to people who have 2fa and who haven't watched a video in a while:
                 sql = "Select id, category, notes from Rapture";
@@ -112,6 +114,7 @@ namespace Saved
                     }
                 }
             }
+            */
 
             return html;
         }

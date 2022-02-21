@@ -3,7 +3,8 @@
 <asp:Content ID="BodyContent" ContentPlaceHolderID="MainContent" runat="server">
     <h3>Share Video with the Community</h3>
     
-    From this page, you can paste the URL of a youtube video.
+    From this page, you can paste the URL of a youtube video.  We also support BITCHUTE videos, but please, paste the 'Embed IFRAME URL' (you can get by clicking Embed from the bitchute video).
+
     <br />
     <br />
     

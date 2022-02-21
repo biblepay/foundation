@@ -16,7 +16,7 @@ namespace Saved
         public string GetMediaList()
         {
             string sql = "Select count(id) ct,max(id) id,Category From Rapture group by Category Order by Category";
-            DataTable dt = gData.GetDataTable(sql);
+            DataTable dt = gData.GetDataTable2(sql);
             string html = "<table class=saved><tr><th width=80%>Category</th></tr>";
 
             for (int y = 0; y < dt.Rows.Count; y++)

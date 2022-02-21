@@ -20,6 +20,7 @@ namespace Saved
 
             string sBuy = Request.QueryString["buy"] ?? "";
             string sID = Request.QueryString["id"] ?? "";
+            bool fTestNet = false;
             if (sBuy == "1" && sID.Length > 10)
             {
                 if (!gUser(this).LoggedIn)
@@ -27,9 +28,9 @@ namespace Saved
                     MsgBox("NFT Buy Error", "Sorry, you must log in first to sponsor an NFT.", this);
                 }
 
-                Code.PoolCommon.NFT myNFT = GetSpecificNFT(sID);
+                Code.PoolCommon.NFT myNFT = GetSpecificNFT(sID, fTestNet);
 
-                DACResult d = BuyNFT1(gUser(this).UserId, sID, myNFT.nBuyItNowAmount, false);
+                DACResult d = BuyNFT1(gUser(this).UserId, sID, myNFT.nBuyItNowAmount, false, fTestNet);
                 if (d.sError != "")
                 {
                     MsgBox("NFT Sponsorship Error", d.sError, this);

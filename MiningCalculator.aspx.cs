@@ -55,7 +55,6 @@ namespace Saved
                // txtXMRBlocksFound.Text = nMoneroBlocks.ToString();
             }
             btnCalculate_Click(this, null);
-
         }
 
         string PrintDouble(double n)

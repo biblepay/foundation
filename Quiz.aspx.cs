@@ -216,7 +216,7 @@ namespace Saved
             command = new SqlCommand(sql);
             command.Parameters.AddWithValue("@quizid", Request.QueryString["id"].ToString());
             double nReward = gData.GetScalarDouble(command, "Reward");
-            bool fValid = ValidateBiblepayAddress(txtBBP.Text);
+            bool fValid = ValidateBiblepayAddress(false,txtBBP.Text);
             if (!fValid)
             {
                 MsgBox("Failed", "Sorry, the BiblePay address is not valid.", this);

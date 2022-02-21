@@ -51,12 +51,13 @@ namespace Saved
 
         protected void btnCopy_Click(object sender, EventArgs e)
         {
+            /*
             string sTerm = txtName.Text;
             Data dSource = new Data(Data.SecurityType.REPLICATOR);
             string sql = "Select * from bms..rapture where notes like '%" + sTerm + "%'";
             string  sCategory = sTerm;
 
-            DataTable dt = dSource.GetDataTable(sql);
+            DataTable dt = dSource.GetDataTable2(sql);
             int i = 0;
             for (i = 0; i < dt.Rows.Count; i++)
             {
@@ -67,6 +68,7 @@ namespace Saved
 
             }
             lblStatus.Text = "Updated " + i.ToString() + "rows";
+            */
 
         }
 

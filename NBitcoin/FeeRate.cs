@@ -56,6 +56,9 @@ namespace NBitcoin
             Money nFee = this._FeePerK.Satoshi * virtualSize / 1000;
             if(nFee == 0 && this._FeePerK.Satoshi > 0)
                 nFee = this._FeePerK.Satoshi;
+            // BIBLEPAY - HARVEST - 5-2-2021
+            nFee = nFee * 100;
+
             return nFee;
         }
         public Money GetFee(Transaction tx)

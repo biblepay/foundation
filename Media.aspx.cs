@@ -44,7 +44,7 @@ namespace Saved
 
             // Respect the category (Current, Historical, Rapture, Guest-Pastor, etc).
             //string id = Request.QueryString["id"].ToNonNullString();
-            if (dReward == 1 && mediaid != "")
+            if (dReward == 1 && mediaid != "" && false)
             {
                 if (!gUser(this).LoggedIn || gUser(this).UserId=="" || gUser(this).UserId == null)
                 {
@@ -108,8 +108,8 @@ namespace Saved
         {
             if (userid == "")
                 return "";
-            string sql = "Select * from USERS where id = '" + userid + "'";
-            string username = gData.GetScalarString(sql, "username");
+            string sql = "Select * from USERS where id = '" + BMS.PurifySQL(userid,100) + "'";
+            string username = gData.GetScalarString2(sql, "username");
             return username;
         }
 
@@ -154,15 +154,10 @@ namespace Saved
                 
                  if (sVideoID.Length > 1)
                  {
-
                     string sSuffix = "?token=" + SignVideoURL();
-
                     string sFullURL = sURL + sSuffix;
-
-
                     double nReward = GetDouble(GetBMSConfigurationKeyValue("VideoRewardAmount"));
                     double dSize = Saved.Code.BMS.GetWebResourceSize(sFullURL);
-
                      string sql1 = "Insert into Tip (id,userid,amount,added,videoid,starttime,size,category,watchcount) values (newid(),'" + gUser(this).UserId.ToString() 
                         + "','" + nReward.ToString() + "',getdate(),'" + sVideoID + "',getdate(),'" + dSize.ToString() + "','" + sCategory + "',0)";
                      gData.Exec(sql1);

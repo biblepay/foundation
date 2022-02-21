@@ -39,8 +39,8 @@ namespace Saved
         {
             if (userid == "")
                 return "";
-            string sql = "Select * from USERS where id = '" + userid + "'";
-            string username = gData.GetScalarString(sql, "username");
+            string sql = "Select * from USERS where id = '" + BMS.PurifySQL(userid,100) + "'";
+            string username = gData.GetScalarString2(sql, "username");
             return username;
         }
 

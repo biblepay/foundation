@@ -27,7 +27,7 @@ namespace Saved
             DataTable dt = new DataTable();
             try
             {
-                dt = gData.GetDataTable(sql);
+                dt = gData.GetDataTable2(sql);
             }catch(Exception)
             {
                 MsgBox("Error", "Contact rob@biblepay.org", this);

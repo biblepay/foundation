@@ -28,8 +28,8 @@ namespace Saved
 
             if (dCt == 0)
             {
-                sql = "Select subject from Tweet where id='" + id + "'";
-                string sSubject = gData.GetScalarString(sql, "subject");
+                sql = "Select subject from Tweet where id='" + BMS.PurifySQL(id,50) + "'";
+                string sSubject = gData.GetScalarString2(sql, "subject");
                 DataOps.AdjBalance(1, userid, "Tweet Read [" + sSubject + "]");
             }
 

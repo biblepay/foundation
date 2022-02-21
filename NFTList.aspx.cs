@@ -28,15 +28,15 @@ namespace Saved
 
         protected string GetMyNFTs(Page p)
         {
-            string sql = "Select * from MyNFT Where userid='" + gUser(p).UserId.ToString() + "' order by added";
-            DataTable dt = gData.GetDataTable(sql);
+            string sql = "Select * from MyNFT Where userid='" + BMS.PurifySQL(gUser(p).UserId.ToString(),100) + "' order by added";
+            DataTable dt = gData.GetDataTable2(sql);
             string html = "<table class=saved><tr><th width=20%>Added<th>BBP Address<th>Amount<th>Lo Quality URL<th>Hi Quality URL</tr>";
             for (int y = 0; y < dt.Rows.Count; y++)
             {
                 string bbpaddress = dt.Rows[y]["bbpaddress"].ToString() ?? "";
-                string sLoQualityURL = "<a href='" + dt.Rows[y]["loqualityurl"].ToString() + "'>Low Quality URL</a>";
-                string sHiQualityURL = "<a href='" + dt.Rows[y]["hiqualityurl"].ToString() + "'>Hi Quality URL</a>";
-
+                string sLoQualityURL = "<a target='_blank' href='" + dt.Rows[y]["loqualityurl"].ToString() + "'>Low Quality URL</a>";
+                string sHiQualityURL = "<a target='_blank' href='" + dt.Rows[y]["hiqualityurl"].ToString() + "'>Hi Quality URL</a>";
+                
                 string div = "<tr>"
                     + "<td>" + dt.Rows[y]["added"].ToString()
                     + "<td>" + bbpaddress

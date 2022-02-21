@@ -1,6 +1,8 @@
 ﻿using Google.Authenticator;
 using Microsoft.VisualBasic;
 using MimeKit;
+using MySql.Data.MySqlClient;
+using NBitcoin;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -19,6 +21,7 @@ using System.Web;
 using System.Web.SessionState;
 using System.Web.UI;
 using System.Web.UI.DataVisualization.Charting;
+using static Saved.Code.BBPTransaction;
 using static Saved.Code.PoolCommon;
 
 namespace Saved.Code
@@ -193,7 +196,7 @@ namespace Saved.Code
 
         public static string Withdraw(string sUserId, string toAddress, double nReq, string sNotes)
         {
-            bool fGood = ValidateBiblepayAddress(toAddress);
+            bool fGood = ValidateBiblepayAddress(false,toAddress);
             if (!fGood)
                 return "";
 
@@ -234,7 +237,7 @@ namespace Saved.Code
         public static string GetGlobalAlert(Page p)
         {
             string sql = "Select top 1 * from Tweet where added > getdate()-.5";
-            DataTable dt1 = gData.GetDataTable(sql);
+            DataTable dt1 = gData.GetDataTable2(sql);
             if (dt1.Rows.Count > 0)
             {
                 string sID = dt1.Rows[0]["id"].ToString();
@@ -265,14 +268,23 @@ namespace Saved.Code
             BBP_USD = BBP_BTC * BTC_USD;
         }
 
-        public static double GetBBPAmountDouble(double nUSD)
+        public static double GetBBPAmountDouble(double nUSD, double nSalePercent = 0)
         {
             if (BBP_USD == 0)
                 UpdateBBPPrices();
 
             if (BBP_USD < .000001)
                 return 0;
-            return Math.Round(nUSD / BBP_USD, 2);
+
+            double nAmt = Math.Round(nUSD / BBP_USD, 2);
+            if (nSalePercent > 0)
+            {
+                double nDiscPct = nSalePercent / 100;
+                double nDisc = nDiscPct * nAmt;
+                double nNewAmt = nAmt - nDisc;
+                return nNewAmt;
+            }
+            return nAmt;
         }
 
         public static double GetUSDAmountFromBBP(double nBBPAmount)
@@ -372,8 +384,14 @@ namespace Saved.Code
             }
         }
 
-        public static string DoFormat(double myNumber)
+        public static string DoFormat(double myNumber, double nDiscPct = 0)
         {
+            if (nDiscPct > 0)
+            {
+                double nDiscAmt = myNumber * (nDiscPct / 100);
+                double nNewAmt = myNumber - nDiscAmt;
+                myNumber = nNewAmt;
+            }
             var s = string.Format("{0:0.00}", myNumber);
             return s;
         }
@@ -791,6 +809,7 @@ namespace Saved.Code
             public double Require2FA;
             public string RandomXBBPAddress;
             public string CPKAddress;
+            public string CPKAddressTestNet;
             public string AvatarURL;
             public string UserName;
         }
@@ -971,9 +990,9 @@ namespace Saved.Code
             }
         }
 
-        public static Code.PoolCommon.NFT GetSpecificNFT(string hash)
+        public static Code.PoolCommon.NFT GetSpecificNFT(string hash, bool fTestNet)
         {
-            List<Code.PoolCommon.NFT> n = Saved.Code.PoolCommon.GetNFTList("all");
+            List<Code.PoolCommon.NFT> n = Saved.Code.PoolCommon.GetNFTList("all", fTestNet, "");
             for (int i = 0; i < n.Count; i++)
             {
                 if (n[i].Hash == hash)
@@ -999,7 +1018,7 @@ namespace Saved.Code
             public string sTXID;
         };
 
-        public static DACResult BuyNFT1(string sUserID, string sID, double nOfferPrice, bool fBidOnly)
+        public static DACResult BuyNFT1(string sUserID, string sID, double nOfferPrice, bool fBidOnly, bool fTestNet)
         {
             DACResult d = new DACResult();
             d.sError = "";
@@ -1010,7 +1029,7 @@ namespace Saved.Code
                 return d;
             }
                 
-            Code.PoolCommon.NFT myNFT = GetSpecificNFT(sID);
+            Code.PoolCommon.NFT myNFT = GetSpecificNFT(sID, fTestNet);
             if (!myNFT.found)
             {
                 d.sError = "Sorry, the NFT cannot be found.";
@@ -1023,26 +1042,21 @@ namespace Saved.Code
                 return d;
             }
 
-            double nMyBal = Saved.Code.BMS.GetBalance("BBP");
-            // HARVEST MISSION CRITICAL TODO: FIX THIS ****************************************************** HARVEST ************************************************************************************
-            /*
-            if (false)
-            {
-                if (myNFT.nMinimumBidAmount > nMyBal)
-                {
-                    d.sError = "Sorry, the bid amount requested exceeds your balance.";
-                    return d;
-                }
-            }
-            */
 
-            
             if (nOfferPrice < myNFT.nMinimumBidAmount)
             {
                 d.sError = "Sorry this NFT has a minimum bid price of " + myNFT.nMinimumBidAmount.ToString();
                 return d;
             }
 
+            double nMyBal = DataOps.GetUserBalance(sUserID);
+            if (myNFT.nMinimumBidAmount > nMyBal)
+            {
+                  d.sError = "Sorry, the minimum bid amount for this item [" + myNFT.nMinimumBidAmount.ToString() + "] exceeds your balance.";
+                  return d;
+            }
+            
+            
             if (fBidOnly)
             {
                 double nHighBid = GetHighBid(myNFT.Hash);
@@ -1074,15 +1088,19 @@ namespace Saved.Code
                 return d;
             }
             // BUY
+            if (DataOps.GetUserRecord(sUserID).EmailAddress == "")
+            {
+                d.sError = "Sorry, the bid failed.  You must have an e-mail address populated first in your user record so we can send you the NFT information.  ";
+                return d;
+            }
 
             if (nOfferPrice >= myNFT.nLowestAcceptableAmount && myNFT.fMarketable && !myNFT.fDeleted)
             {
-                string sResult2 = Saved.Code.PoolCommon.BuyNFT(myNFT.Hash, DataOps.GetUserRecord(sUserID).CPKAddress, nOfferPrice);
+                string sResult2 = Saved.Code.PoolCommon.BuyNFT(myNFT.Hash, DataOps.GetUserRecord(sUserID).CPKAddress, nOfferPrice, fTestNet);
                 if (sResult2 == "")
                 {
                     d.sTXID = myNFT.Hash;
                     PoolCommon.listBoughtNFT.Add(myNFT.Hash);
-                    // Harvest mission critical todo: Charge their account for the NFT here, and add the reference to the Pool Description Deposit TxList
                     // This is also the place where we add a copy of the nft into the mynft table:
                     string sql = "Insert into mynft (id, nftid, userid, added, amount, bbpaddress, loqualityurl, hiqualityurl) values "
                         + "(newid(), @nftid, @userid, getdate(), @amount, @bbpaddress, @loqualityurl, @hiqualityurl)";
@@ -1090,20 +1108,99 @@ namespace Saved.Code
                     command.Parameters.AddWithValue("@nftid", myNFT.Hash);
                     command.Parameters.AddWithValue("@userid", DataOps.GetUserRecord(sUserID).UserId);
                     command.Parameters.AddWithValue("@amount", nOfferPrice);
-                    command.Parameters.AddWithValue("@bbpaddress", DataOps.GetUserRecord(sUserID).CPKAddress);
+                    string sBuyerCPK = fTestNet ? DataOps.GetUserRecord(sUserID).CPKAddressTestNet : DataOps.GetUserRecord(sUserID).CPKAddress;
+                    command.Parameters.AddWithValue("@bbpaddress", sBuyerCPK);
                     command.Parameters.AddWithValue("@loqualityurl", myNFT.LoQualityURL);
                     command.Parameters.AddWithValue("@hiqualityurl", myNFT.HiQualityURL);
                     gData.ExecCmd(command, false, false, false);
+                    // At this point we should notify both the buyer and seller
+                    DataOps.AdjBalance(-1 * nOfferPrice, sUserID, "NFT " + myNFT.Hash + " - " + Left(myNFT.Name, 50));
+                    NotifyOfSale(sUserID, myNFT, nOfferPrice, d.sTXID);
                     return d;
                 }
                 else
                 {
-                    d.sError = "Sorry, the purchase failed.  You have not been charged. ";
+                    d.sError = "Sorry, the purchase failed.  You have not been charged.  Exception [" + sResult2 + "]";
                     return d;
                 }
             }
             return d;
         }
+
+        private static void NotifyOfSale(string sUserId, NFT n, double nOfferPrice, string sTXID)
+        {
+            // Harvest mission critical todo: make this the TXID of the transfer
+            MailAddress r = new MailAddress("rob@saved.one", "The BiblePay Team");
+            User u = DataOps.GetUserRecord(sUserId);
+            MailAddress t = new MailAddress(u.EmailAddress, u.UserName);
+            MailAddress bcc = new MailAddress("rob@biblepay.org", "Rob Andrews");
+            MailMessage m = new MailMessage(r, t);
+            m.Bcc.Add(bcc);
+            bool fOrphan = n.Type.ToLower().Contains("orphan");
+            string sNarr = fOrphan ? "sponsored" : "purchased";
+            
+            m.Subject = "You have successfully " + sNarr + " NFT ID " + n.Hash + "!";
+
+            if (fOrphan)
+            {
+                m.Subject += " [orphan]";
+                bool fCameroon = n.LoQualityURL.ToLower().Contains("cameroon");
+                if (fCameroon)
+                {
+                    MailAddress newcc = new MailAddress("todd.justin@cameroonone.org", "Todd Finklestone");
+                    m.CC.Add(newcc);
+                }
+            }
+
+            string sBody = "<br>Dear " + u.UserName + ",<br><br>Congratulations, you " + sNarr + " '" + n.Name + "', '" + n.Hash + "' for " + nOfferPrice.ToString() + " BBP in TXID " + sTXID + "!  <br><br>To view your NFT's "
+                +" please navigate <a href='https://foundation.biblepay.org/NFTList'>here</a>."
+                +"<br><br>Thank you for using Biblepay.  <br><br>Sincerely Yours,<br>The BiblePay Team";
+
+            m.IsBodyHtml = true;
+            m.Body = sBody;
+            SendMail(m);
+        }
+
+        public static void NotifyOfRokuSale(string sDesc, string sToEmail, string sTXID, bool fOrphan, string sLoQualURL, double nPrice)
+        {
+            try
+            {
+                // Harvest mission critical todo: make this the TXID of the transfer
+                MailAddress r = new MailAddress("rob@saved.one", "The BiblePay Team");
+                MailAddress t = new MailAddress(sToEmail, sToEmail);
+                MailAddress bcc = new MailAddress("rob@biblepay.org", "Rob Andrews");
+                MailMessage m = new MailMessage(r, t);
+                m.Bcc.Add(bcc);
+                string sNarr = fOrphan ? "sponsored" : "purchased";
+                m.Subject = "[BIBLEPAY-TV Purchase] You have successfully " + sNarr + " NFT in TXID " + sTXID + "!";
+
+                if (fOrphan)
+                {
+                    m.Subject += " [orphan]";
+                    bool fCameroon = sLoQualURL.ToLower().Contains("cameroon");
+                    if (fCameroon)
+                    {
+                        MailAddress newcc = new MailAddress("todd.justin@cameroonone.org", "Todd Finklestone");
+                        m.CC.Add(newcc);
+                    }
+                }
+
+                string sBody = "<br>Dear " + sToEmail + ",<br><br>Congratulations, you " + sNarr + " '"
+                    + sDesc + "', '" + sTXID
+                    + "' for " + nPrice.ToString() + " BBP in TXID "
+                    + sTXID + "!  <br><br>To view your NFT's "
+                    + " please navigate to My Sponsored Orphans in Biblepay-TV."
+                    + "<br><br>Thank you for using Biblepay.  <br><br>Sincerely Yours,<br>The BiblePay Team";
+
+                m.IsBodyHtml = true;
+                m.Body = sBody;
+                SendMail(m);
+            }catch(Exception ex)
+            {
+                Log("NotifyOfRokuSale::" + ex.Message);
+            }
+        }
+
 
 
         public static bool SessionToBool(HttpSessionState s, string sKey)
@@ -1114,13 +1211,74 @@ namespace Saved.Code
                 return true;
             return false;
         }
+        
+        public static string GetImageFromBio(string sBIO)
+        {
+            string data = BMS.ExecMVCCommand(sBIO);
+            string sImg = ExtractXML(data, "<img", ">").ToString();
+            sImg = sImg.Replace("'", "\"");
+            string sSrc = ExtractXML(sImg, "src=\"", "\"").ToString();
+            sSrc = sSrc.Replace("\"", "");
+            return sSrc;
+        }
+        public static string ListRokuNFTS(string sHWID, bool fMineOnly)
+        {
+            try
+            {
+                string sMyCPK = "";
+
+                if (fMineOnly)
+                {
+                    Code.Fastly.KeyType k = Code.Fastly.DeriveRokuKeypair(sHWID);
+                    sMyCPK = k.PubKey;
+                }
+
+                List<Code.PoolCommon.NFT> n = Saved.Code.PoolCommon.GetNFTList("orphan", true, sMyCPK);
+                string h = "<Content>\r\n";
+                int x = 0;
+                int y = 0;
+
+                for (int i = 0; i < n.Count; i++)
+                {
+                    // Each Orphan should be a div with their picture in it
+                    string sURLLow1 = n[i].LoQualityURL;
+                    string sShort = n[i].Name + "\r\n";
+                    string sPrefix = fMineOnly ? "(Sponsored) " : "";
+                    sShort = sPrefix + Left(n[i].Description, 50).Trim() + "      " + n[i].nBuyItNowAmount.ToString() + " BBP";
+                    string sImg = GetImageFromBio(sURLLow1);
+                    string sAction = fMineOnly ? "ChoiceSeeSponsoredOrphan" : "ChoicePinDialog";
+                    string sPayload = Base64Encode(PoolCommon.SerializeNFT(sHWID, n[i].Hash, "BUY"));
+                    h += "<item hdgridposterurl='" + sImg + "' nftid='" + n[i].Hash + "' shortdescriptionline1='" 
+                        + sShort + "' price='" + n[i].nBuyItNowAmount.ToString() 
+                        + "' TextOverlayUR='" + n[i].CPK + "' shortdescriptionline2='" + sAction + "' TextOverlayBody='"
+                        + sPayload + "' x='" + x.ToString() + "' y='" + y.ToString() + "' />\r\n";
+                    x++;
+                    if (x == 3)
+                    {
+                        x = 0;
+                        y++;
+                    }
+                }
+                h += "</Content>\r\n";
+                Log("Get NFT List" + h);
+                return h;
+            }
+            catch (Exception ex)
+            {
+                Log("WriteRokuDisplayList::" + ex.Message);
+                return "";
+            }
+
+        }
+
 
 
     public static string GetNFTDisplayList(bool fOrphansOnly, Page h)
     {
-
             bool fDigital = SessionToBool(h.Session,"chkDigital");
             bool fTweet = SessionToBool(h.Session,"chkSocial");
+            bool fTestNet = GetDouble(h.Session["ChainTestNet"]) == 1;
+
             string sTypes = "";
             if (fOrphansOnly)
             {
@@ -1131,9 +1289,10 @@ namespace Saved.Code
                 sTypes += fDigital ? "digital," : "";
                 sTypes += fTweet ? "social" : "";
             }
-            List<Code.PoolCommon.NFT> n = Saved.Code.PoolCommon.GetNFTList(sTypes);
+            List<Code.PoolCommon.NFT> n = Saved.Code.PoolCommon.GetNFTList(sTypes, fTestNet, "");
             string sHTML = "<table><tr>";
             int iTD = 0;
+
             int nColsPerRow = 3;
             int nObjsPerPage = 4 * nColsPerRow;
             int nPageNo = (int)GetDouble(h.Request.QueryString["pag"] ?? "");
@@ -1172,9 +1331,13 @@ namespace Saved.Code
                 if (n[i].fMarketable)
                 {
                     string sButtonCaption = fOrphansOnly ? "Sponsor Now" : "Buy it Now";
+                    string sSubCaption = fOrphansOnly ? "Sponsor this Orphan now" : "Purchase this NFT now";
+                    string sBuyItNowPrice = n[i].nBuyItNowAmount.ToString() + " BBP";
 
-                    string sButton = "<input type='button' onclick=\"location.href='NFTBrowse.aspx?buy=1&id=" 
-                        + sID + "'\" id='buy" + sID + "' value='" + sButtonCaption + "' />";
+                    string sPurchaseCaption = "Are you sure you want to " + sSubCaption + " for " + sBuyItNowPrice + "?";
+
+                    string sButton = "<input type='button' onclick=\"     var fConfirm = confirm('" + sPurchaseCaption + "');  if (fConfirm) { location.href='NFTBrowse.aspx?buy=1&id="
+                        + sID + "';   }     \" id='buy" + sID + "' value='" + sButtonCaption + "' />";
 
                     string sPreviewURL = sURLLow + "?id=" + sID;
                     string sPreviewButton = "<input type='button' onclick=\"window.open('" + sPreviewURL + "');\" value='Preview' />";
@@ -1183,9 +1346,8 @@ namespace Saved.Code
                         + "amount you are offering', '0'); location.href='NFTBrowse.aspx?bid=1&id=" 
                         + sID + "&amount='+amt;\" id='bid" + sID + "' value='Make Offer' />";
 
-                    string sBuyItNowPrice = n[i].nBuyItNowAmount.ToString() + " BBP";
                     string sAsset = "<iframe xwidth=95% style='height: 200px;width:300px;' src='" + sURLLow + "'></iframe>";
-                    if (sURLLow.Contains(".gif"))
+                    if (sURLLow.Contains(".gif") || sURLLow.Contains(".jpg") || sURLLow.Contains(".jpeg") || sURLLow.Contains(".png"))
                     {
                         sAsset = "<img style='height:200px;width:300px;' src='" + sURLLow + "'/>";
                     }
@@ -1193,11 +1355,17 @@ namespace Saved.Code
                     {
                         sAsset = "<video xclass='connect-bg' width='300' height='200' style='background-color:black' controls><source src='" + sURLLow + "' xtype='video/mp4' />        </video>";
                     }
+                    string sScrollY = sDesc.Length > 500 ? "overflow-y:scroll;" : "";
+
+                    if (sDesc.Length > 550)
+                    {
+                        //sDesc = Left(sDesc, 550) + " ...";
+                    }
                     //<img style='width:300px;height:250px' src='" + sURL + "'>"
                     string s1 = "<td style='padding:7px;border:1px solid white' cellpadding=7 cellspacing=7>"
                         + "<b>" + sName + "</b><br>" + sAsset
-                        + "<br><div style='height:110px;width:300px;'>"
-                        + sDesc + "</div><br><small><font color=green>" + sBuyItCaption + " " + sBuyItNowPrice;
+                        + "<br><div style='height:150px;width:310px;" + sScrollY + "'><font style='font-size:11px;'>"
+                        + sDesc + "</font></div><br><small><font color=green>" + sBuyItCaption + " " + sBuyItNowPrice;
                     if (!fOrphansOnly)
                     {
                         s1 += "&nbsp;•&nbsp;High Offer: " + nBid.ToString() + " BBP";
@@ -1230,15 +1398,14 @@ namespace Saved.Code
                     double nAge = gData.GetScalarAge(sql, "a");
                     if (nAge > (60 * 60 * 24 * 3))
                     {
-                        sql = "select nftid,bidamount,userid from nftbid  where nftid = '" + sID + "' and bidamount > 0 and bought is null order by bidamount desc";
-                        DataTable dt1 = gData.GetDataTable(sql);
+                        sql = "select nftid,bidamount,userid from nftbid  where nftid = '" + BMS.PurifySQL(sID,20) + "' and bidamount > 0 and bought is null order by bidamount desc";
+                        DataTable dt1 = gData.GetDataTable2(sql);
                         if (dt1.Rows.Count > 0)
                         {
-                            // 4-17-2021
-                            sql = "Update nftbid set bought=getdate() where id='" + dt1.Rows[0]["nftid"].ToString() + "'";
+                            sql = "Update nftbid set bought=getdate() where nftid='" + dt1.Rows[0]["nftid"].ToString() + "'";
                             gData.Exec(sql);
                             Log("Auto buying NFT" + dt1.Rows[0]["nftid"].ToString());
-                            BuyNFT1(dt1.Rows[0]["UserID"].ToString(), dt1.Rows[0]["nftid"].ToString(), GetDouble(dt1.Rows[0]["bidamount"]), false);
+                            BuyNFT1(dt1.Rows[0]["UserID"].ToString(), dt1.Rows[0]["nftid"].ToString(), GetDouble(dt1.Rows[0]["bidamount"]), false, fTestNet);
                         }
                     }
                 }
@@ -1252,7 +1419,6 @@ namespace Saved.Code
             return sHTML;
         }
      
-
         public struct SimpleUTXO
         {
             public string Address;
@@ -1297,50 +1463,40 @@ namespace Saved.Code
             {
                 return "stellar";
             }
-
+            else if (sTicker == "BCH")
+            {
+                return "bitcoin-cash";
+            }
+            else if (sTicker == "ZEC")
+            {
+                return "zcash";
+            }
+            else if (sTicker == "ETH")
+            {
+                return "ethereum";
+            }
             return "";
-
         }
         private static void Persist(SimpleUTXO u)
         {
-            // CRITICAL TODO: STORE REQUEST DATETIME, and we only delete records older than 1 day with a requestdatetime < NNNN.....
-            string sDele = "Delete from Blockchair where added < getdate()-1";
-            gData.Exec(sDele);
-            u.TXID = GetSha256HashI(u.Address + u.Amount.ToString());
-
-            // Mission critical todo : Delete the blockchair data once per day (not once per query)
             DateTime sUTXOTime = UnixTimeStampToDateTime(u.UTXOTxTime);
-            string sql = " IF NOT EXISTS (SELECT TXID FROM BlockChair WHERE txid='"
-                                      + u.TXID + "') BEGIN \r\n INSERT INTO BlockChair (id,ticker,added,amount,queryamount,Address,ordinal,txid,height,account,TotalBalance,utxotxtime,txcount) values (newid(),'" 
-                                      + u.Ticker + "',getdate(),'" + u.Amount.ToString() + "','" 
+            string sql = "Delete from BlockChair where ticker='" + BMS.PurifySQL(u.Ticker, 100) + "' and Address='" + BMS.PurifySQL(u.Address, 255) + "' and TXID='" + BMS.PurifySQL(u.TXID, 300) + "'";
+            sql += "\r\n INSERT INTO BlockChair (id,ticker,added,amount,queryamount,Address,ordinal,txid,height,account,TotalBalance,utxotxtime,txcount) values (newid(),'" 
+                                      + BMS.PurifySQL(u.Ticker, 100) + "',getdate(),'" + u.Amount.ToString() + "','" 
                                       + u.QueryAmount.ToString() + "','" + u.Address.ToString() + "','" + u.Ordinal.ToString() + "','" 
                                       + u.TXID + "','" + u.Height.ToString() + "','" + BMS.PurifySQL(u.Account, 256) + "','" + u.TotalBalance.ToString() 
-                                      + "','" + sUTXOTime.ToString() + "','" + u.TxCount.ToString() + "') END";
+                                      + "','" + sUTXOTime.ToString() + "','" + u.TxCount.ToString() + "') ";
             gData.Exec(sql, false, true);
-            Log(sql);
-
         }
-
-        public static int GetAddressAge(string sAddress, string sTicker)
-        {
-            string sql1 = "Select max(added) added1 from BlockChair where Address='" + sAddress + "' and ticker='" + BMS.PurifySQL(sTicker, 200) + "'";
-            string sDt = gData.GetScalarString(sql1, "added1");
-            TimeSpan vTime = DateTime.Now - Convert.ToDateTime(sDt);
-            int age = (int)vTime.TotalSeconds;
-            return age;
-        }
-
+               
         private static dynamic GetBlockChairData(string sURL)
         {
-            //Allows us to log the request so we can control costs
             string sData = BMS.ExecMVCCommand(sURL);
             dynamic oJson = JsonConvert.DeserializeObject<dynamic>(sData);
-
             string sql = "Insert into BlockChairRequestLog (id,added,URL) values (newid(), getdate(), '" + sURL + "')";
             gData.Exec(sql);
             return oJson;
         }
-
 
         private static SimpleUTXO ConvertDataRowToUTXO(DataRow r)
         {
@@ -1364,7 +1520,7 @@ namespace Saved.Code
             string sql = "Select * from BlockChair where address='" + BMS.PurifySQL(sAddress, 256) + "' and Ticker='" + BMS.PurifySQL(sTicker, 200)
                 + "' and (" + sAmountField + "= '" + nAmount.ToString() + "')";
 
-            DataTable dt = gData.GetDataTable(sql, false);
+            DataTable dt = gData.GetDataTable2(sql, false);
             SimpleUTXO u = new SimpleUTXO();
             if (dt.Rows.Count > 0)
             {
@@ -1372,11 +1528,8 @@ namespace Saved.Code
                 Log("Found " + u.Ticker + " for " + u.Amount.ToString() + " at height " + " " + u.Height.ToString());
                 return u;
             }
-
-            // First test if empty
             string sql2 = "Select * from BlockChair where address='" + BMS.PurifySQL(sAddress, 256) + "' and ticker='" + BMS.PurifySQL(sTicker, 200) + "'";
-            dt = gData.GetDataTable(sql2, false);
-
+            dt = gData.GetDataTable2(sql2, false);
             if (dt.Rows.Count > 0)
             {
                 u.Ticker = dt.Rows[0]["Ticker"].ToString();
@@ -1392,7 +1545,7 @@ namespace Saved.Code
             return u;
         }
 
-        private static string ToNonNull(object o)
+        public static string ToNonNull(object o)
         {
             if (o == null)
                 return "";
@@ -1401,12 +1554,37 @@ namespace Saved.Code
             return o1;
         }
     
-        public static List<SimpleUTXO> QueryUTXOs(string sTicker, string sAddress)
+        public static List<SimpleUTXO> QueryUTXOs(string sTicker, string sAddress, int nTime)
         {
-            QueryUTXO(sTicker, sAddress, 0, 0);
+            string sql1 = "Select max(added) dt1 from blockchair where address='" + BMS.PurifySQL(sAddress, 256) + "' and Ticker='" + BMS.PurifySQL(sTicker, 200) + "'";
+            double nAge = gData.GetScalarAge(sql1, "dt1");
+            bool bRefresh = false;
+            int nElapsed = UnixTimeStamp() - nTime;
+            if (nElapsed > (60 * 60 * 24))
+            {
+                // UTXO is Older
+                if (nAge > 60 * 60 * 24)
+                    bRefresh = true;
+            }
+            else
+            {
+                if (nAge > 60 * 15)
+                    bRefresh = true;
+            }
+
+            if (nTime == 1)
+            {
+                bRefresh = true;
+            }
+
+            if (bRefresh)
+            {
+                CacheEntireUTXO(sTicker, sAddress, 0, nTime);
+            }
+
             string sql = "Select * from BlockChair where address='" + BMS.PurifySQL(sAddress, 256) + "' and Ticker='" + BMS.PurifySQL(sTicker, 200) + "'";
             List<SimpleUTXO> l = new List<SimpleUTXO>();
-            DataTable dt = gData.GetDataTable(sql, false);
+            DataTable dt = gData.GetDataTable2(sql, false);
             SimpleUTXO u = new SimpleUTXO();
             for (int i = 0; i < dt.Rows.Count; i++)
             {
@@ -1418,27 +1596,22 @@ namespace Saved.Code
                 }
             }
             return l;
+                        
+
         }
 
         // Blockchair integration
-        public static SimpleUTXO QueryUTXO(string sTicker, string sAddress, double nAmount, int nUTXOTxTime)
+        public static void CacheEntireUTXO(string sTicker, string sAddress, double nAmount, int nUTXOTxTime)
         {
-            SimpleUTXO u = GetDBUTXO(sTicker, sAddress, nAmount);
-           
-            u.UTXOTxTime = nUTXOTxTime;
-
-            if (u.found)
-                return u;
-
-            /*
-            SimpleUTXO q = GetDBUTXO(sTicker, sAddress, nAmount, true);
-            if (q.found)
+            // We should erase the old records at this point
+            if (sAddress=="" || sAddress.Contains("."))
             {
-                return q;
+                return;
             }
-            */
-
+            int OperationCount = 0;
             string sKey = GetBMSConfigurationKeyValue("blockchairkey");
+            string sDele = "Update BlockChair set ToDelete=1 where ticker='" + BMS.PurifySQL(sTicker,10) + "' and address='" + BMS.PurifySQL(sAddress,256) + "'";
+            gData.Exec(sDele);
 
             try
             {
@@ -1447,12 +1620,9 @@ namespace Saved.Code
                 {
 
                     // With stellar, the user must have one transaction matching the amount(with pin suffix) + balance must be equal to or greater than that stake.
-                    // HARVEST TODO: Loop through "operations", find "amount:", and with a matching receipt, and a greater balance, use the "amount" field.
-
                     sURL = "https://api.blockchair.com/stellar/raw/account/" + sAddress + "?transactions=true&operations=true&key=" + sKey;
                     dynamic oJson = GetBlockChairData(sURL);
                     dynamic oBalances = oJson["data"][sAddress]["account"]["balances"];
-
                     dynamic oOps = oJson["data"][sAddress]["operations"];
                     double nBalance = 0;
                     foreach (var b in oBalances)
@@ -1463,10 +1633,9 @@ namespace Saved.Code
                         }
                     }
 
-
                     foreach (var o in oOps)
                     {
-                        u = new SimpleUTXO();
+                        SimpleUTXO u = new SimpleUTXO();
                         u.Ticker = sTicker;
                         u.Address = sAddress;
                         string sTxType = ToNonNull(o["type"]);
@@ -1476,75 +1645,67 @@ namespace Saved.Code
                             u.Amount = GetDouble(o["amount"].Value);
                             u.TXID = GetSha256HashI(u.Address + u.Amount.ToString());
                             if (u.Amount > 0)
-                                 Persist(u);
-                            if (u.Amount == nAmount && nAmount > 0 && nBalance > nAmount)
-                                return u;
+                            {
+                                Persist(u);
+                                OperationCount++;
+                            }
                         }
                     }
-
                 }
                 else if (sTicker == "XRP")
                 {
                     // With Ripple, the user must have one total matching balance(to the pin) and no extra transactions.
-                    // Ripple toDO: Loop through transactions, count the tx that matches the pin - and verify the amount is greater than the tx and use the tx amount
-
-
                     sURL = "https://api.blockchair.com/ripple/raw/account/" + sAddress + "?transactions=true&key=" + sKey;
                     dynamic oJson = GetBlockChairData(sURL);
-                    dynamic oBalances = oJson["data"][sAddress]["account"]["account_data"];
+                    //                    dynamic oBalances = oJson["data"][sAddress]["account"]["account_data"];
+                    
                     dynamic oTx = oJson["data"][sAddress]["transactions"]["transactions"];
-
-                    double nBalance = GetDouble(oBalances["Balance"].Value) / 1000000;
+                    // double nBalance = GetDouble(oBalances["Balance"].Value) / 1000000;
 
                     int nTxCount = 0;
                     foreach (dynamic oMyTx in oTx)
                     {
+                        SimpleUTXO u = new SimpleUTXO();
+
                         nTxCount++;
                         u = new SimpleUTXO();
                         u.Ticker = sTicker;
                         u.Address = sAddress;
-                        u.Amount = GetDouble(oMyTx["tx"]["Amount"].Value) / 100000000;
+                        u.Amount = GetDouble(oMyTx["tx"]["Amount"].Value) / 1000000;
                         u.TXID = GetSha256HashI(sAddress + u.Amount.ToString());
                         if (u.Amount > 0)
                         {
                             Persist(u);
-                        }
-                        if (u.Amount == nAmount && u.Amount > 0 && nBalance > nAmount)
-                            return u;
-                    }
+                            OperationCount++;
 
+                        }
+                    }
+                    string tDebug = "";
 
                 }
-                else if (sTicker == "DOGE" || sTicker == "BTC" || sTicker == "DASH" || sTicker == "LTC")
+                else if (sTicker == "DOGE" || sTicker == "BTC" || sTicker == "DASH" || sTicker == "LTC" || sTicker == "ZEC" || sTicker == "BCH")
                 {
                     string sTickerName = TickerToName(sTicker);
 
                     sURL = "https://api.blockchair.com/" + sTickerName + "/dashboards/address/" + sAddress + "?key=" + sKey;
                     // https://api.blockchair.com/DOGE/dashboards/address/DJiaxWByoQASvhGPjnY6rxCqJkJxVvU41c
-
                     dynamic oJson = GetBlockChairData(sURL);
-
                     dynamic oBalances = oJson["data"][sAddress]["utxo"];
-                    u.Ticker = sTicker;
-                    u.Address = sAddress;
-
-                    if (oBalances.Count == 0)
-                    {
-                        u.Height = -1;
-                        Persist(u);
-                        return u;
-                    }
                     // http://jsonviewer.stack.hu/
                     foreach (var b in oBalances)
                     {
+                        SimpleUTXO u = new SimpleUTXO();
+                        u.Ticker = sTicker;
+                        u.Address = sAddress;
                         u.Amount = GetDouble(b["value"].Value) / 100000000;
                         u.TXID = b["transaction_hash"].Value;
                         u.Ordinal = (int)GetDouble(b["index"].Value);
+                        // Make unique
+                        u.TXID = b["transaction_hash"].Value + u.Ordinal.ToString();
+
                         u.Height = (int)GetDouble(b["block_id"].Value);
-                     
                         Persist(u);
-                        if (u.Amount == nAmount && nAmount > 0)
-                            return u;
+                        OperationCount++;
                     }
 
                 }
@@ -1556,17 +1717,17 @@ namespace Saved.Code
                     int nTxCount = (int)GetDouble(oJson["data"][sAddress.ToLower()]["address"]["transaction_count"].Value);
                     double nBalance = GetDouble(oBalance["balance"].Value) / 100000000 / 10000000000;
                     dynamic oCalls = oJson["data"][sAddress.ToLower()]["calls"];
+                    int nOrdinal = 0;
                     foreach (dynamic oCall in oCalls)
                     {
-                        u = new SimpleUTXO();
+                        SimpleUTXO u = new SimpleUTXO();
                         u.Ticker = sTicker;
                         u.Address = sAddress;
                         u.Amount = GetDouble(oCall["value"].Value) / 100000000 / 10000000000;
-                        u.TXID = GetSha256HashI(u.Address + u.Amount.ToString());
-
+                        nOrdinal++;
+                        u.TXID = GetSha256HashI(u.Address + u.Amount.ToString() + nOrdinal.ToString());
                         Persist(u);
-                        if (u.Amount == nAmount && nAmount > 0 && nBalance > nAmount)
-                            return u;
+                        OperationCount++;
                     }
                 }
             }
@@ -1577,17 +1738,25 @@ namespace Saved.Code
 
             // If we didnt find it... Persist the missing one...
             // This logic is flawed cause if they are trying to get a new utxo, maybe they will never be able to get it (if it was not sent yet).
-            
-            SimpleUTXO u1 = new SimpleUTXO();
-            u1.Ticker = sTicker;
-            u1.Address = sAddress;
-            // Persist(u1);
-            return u1;
+            string sDele1 = "delete from blockchair where ToDelete=1 and ticker='" + BMS.PurifySQL(sTicker, 10) + "' and address='" + BMS.PurifySQL(sAddress, 256) + "'";
+            gData.Exec(sDele1);
+
+            if (OperationCount == 0)
+            {
+                SimpleUTXO u1 = new SimpleUTXO();
+                u1.Ticker = sTicker;
+                u1.Address = sAddress;
+                u1.Amount = 0;
+                u1.TXID = GetSha256HashI(u1.Address + u1.Amount.ToString());
+                Persist(u1);
+            }
         }
-        
+
+        public static string sTickers = "BTC/USD,DASH/BTC,DOGE/BTC,LTC/BTC,ETH/BTC,XRP/BTC,XLM/BTC,BBP/BTC,ZEC/BTC,BCH/BTC";
+        public static string sWeights = "1,185,130000,185,15,35000,125000,45000000,210,50";
+
         public static string GetChartOfIndex()
         {
-        
             Chart c = new Chart();
             System.Drawing.Color bg = System.Drawing.Color.Black;
             System.Drawing.Color primaryColor = System.Drawing.Color.Blue;
@@ -1595,37 +1764,33 @@ namespace Saved.Code
             c.Width = 1000;
             c.Height = 400;
             string sChartName = "BiblePay Weighted CryptoCurrency Index";
-            string sTickers = "BTC/USD,DASH/BTC,DOGE/BTC,LTC/BTC,ETH/BTC,XRP/BTC,XLM/BTC,BBP/BTC";
             string[] vTickers = sTickers.Split(",");
+            string[] vWeights = sWeights.Split(",");
             c.ChartAreas.Add("ChartArea");
             c.ChartAreas[0].BorderWidth = 1;
-
-            /*
-            for (int k = 0; k < vTickers.Length; k++)
+            bool fUseIndividualCryptos = false;
+            if (fUseIndividualCryptos)
             {
-                string sTheTicker = GE(vTickers[k], "/", 0);
-                Series s = new Series(sTheTicker);
-                s.ChartType = System.Web.UI.DataVisualization.Charting.SeriesChartType.Line;
-                // s.ChartType = System.Web.UI.DataVisualization.Charting.SeriesChartType.StackedArea;
-                s.LabelForeColor = textColor;
-                s.Color = primaryColor;
-                s.BackSecondaryColor = bg;
-                c.Series.Add(s);
+                for (int k = 0; k < vTickers.Length; k++)
+                {
+                    string sTheTicker = GE(vTickers[k], "/", 0);
+                    Series s1 = new Series(sTheTicker);
+                    s1.ChartType = System.Web.UI.DataVisualization.Charting.SeriesChartType.Line;
+                    // s.ChartType = System.Web.UI.DataVisualization.Charting.SeriesChartType.StackedArea;
+                    s1.LabelForeColor = textColor;
+                    s1.Color = primaryColor;
+                    s1.BackSecondaryColor = bg;
+                    c.Series.Add(s1);
+                }
             }
-            */
-
             //Index
             Series s = new Series("Index");
             s.ChartType = System.Web.UI.DataVisualization.Charting.SeriesChartType.Line;
             s.ChartType = System.Web.UI.DataVisualization.Charting.SeriesChartType.StackedArea;
-
             s.LabelForeColor = textColor;
             s.Color = primaryColor;
             s.BackSecondaryColor = bg;
             c.Series.Add(s);
-
-
-
             c.Legends.Add(new System.Web.UI.DataVisualization.Charting.Legend(sChartName));
             c.Legends[sChartName].DockedToChartArea = "ChartArea";
             c.Legends[sChartName].BackColor = bg;
@@ -1634,21 +1799,33 @@ namespace Saved.Code
             for (int i = 0; i < 180; i += 1)
             {
                 DateTime dt = DateTime.Now.AddDays(i * -1);
-                double dTotalIndex = 0;
-                for (int j = 0; j < vTickers.Length; j++)
+                if (fUseIndividualCryptos)
                 {
-                    string sTheTicker = GE(vTickers[j], "/", 0);
-                    string sql = "Select * from QuoteHistory where added='" + dt.ToShortDateString() + "' and ticker='" + sTheTicker + "'";
-                    DataTable dt1 = gData.GetDataTable(sql, false);
-                    if (dt1.Rows.Count > 0)
+                    for (int j = 0; j < vTickers.Length; j++)
                     {
-                        double dA = GetDouble(dt1.Rows[0]["USD"]);
-                        dTotalIndex += dA;
-                    }
+                        string sTheTicker = GE(vTickers[j], "/", 0);
+                        string sql = "Select * from QuoteHistory where added='" + dt.ToShortDateString() + "' and ticker='" + BMS.PurifySQL(sTheTicker,20) + "'";
+                        DataTable dt1 = gData.GetDataTable2(sql, false);
+                        if (dt1.Rows.Count > 0)
+                        {
+                            double dA = GetDouble(dt1.Rows[0]["USD"]);
+                            if (fUseIndividualCryptos)
+                            {
+                                double dWeight = GetDouble(GE(vWeights[j], ",", 0));
+                                double dAdj = dWeight * dA;
+                                c.Series[sTheTicker].Points.AddXY(dt, dAdj);
+                            }
+                        }
 
-                    
+                    }
                 }
-                c.Series["Index"].Points.AddXY(dt, dTotalIndex);
+                string sql1 = "Select * from QuoteHistory where added='" + dt.ToShortDateString() + "' and ticker='IndexValue'";
+                DataTable dt2 = gData.GetDataTable2(sql1, false);
+                if (dt2.Rows.Count > 0)
+                {
+                    double dA = GetDouble(dt2.Rows[0]["USD"]);
+                    c.Series["Index"].Points.AddXY(dt, dA);
+                }
 
             }
 
@@ -1680,9 +1857,12 @@ namespace Saved.Code
             string sql = "Delete from QuoteHistory where ticker='" + ticker + "' and added='" + added + "'\r\nInsert Into QuoteHistory (id,added,ticker,usd,btc) values (newid(),'" 
                 + added + "','" + ticker + "','" + sUSDValue.ToString() + "','" + sBTCValue.ToString() + "')";
             gData.Exec(sql);
+            if (sUSDValue < .01 && ticker != "BBP")
+            {
+                Log("Low quote " + ticker + sUSDValue.ToString() + "," + sBTCValue.ToString());
+            }
         }
         // Once per day we will store the historical quotes, to build the cryptocurrency index chart
-
         public static void StoreQuotes(int offset)
         {
             try
@@ -1694,8 +1874,9 @@ namespace Saved.Code
                     theDate = DateTime.Now.Subtract(TimeSpan.FromDays(offset * -1));
 
                 }
-                string sTickers = "BTC/USD,DASH/BTC,DOGE/BTC,LTC/BTC,ETH/BTC,XRP/BTC,XLM/BTC,BBP/BTC";
                 string[] vTickers = sTickers.Split(",");
+                string[] vWeights = sWeights.Split(",");
+                double dTotalIndex = 0;
                 double nBTCUSD = BMS.RQ("BTC/USD");
                 for (int i = 0; i < vTickers.Length; i++)
                 {
@@ -1704,29 +1885,464 @@ namespace Saved.Code
                     if (vTickers[i] != "BTC/USD")
                     {
                         nUSDValue = nBTCUSD * nQuote;
-                        if (offset < 0)
+                    }
+                    else
+                    {
+                        nUSDValue = nQuote;
+                    }
+                    double dWeight = GetDouble(GE(vWeights[i], ",",0));
+                    dTotalIndex += dWeight * nUSDValue;
+                    string sTicker = GE(vTickers[i], "/", 0);
+                    StoreHistory(sTicker, nUSDValue, nQuote, theDate);
+                }
+                double dIndexValue = dTotalIndex / vTickers.Length;
+                StoreHistory("IndexValue", dIndexValue, dIndexValue, theDate);
+            }
+            catch(Exception ex)
+            {
+                Log("Store Quote History:" + ex.Message);
+            }
+        }
+
+        private static string GetForumURL(double nTopic, double nMsg)
+        {
+            string URL = "https://forum.biblepay.org/index.php?topic=" + nTopic.ToString() + ".msg" + nMsg.ToString() + "#msg" + nMsg.ToString();
+            return URL;
+        }
+
+        private static List<string> GetUnsubscribers()
+        {
+            string sql = "Select EmailAddress  from Users where isnull(UnsubscribeDailyDigest, 0) = 1";
+            List<string> l = new List<string>();
+            DataTable dt = gData.GetDataTable2(sql, false);
+            for (int i = 0; i < dt.Rows.Count; i++)
+            {
+                l.Add(dt.Rows[i]["emailaddress"].ToString());
+            }
+            return l;
+        }
+
+        // Notifications that have not been sent
+        public static bool ForumUnsentNotifications()
+        {
+            try
+            {
+                System.Net.Mail.SmtpClient client = new System.Net.Mail.SmtpClient();
+                client.UseDefaultCredentials = false;
+                client.Credentials = new System.Net.NetworkCredential("1", "2"); // Do not change these values, change the config values.
+                client.Port = 587;
+                client.EnableSsl = true;
+                client.Host = GetBMSConfigurationKeyValue("smtphost");
+                client.DeliveryMethod = SmtpDeliveryMethod.Network;
+                client.UseDefaultCredentials = false;
+                client.Credentials = new NetworkCredential(GetBMSConfigurationKeyValue("smtpuser"), GetBMSConfigurationKeyValue("smtppassword"));
+                // loop through the topics first
+                string sql = "select distinct id_topic from smf_log_notify where sent = 0 order by id_topic";
+                MySqlDataReader dr = MySQLData.GetMySqlDataReader(sql);
+                while (dr.Read())
+                {
+                    double nTopic = GetDouble(dr["id_topic"].ToString());
+                    double nMinPostTime = UnixTimeStamp() - (60 * 60 * 24 * 7);
+                    sql = "select smf_log_notify.id_topic,smf_messages.* from SMF.smf_log_notify inner join smf_messages "
+                    + "   on (smf_messages.id_topic = smf_log_notify.id_topic)    WHERE poster_time > '" + nMinPostTime.ToString() + "'"
+                    + " and smf_log_notify.sent = 0     and smf_log_notify.id_topic = '" + nTopic.ToString() + "'";
+                    // Now we have messages;
+                    string sSubject = "";
+
+                    string html = GetMySQLMessageData(sql, ref sSubject);
+
+                    if (html != "")
+                    {
+                        double nSendCt = 0;
+
+                        MailAddress rTo = new MailAddress("rob@biblepay.org", "BiblePay Team");
+                        MailAddress r = new MailAddress("rob@saved.one", "BiblePay Team");
+                        MailMessage m = new MailMessage(r, rTo);
+                        m.Subject = "Forum.BiblePay.Org - " + sSubject + " - Unread Topic Notifications";
+                        m.IsBodyHtml = true;
+                        string sBody = "<html><br>Dear BiblePay Forum User, <br>Below, please find your BiblePay Unread Topic Notifications Report.  <br><br> This report shows activity on the forum on topics that you subscribed to.  <br><br>";
+                        sBody += html;
+                        sBody += "<br><br><br>To unsubscribe from a topic, please navigate to the topic and then click 'UNNOTIFY'.<br><br><br>God Bless you,<br>The BiblePay Tweet Team";
+                        m.Body = sBody;
+                        // Find the recipients
+
+                        sql = "select smf_members.*, smf_log_notify.id_topic from smf_log_notify inner join smf_members on (smf_members.id_member = smf_log_notify.id_member)"
+                            + " WHERE smf_log_notify.id_topic='" + nTopic.ToString() + "'";
+                        MySqlDataReader dr2 = MySQLData.GetMySqlDataReader(sql);
+                        while (dr2.Read())
                         {
-                            nUSDValue += (offset * -125);
+                            string addr = dr2["email_address"].ToString();
+                            string membername = dr2["member_name"].ToString();
+                            double nMember = GetDouble(dr2["id_member"].ToString());
+                            if (addr != "" && addr != null)
+                            {
+                                MailAddress t = new MailAddress(addr, membername);
+                                m.Bcc.Add(t);
+                                // update this topic as sent
+                                sql = "Update smf_log_notify set sent=1 where id_topic='" + nTopic.ToString() + "' and id_member = '" + nMember.ToString() + "'";
+                                MySQLData.ExecuteNonQuery(sql);
+                                nSendCt++;
+                            }
+                        }
+                        if (nSendCt > 0)
+                        {
+                            client.Send(m);
                         }
 
                     }
                     else
                     {
-                        nUSDValue = nQuote;
-                        if (offset < 0)
-                        {
-                            nQuote += (offset * -.000000123);
-                        }
+                        // update this topic as sent
+                        sql = "Update smf_log_notify set sent=1 where id_topic='" + nTopic.ToString() + "'";
+                        MySQLData.ExecuteNonQuery(sql);
                     }
-                    string sTicker = GE(vTickers[i], "/", 0);
-                    StoreHistory(sTicker, nUSDValue, nQuote, theDate);
 
                 }
+                dr.Close();
+            }
+            catch(Exception ex)
+            {
+                Log("Sendforumunsentnotifications::exception while sending regular notifications " + ex.Message);
+                return false;
+            }
+            Log("Sent forum unsent notifications");
+            return true; 
+        }
+
+        private static string GetMySQLMessageData(string sql, ref string sSubject)
+        {
+            try
+            {
+                MySqlDataReader dr = MySQLData.GetMySqlDataReader(sql);
+                int iAlt = 0;
+                int rows = 0;
+                string html = "<table style='font-family:Arial'><tr><th>Date<th>UserName<th>Subject<th>Message</tr>";
+                while (dr.Read())
+                {
+                    string postTime = UnixTimeStampToDateTime(GetDouble(dr["poster_time"].ToString())).ToShortDateString();
+                    string body = Left(dr["body"].ToString(), 777);
+                    string URL = GetForumURL(GetDouble(dr["id_topic"]), GetDouble(dr["id_msg"].ToString()));
+                    iAlt++;
+                    if (iAlt > 1)
+                        iAlt = 0;
+                    string sBG = iAlt == 0 ? "style='background-color:white;color:blue;'" : "style='background-color:maroon;color:gold;'";
+                    string sAnchor = "<a " + sBG + " href='" + URL + "'>";
+                    string row = "<tr " + sBG + "><td>" + postTime + "<td>" + dr["poster_name"].ToString() + "<td>" + sAnchor + dr["subject"].ToString() + "</a><td>" + sAnchor + body + "</a></tr>";
+                    sSubject = dr["subject"].ToString();
+                    html += row;
+                    rows++;
+                    if (rows > 10)
+                        break;
+                }
+                html += "</table><br>";
+
+                if (rows == 0)
+                    return "";
+                dr.Close();
+                return html;
             }catch(Exception ex)
             {
-                Log("Store Quote History:" + ex.Message);
+                return "";
             }
         }
+
+        // Daily Forum Digest
+        public static bool DailyForumDigest()
+        {
+            try
+            { 
+                string sql6 = "Select Value,Updated from System where SystemKey='DailyForumDigest'";
+                double nLastDigest = gData.GetScalarDouble(sql6, "Value");
+                double nAge = gData.GetScalarAge(sql6, "Updated");
+                if (nAge < (60 * 60 * 24 * 7))
+                {
+                    // too often
+                    return true;
+                }
+                string sql = "SELECT *,poster_time,subject,poster_name,poster_email,body FROM SMF.smf_messages where POSTER_TIME > '" + nLastDigest.ToString() + "' order by poster_time desc LIMIT 25";
+                string sSubject = "";
+                string html = GetMySQLMessageData(sql, ref sSubject);
+                if (html == "")
+                {
+                    return true;
+                }
+                List<string> l = GetUnsubscribers();
+            System.Net.Mail.SmtpClient client = new System.Net.Mail.SmtpClient();
+            client.UseDefaultCredentials = false;
+            client.Credentials = new System.Net.NetworkCredential("1", "2"); // Do not change these values, change the config values.
+            client.Port = 587;
+            client.EnableSsl = true;
+            client.Host = GetBMSConfigurationKeyValue("smtphost");
+            client.DeliveryMethod = SmtpDeliveryMethod.Network;
+            client.UseDefaultCredentials = false;
+            client.Credentials = new NetworkCredential(GetBMSConfigurationKeyValue("smtpuser"), GetBMSConfigurationKeyValue("smtppassword"));
+            MailAddress rTo = new MailAddress("rob@biblepay.org", "BiblePay Team");
+            MailAddress r = new MailAddress("rob@saved.one", "BiblePay Team");
+            MailMessage m = new MailMessage(r, rTo);
+            m.Subject = "Forum.BiblePay.Org Daily Digest";
+            m.IsBodyHtml = true;
+            string sBody = "<html><br>Dear Foundation User, <br>Your BiblePay Forum Daily Digest Report is below.   This report shows activity on the forum occurring since the last report.<br><br>";
+            sBody += html;
+            sBody += "<br><br>To unsubscribe from this transactional e-mail, please edit your account settings <a href=https://foundation.biblepay.org/AccountEdit>here</a> and click Unsubscribe from Daily Digest.<br><br>The BiblePay Tweet Team";
+            m.Body = sBody;
+            // Step 1 Old users
+            double nCt = 0;
+            sql = "select * from smf_members order by total_time_logged_in desc LIMIT 245";
+            MySqlDataReader dr = MySQLData.GetMySqlDataReader(sql);
+            while (dr.Read())
+            {
+                    string addr = dr["email_address"].ToString();
+                    string membername = dr["member_name"].ToString();
+                    if (addr != null && addr != "")
+                    {
+                        MailAddress t = new MailAddress(addr, membername);
+                        if (!l.Contains(addr))
+                        {
+                            m.Bcc.Add(t);
+                            nCt++;
+                        }
+                    }
+                }
+                // Step 2 new users
+                double nMinDR = nLastDigest - (60 * 60 * 24 * 30 * 6);
+                sql = "select * from smf_members where date_registered > '" + nMinDR.ToString() + "' order by date_registered desc LIMIT 200";
+                dr = MySQLData.GetMySqlDataReader(sql);
+                while (dr.Read())
+                {
+                    string addr = dr["email_address"].ToString();
+                    string membername = dr["member_name"].ToString();
+                    MailAddress t = new MailAddress(addr, membername);
+                    if (!l.Contains(addr))
+                    {
+                        m.Bcc.Add(t);
+                        nCt++;
+                    }
+                }
+                // Mark as sent
+                sql6 = "Update System set Value='" + UnixTimeStamp().ToString() + "',updated=getdate() where systemkey = 'DailyForumDigest'";
+                gData.Exec(sql6);
+                client.Send(m);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error in Send email: {0}", e.Message);
+                return false;
+            }
+        }
+
+        public static double QueryAddressBalance(string sAddress)
+        {
+            List<UTXO> lu = GetSpecifiedUTXO(sAddress, new NBitcoin.Money(99999999, NBitcoin.MoneyUnit.BTC));
+            double nAmount = 0;
+            for (int i = 0; i < lu.Count; i++)
+            {
+                nAmount += (double)lu[i].Amount.ToDecimal(NBitcoin.MoneyUnit.BTC);
+            }
+            return nAmount;
+        }
+
+        public static string PushTransaction(string tx)
+        {
+            try
+            {
+                string sURL = GetChosenSanctuary() + "/rest/pushtx/";
+                MyWebClient w = new MyWebClient();
+                byte[] b = Encoding.ASCII.GetBytes(tx);
+                byte[] o = w.UploadData(sURL, b);
+                string s = Encoding.UTF8.GetString(o, 0, o.Length);
+                dynamic oJson = JsonConvert.DeserializeObject<dynamic>(s);
+                string txid = oJson["txid"].ToString();
+                return txid;
+            }
+            catch (WebException exception)
+            {
+                if (exception.Status == WebExceptionStatus.ProtocolError)
+                {
+                    string s = "PushTransaction::ERROR::" + exception.Response.ToString();
+                    Log("PushTransaction::ERROR::" + exception.Response.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                Log("PushTransaction::ERROR" + ex.Message);
+            }
+            return "";
+
+        }
+        public static string GetBurnAddress(bool fProd)
+        {
+            string sBurnAddress = fProd ? "B4T5ciTCkWauSqVAcVKy88ofjcSasUkSYU" : "yLKSrCjLQFsfVgX8RjdctZ797d54atPjnV";
+            return sBurnAddress;
+        }
+
+        public static Money EstFee(double virtualSize)
+        {
+            Money nFee = new NBitcoin.Money((int)(270000 * (virtualSize / 1000)));
+            nFee = nFee * 100;
+            return nFee;
+        }
+
+        public static bool IsProdChain(string sKey)
+        {
+            return sKey.StartsWith("y") ? false : true;
+        }
+
+        public static DACResult CreateFundingTransaction(double nAmount, string sSpendToAddress, string sSpendPrivKey, string sPayload, bool fSendForReal)
+        {
+            DACResult r = new DACResult();
+            r.sError = "";
+            string sBurnAddress = GetBurnAddress(IsProdChain(sSpendToAddress));
+            if (sSpendToAddress == "")
+            {
+                r.sError = "Invalid destination";
+                return r;
+            }
+
+            try
+            {
+                NBitcoin.Money nSpend = new NBitcoin.Money((decimal)nAmount, NBitcoin.MoneyUnit.BTC);
+                NBitcoin.Money nEstTotal = nSpend + new NBitcoin.Money((decimal)100, NBitcoin.MoneyUnit.BTC);
+                NBitcoin.BitcoinSecret scSpendingKey = new NBitcoin.BitcoinSecret(sSpendPrivKey);
+                string sPubKeyDest = scSpendingKey.ScriptPubKey.GetDestinationAddress(Network.BiblepayTest).ToString();
+
+                List<UTXO> lu = GetSpecifiedUTXO(sPubKeyDest, nEstTotal);
+
+                if (lu.Count == 0)
+                {
+                    r.sError = "No UTXOs found.";
+                    return r;
+                }
+                var pkBurnAddress = new NBitcoin.BitcoinPubKeyAddress(sBurnAddress, NBitcoin.Network.BiblepayTest);
+                var pkSpendToAddress = new NBitcoin.BitcoinPubKeyAddress(sSpendToAddress, Network.BiblepayTest);
+
+                NBitcoin.Money nTxFee = new NBitcoin.Money((decimal)1.0, NBitcoin.MoneyUnit.BTC);
+                // Fill out the VIN with enough coins
+                NBitcoin.Transaction sourceFunding = new NBitcoin.Transaction();
+                NBitcoin.Coin[] sourceCoins = new NBitcoin.Coin[lu.Count];
+                int iPos = 0;
+                NBitcoin.Money nVinTotal = 0;
+                foreach (var u in lu)
+                {
+                    NBitcoin.TxOut txout1 = new NBitcoin.TxOut(u.Amount, scSpendingKey.GetAddress(), "");
+                    sourceFunding.Outputs.Add(txout1);
+                    NBitcoin.OutPoint o1 = new NBitcoin.OutPoint(u.TXID, u.index);
+                    sourceCoins[iPos] = new NBitcoin.Coin(o1, txout1);
+                    nVinTotal += u.Amount;
+                    iPos++;
+                }
+
+                var txBuilder = new NBitcoin.TransactionBuilder(NBitcoin.Network.BiblepayTest);
+                txBuilder.AddCoins(sourceCoins);
+                txBuilder.AddKeys(scSpendingKey.PrivateKey);
+                int MAX_ML = 3000;
+                double nReq = Math.Ceiling((double)(sPayload.Length / MAX_ML));
+                // 1541 is the mask for DSQL
+                NBitcoin.Money nSpent = 0;
+                NBitcoin.Money nLgMsgFee = new NBitcoin.Money(1, NBitcoin.MoneyUnit.BTC) + new NBitcoin.Money(1541, NBitcoin.MoneyUnit.Satoshi);
+                // Step 1 - Spend the actual destination amount first
+
+                txBuilder.Send(pkSpendToAddress, nSpend);
+                nSpent += nSpend;
+                for (int i = 0; i <= nReq; i++)
+                {
+                    txBuilder.Send(pkBurnAddress, nLgMsgFee);
+                    nSpent += nLgMsgFee;
+                }
+                if (nSpent > nVinTotal)
+                {
+                    r.sError = "Insufficient funds.";
+                    return r;
+                }
+                txBuilder.SetChange(scSpendingKey.GetAddress());
+                var tx = txBuilder.BuildTransaction(true, NBitcoin.SigHash.All, sPayload);
+                // Now we know the size, so add the actual fee:
+                NBitcoin.Money fees1 = EstFee(tx.GetVirtualSize()) + new NBitcoin.Money((decimal).25, NBitcoin.MoneyUnit.BTC);
+                txBuilder.SendFees(fees1);
+                tx = txBuilder.BuildTransaction(true, NBitcoin.SigHash.All, sPayload);
+
+                int nChangevOut = 0;
+                Money nChangeAmt = 0;
+                for (int i = 0; i < tx.Outputs.Count; i++)
+                {
+                    string sTo = tx.Outputs[i].ScriptPubKey.ToString();
+                    NBitcoin.Money nSpentAmount = tx.Outputs[i].Value;
+
+
+                    if (sTo == scSpendingKey.ScriptPubKey.ToString() && nSpentAmount != nSpend)
+                    {
+                        nChangeAmt = tx.Outputs[i].Value;
+                        nChangevOut = i;
+                    }
+                }
+
+                bool fFullySigned = txBuilder.Verify(tx);
+                string txout = tx.ToHex();
+                if (!fFullySigned)
+                {
+                    r.sError = "Unable to fully sign.";
+                    return r;
+                }
+                if (fSendForReal)
+                {
+                    string txid1 = PushTransaction(txout);
+                    if (txid1 == "")
+                    {
+                        r.sError = "Unable to push.";
+                        return r;
+                    }
+                }
+                r.sTXID = tx.GetHash().ToString();
+                // CRITICAL:  At this point we must mark this pack of utxos as spent, and mark the spent to amount into the new utxo.
+                int uUsed = 0;
+                for (int i = 0; i < lu.Count; i++)
+                {
+                    if (uUsed == 0)
+                    {
+                        UTXO u = lu[i];
+                        u.SpentToTXID = new NBitcoin.uint256(r.sTXID);
+                        u.SpentToIndex = nChangevOut;
+                        u.SpentToNewChangeAmount = nChangeAmt;
+                        ListSpentUTXO.Add(u);
+                        uUsed++;
+                    }
+                    else
+                    {
+                        UTXO u = lu[i];
+                        u.Amount = 0;
+                        u.SpentToTXID = u.TXID;
+                        //u.SpentToIndex = nChangevOut;
+                        u.SpentToNewChangeAmount = 0;
+                        ListSpentUTXO.Add(u);
+                        uUsed++;
+
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                r.sError = ex.Message;
+            }
+            return r;
+        }
+
+        public static double ConvertBBPToUSD(double nBBP)
+        {
+            double dBBPPrice = BMS.GetPriceQuote("BBP/BTC");
+            double dBitcoinUSD = BMS.GetPriceQuote("BTC/USD");
+            double dBBPUSD = dBBPPrice * dBitcoinUSD;
+            double dOut = nBBP * dBBPUSD;
+            return dOut;
+        }
+
+        public static string ConvertBBPToUSDString(double nBBP)
+        {
+            double nDollars = ConvertBBPToUSD(nBBP);
+            string sOut = DoFormat(nDollars);
+            return sOut;
+        }
+
 
 
         public static string FreezerImage(string sURL)
@@ -1734,7 +2350,7 @@ namespace Saved.Code
             try
             {
                 string sql = "Select * from cache where thekey='" + BMS.PurifySQL(sURL, 999) + "'";
-                string sTheValue = gData.GetScalarString(sql, "thevalue");
+                string sTheValue = gData.GetScalarString2(sql, "thevalue");
                 if (sTheValue != "")
                 {
                     return sTheValue;
@@ -1767,6 +2383,17 @@ namespace Saved.Code
                 Log("FreezerImage Error:: " + ex.Message);
                 return sURL;
             }
+        }
+
+        public static void MsgModal(Page p, string sTitle, string sNarrative, int nWidth, int nHeight)
+        {
+            string sJavascript = "showModalDialog(\"" + sTitle + "\",\"" + sNarrative + "\", " + nWidth.ToString() + ", " + nHeight.ToString() + ");";
+            p.ClientScript.RegisterStartupScript(p.GetType(), "modalid1" + Guid.NewGuid().ToString(), sJavascript, true);
+        }
+        public static bool IsTestNet(Page p)
+        {
+            bool fTestNet = GetDouble(p.Session["ChainTestNet"]) == 1;
+            return fTestNet;
         }
 
     }

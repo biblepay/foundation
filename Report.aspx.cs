@@ -27,23 +27,7 @@ namespace Saved
             }
 
             string sName = Request.QueryString["Name"] ?? "";
-            if (sName == "myorphans")
-            {
-                Session["ReportSQL"] = "select ID,ChildID as [Child ID],Charity,URL,Added,MonthlyAmount as [Monthly Amount],MatchPercentage as [Match Percentage],"
-                    + "LastPaymentDate as [Last Payment Date] from sponsoredOrphan where userid='" + gUser(this).UserId + "'";
-                Session["ReportColumns"] = "Child ID,Charity,URL,Added,Monthly Amount,Match Percentage,Last Payment Date";
-                Session["ReportName"] = "My Sponsored Orphans Report";
-            }
-            else if (sName == "orphantx")
-            {
-                Session["ReportSQL"] = "select sponsoredorphan.ChildID as [Child ID],Charity,URL,Notes,Amount,Updated as [Payment Date]"
-                    + " from sponsoredOrphan "
-                    + " inner join sponsoredorphanPayments on Sponsoredorphanpayments.childid = sponsoredorphan.childid "
-                    + " where sponsoredorphan.userid='" + gUser(this).UserId + "' order by Updated desc "; 
-                Session["ReportColumns"] = "Child ID,Charity,URL,Notes,Amount,Payment Date";
-                Session["ReportName"] = "My Sponsored Orphan(s) Payment Report";
-            }
-            else if (sName == "deposithistory")
+            if (sName == "deposithistory")
             {
                 Session["ReportSQL"] = "Select * from DEPOSIT where Userid='" + gUser(this).UserId + "' and AMOUNT is not NULL order by Added desc";
                 Session["ReportColumns"] = "Notes,TXID,Added,Amount,Height";
@@ -81,7 +65,7 @@ namespace Saved
         {
             string sql = Session["ReportSQL"].ToNonNullString();
             string sName = Request.QueryString["Name"] ?? "";
-            DataTable dt = gData.GetDataTable(sql);
+            DataTable dt = gData.GetDataTable2(sql);
             string sCols = Session["ReportColumns"].ToNonNullString();
             string[] vCols = sCols.Split(",");
             string sHTML = "<table class=saved>";

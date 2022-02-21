@@ -28,28 +28,25 @@ namespace Saved
                 try
                 {
                     dAmt = gData.GetScalarDouble(sql, "MonthlyAmount");
-                }catch(Exception)
+                }
+                catch(Exception)
                 {
                     MsgBox("Error", "Please contact rob@biblepay.org for more information", this);
                     return;
                 }
-                string sChildID = gData.GetScalarString(sql, "childid");
-                string sName = gData.GetScalarString(sql, "name");
-
+                string sChildID = gData.GetScalarString2(sql, "childid");
+                string sName = gData.GetScalarString2(sql, "name");
                 if (dAmt == 0)
                 {
                     MsgBox("Orphan does not exist", "Sorry, this orphan no longer exists. ", this);
                     return;
                 }
-
                 if (!gUser(this).LoggedIn)
                 {
                     MsgBox("Not Logged In", "Sorry, you must be logged in first.", this);
                     return;
                 }
-
                 double dUserBalance = GetDouble(DataOps.GetUserBalance(this));
-                
                 UpdateBBPPrices();
                 double dMonthly = GetBBPAmountDouble(dAmt);
                 if (dUserBalance < dMonthly)
@@ -62,17 +59,12 @@ namespace Saved
                 SqlCommand command = new SqlCommand(sql1);
                 command.Parameters.AddWithValue("@userid", gUser(this).UserId.ToString());
                 gData.ExecCmd(command);
-                //IncrementAmountByFloat("SponsoredOrphanPayments", dMonthly, gUser(this).UserId);
                 string sNotes = "Initial Sponsorship";
                 sql1 = "Insert into SponsoredOrphanPayments (id,childid,amount,added,userid,updated,notes) values (newid(),'" 
                     + sChildID + "','" + dMonthly.ToString() + "',getdate(),'" + gUser(this).UserId.ToString() + "',getdate(),'" + sNotes + "')";
                 gData.Exec(sql1);
-
-
                 DataOps.AdjBalance(-1 * dMonthly, gUser(this).UserId.ToString(), "Sponsor Payment " + sChildID);
-
                 MsgBox("Success", "Thank you for sponsoring " + sName + "!  You are bearing Christian Fruit and fulfilling James 1:27.  <br><br>Starting in 30 days, we will deduct the sponsorship amount automatically each month.  ", this);
-
                 return;
             }
         }
@@ -93,7 +85,7 @@ namespace Saved
         {
             UpdateBBPPrices();
             string sql = "Select * from SponsoredOrphan where UserID is null and matchpercentage > .01 order by MatchPercentage desc";
-            DataTable dt = gData.GetDataTable(sql);
+            DataTable dt = gData.GetDataTable2(sql);
             string html = "<table class=saved><tr><th>Child ID</th><th>Child Name<th>Added<th>Cost per Month<th>Rebate % Available<th>Monthly Rebate Amount<th>Net Due per Month<th>Net Due in USD<th>About this Charity<th>Sponsor Now</tr>";
 
             for (int y = 0; y < dt.Rows.Count; y++)
@@ -108,12 +100,11 @@ namespace Saved
                 string sID = dt.Rows[y]["id"].ToString();
                 string sSponsorLink = "SponsorOrphanList?action=sponsornow&id=" + sID;
 
-
                 string sSponsorAnchor = "<div><a href=\"" + sSponsorLink + "\"><input type='button' id='btnsponsornow' submit='true' value='Sponsor Me' style='width:140px' /></a></div>";
 
                 string sCharityName = dt.Rows[y]["Charity"].ToString();
 
-                string sAboutCharityLink = "<a target='_blank' href='" + s.Props.AboutCharity + "'>" + sCharityName + "</a>";
+                string sAboutCharityLink = "<a target='_blank' href='" + "'>" + sCharityName + "</a>";
 
                 string a1 = "<tr><td>" + s.Props.ChildID + "<td>" + sAnchor + "<td>" 
                     + (s.Props.Added).ToString() + "<td>" 

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Web;
 using System.Web.UI;
@@ -22,26 +23,36 @@ namespace Saved
             Guide = Request.QueryString["name"];
             StepNo = Convert.ToInt32(Request.QueryString["stepno"]);
         }
+
+        DataTable GetDataTableMarkup(string sName, int nStep)
+        {
+            string sql = "Select * From MARKUP where name=@name and stepno=@stepno";
+            SqlCommand command1 = new SqlCommand(sql);
+
+            command1.Parameters.AddWithValue("@name", sName);
+            command1.Parameters.AddWithValue("@stepno", nStep);
+            DataTable dt = gData.GetDataTable(command1, false);
+            return dt;
+        }
         protected void Page_Load(object sender, EventArgs e)
         {
             LQS();
             if (StepNo < 1)
                 StepNo = 1;
 
-            string sql = "Select * from Markup where name='" + Guide + "' and stepno='" + StepNo.ToString() + "'";
-            DataRow dr = gData.GetScalarRow(sql);
-            if (dr != null)
+
+            DataTable dt = GetDataTableMarkup(Guide, StepNo);
+            if (dt.Rows.Count > 0)
             {
-                Title1 = dr["title"].ToString();
-                Body = dr["body"].ToString();
+                Title1 = dt.Rows[0]["title"].ToString();
+                Body = dt.Rows[0]["body"].ToString();
             }
             if (StepNo == 1)
                 btnPrevious.Visible = false;
-            sql = "Select count(*) ct from Markup where name='" + Guide + "' and stepno='" + (StepNo + 1).ToString() + "'";
-            double dCt = gData.GetScalarDouble(sql, "ct");
-            if (dCt == 0)
-                btnNext.Visible = false;
 
+            dt = GetDataTableMarkup(Guide, StepNo + 1);
+            if (dt.Rows.Count < 1)
+                btnNext.Visible = false;
         }
         
         public string GetNextUrl()

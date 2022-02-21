@@ -1091,6 +1091,35 @@ namespace NBitcoin
         /// <param name="sign">True if signs all inputs with the available keys</param>
         /// <returns>The transaction</returns>
         /// <exception cref="NBitcoin.NotEnoughFundsException">Not enough funds are available</exception>
+        /// 
+
+
+        public static string Mid(string data, int nStart, int nLength)
+        {
+            // Ported from VB6, except this version is 0 based (NOT 1 BASED)
+            if (nStart > data.Length)
+            {
+                return "";
+            }
+
+            int nNewLength = nLength;
+            int nEndPos = nLength + nStart;
+            if (nEndPos > data.Length)
+            {
+                nNewLength = data.Length - nStart;
+            }
+            if (nNewLength < 1)
+                return "";
+
+            string sOut = data.Substring(nStart, nNewLength);
+            if (sOut.Length > nLength)
+            {
+                sOut = sOut.Substring(0, nLength);
+            }
+            return sOut;
+        }
+
+
         public Transaction BuildTransaction(bool sign)
         {
             return BuildTransaction(sign, SigHash.All);
@@ -1103,7 +1132,11 @@ namespace NBitcoin
         /// <param name="sigHash">The type of signature</param>
         /// <returns>The transaction</returns>
         /// <exception cref="NBitcoin.NotEnoughFundsException">Not enough funds are available</exception>
-        public Transaction BuildTransaction(bool sign, SigHash sigHash)
+        /// 
+
+        public static int MAX_TXOUTMESSAGE = 3000;
+
+        public Transaction BuildTransaction(bool sign, SigHash sigHash, string sTxOutMessage = null)
         {
             var ctx = new TransactionBuildingContext(this);
 
@@ -1144,10 +1177,38 @@ namespace NBitcoin
                 BuildTransaction(ctx, group, group.Builders, group.Coins.Values.OfType<Coin>().Where(IsEconomical), Money.Zero);
             }
 
+
+            if (sTxOutMessage != null)
+            {
+                // R Andrews - BIBLEPAY - Spread the txoutmessage across many outputs.  
+                if (sTxOutMessage.Length <= MAX_TXOUTMESSAGE)
+                {
+                    byte[] bytes = Encoding.ASCII.GetBytes(sTxOutMessage);
+                    ctx.Transaction.Outputs[0].sTxOutMessage = bytes;
+                }
+                else
+                {
+                    double nReq0 = sTxOutMessage.Length / MAX_TXOUTMESSAGE;
+                    double nReq = Math.Ceiling(nReq0);
+                    if (ctx.Transaction.Outputs.Count >= nReq)
+                    {
+                        for (int iReq = 0; iReq <= nReq && iReq < ctx.Transaction.Outputs.Count; iReq++)
+                        {
+                            int nPointer = iReq * MAX_TXOUTMESSAGE;
+                            if (nPointer < sTxOutMessage.Length)
+                            {
+                                string sChunk = Mid(sTxOutMessage, nPointer, MAX_TXOUTMESSAGE);
+                                byte[] bytes = Encoding.ASCII.GetBytes(sChunk);
+                                ctx.Transaction.Outputs[iReq].sTxOutMessage = bytes;
+                            }
+                        }
+                    }
+                }
+            }
+
+
             for (int i = 0; i < ctx.Transaction.Outputs.Count; i++)
             {
-
-
                 if (ctx.Transaction.Outputs[i].sTxOutMessage == null)
                 {
                     ctx.Transaction.Outputs[i].sTxOutMessage = new byte[1];

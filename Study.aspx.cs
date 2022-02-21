@@ -14,7 +14,7 @@ namespace Saved
         public string GetArticles()
         {
             string sql = "Select * from Articles order by Description";
-            DataTable dt = gData.GetDataTable(sql);
+            DataTable dt = gData.GetDataTable2(sql);
             string html = "";
             for (int i = 0; i < dt.Rows.Count; i++)
             {

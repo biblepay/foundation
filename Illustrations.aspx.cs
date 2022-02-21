@@ -22,7 +22,7 @@ namespace Saved
             string prefix = "";
             string table = type == "wiki" ? "wiki" : "illustrations";
             string sql = "Select * from " + table + " order by Name,Description";
-            DataTable dt = gData.GetDataTable(sql);
+            DataTable dt = gData.GetDataTable2(sql);
             string html = "";
             for (int i = 0; i < dt.Rows.Count; i++)
             {

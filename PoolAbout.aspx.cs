@@ -23,12 +23,13 @@ namespace Saved
             string tr = "<TR><TD width='55%'>" + key + ":</TD><TD>" + value + "</TD></TR>\r\n";
             return tr;
         }
+
         public string GetImgSource()
         {
             try
             {
                 string sql = "Select * from Bio";
-                DataTable dt = gData.GetDataTable(sql, false);
+                DataTable dt = gData.GetDataTable2(sql, false);
                 int nHour = (DateTime.Now.Hour+DateTime.Now.DayOfYear) % dt.Rows.Count;
                 string url = dt.Rows[nHour]["URL"].ToString();
                 return url;
@@ -38,6 +39,7 @@ namespace Saved
                 return "https://i.ibb.co/W691XWC/Screen-Shot-2019-12-12-at-16-01-29.png";
             }
         }
+
 
         public string GetPoolAboutMetrics()
         {
