@@ -38,6 +38,13 @@ namespace Saved.Code
         }
         public bool SubmitBiblePayShare(string socketid)
         {
+
+            if (_pool._template.height < 277000)
+            {
+                //Chain is still syncing...
+                return false;
+            }
+
             try
             {
                 XMRJob x = RetrieveXMRJob(socketid);
@@ -79,7 +86,7 @@ namespace Saved.Code
                         command.Parameters.AddWithValue("@height", _pool._template.height);
                         gData.ExecCmd(command, false, false, false);
                         Log("SUBMIT_SUCCESS: Success for nonce " + x.nonce + " at height " 
-                            + _pool._template.height.ToString() + " hex " + hex);
+                            + _pool._template.height.ToString() + " hex " + hex, true);
                     }
                     else
                     {
@@ -143,7 +150,26 @@ namespace Saved.Code
             }
         }
 
+        private static double ConvertTargetToDifficulty(XMRJob x)
+        {
+            string sDiff = "000000" + x.target + "0000000000000000000000000000000000000000000000000000000000000000";
+            sDiff = sDiff.Substring(0, 64);
+            System.Numerics.BigInteger biDiff = new System.Numerics.BigInteger(PoolCommon.StringToByteArr(sDiff));
+            System.Numerics.BigInteger biMin = new System.Numerics.BigInteger(PoolCommon.StringToByteArr("0x00000000FFFF0000000000000000000000000000000000000000000000000000"));
+            System.Numerics.BigInteger bidiff = System.Numerics.BigInteger.Divide(biMin, biDiff);
+            double nDiff = GetDouble(bidiff.ToString());
+            return nDiff;
+        }
 
+        private static double WeightAdjustedShare(XMRJob x)
+        {
+            if (x.difficulty <= 0)
+                return 0;
+            double nAdj = x.difficulty / 256000;
+            return nAdj;
+        }
+
+        private static int nDebugCount = 0;
         private void minerXMRThread(Socket client, TcpClient t, string socketid)
         {
             bool fCharity = false;
@@ -155,8 +181,8 @@ namespace Saved.Code
 
             try
             {
-                client.ReceiveTimeout = 7777;
-                client.SendTimeout = 5000;
+                client.ReceiveTimeout = 4777;
+                client.SendTimeout = 3000;
 
                 while (true)
                 {
@@ -330,8 +356,8 @@ namespace Saved.Code
 
                     try
                     {
-                        t.ReceiveTimeout = 4777;
-                        t.SendTimeout = 5000;
+                        t.ReceiveTimeout = 5777;
+                        t.SendTimeout = 4777;
                         nTrace = 19;
                         bytesIn = stmIn.Read(bIn, 0, 127999);
                         if (bytesIn > 0)
@@ -359,6 +385,9 @@ namespace Saved.Code
                                         x.blob = oStratum["result"]["job"]["blob"].ToString();
                                         x.target = oStratum["result"]["job"]["target"].ToString();
                                         x.seed = oStratum["result"]["job"]["seed_hash"].ToString();
+                                        x.difficulty = ConvertTargetToDifficulty(x);
+
+
                                         /*
                                         if (false)
                                             Log("blob " + sJson, true);
@@ -370,7 +399,14 @@ namespace Saved.Code
                                         // They solved an XMR
                                         int iCharity = fCharity ? 1 : 0;
                                         nTrace = 24;
-                                        PoolCommon.InsShare(bbpaddress, 1, 0, _pool._template.height, 1, iCharity, moneroaddress);
+                                        // Weight adjusted share
+                                        XMRJob x = RetrieveXMRJob(socketid);
+                                        double nShareAdj = WeightAdjustedShare(x);
+                                        nDebugCount++;
+                                        System.Diagnostics.Debug.WriteLine("solved " + nDebugCount.ToString());
+
+
+                                        PoolCommon.InsShare(bbpaddress, nShareAdj, 0, _pool._template.height, nShareAdj, iCharity, moneroaddress);
                                     }
                                     else if (id > 1 && status != "OK" && status != "KEEPALIVED")
                                     {
@@ -396,6 +432,7 @@ namespace Saved.Code
                                     nTrace = 27.5;
                                     x.seed = oStratum["params"]["seed_hash"].ToString();
                                     nTrace = 27.6;
+                                    x.difficulty = ConvertTargetToDifficulty(x);
                                     /*
                                     if (false)
                                         Log("newjob " + x.socketid + "  " + sJson, true);

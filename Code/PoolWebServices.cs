@@ -62,87 +62,6 @@ namespace Saved.Code
             }
         }
 
-        public static void PayMonthlyOrphanSponsorships()
-        {
-
-            try
-            {
-                UpdateBBPPrices();
-
-                string sql = "select * from SponsoredOrphan where userid is not null and lastpaymentdate < getdate()-30";
-                DataTable dt1 = gData.GetDataTable(sql);
-                for (int i = 0; i < dt1.Rows.Count; i++)
-                {
-                    string userid = dt1.Rows[i]["userid"].ToString();
-                    double dAmtGross = GetDouble(dt1.Rows[i]["MonthlyAmount"]);
-                    double dMatchPct = GetDouble(dt1.Rows[i]["matchpercentage"]);
-                    double dMatchAmt = dAmtGross * dMatchPct;
-                    double dAmt = Math.Round(dAmtGross - dMatchAmt, 2);
-                    double dBalance = DataOps.GetUserBalance(userid);
-                    double dMonthly = GetBBPAmountDouble(dAmt);
-                    string id = dt1.Rows[i]["id"].ToString();
-                    string sUserId = dt1.Rows[i]["userid"].ToString();
-                    string sChildID = dt1.Rows[i]["childid"].ToString();
-                    string sLastNotified = dt1.Rows[i]["LastNotified"].ToString();
-                    if (sLastNotified == "") sLastNotified = "1-1-1970";
-                    TimeSpan tLastNotifyElapsed = DateTime.Now - Convert.ToDateTime(sLastNotified);
-                    TimeSpan tElapsed = DateTime.Now - Convert.ToDateTime(dt1.Rows[i]["LastPaymentDate"]);
-
-                    if (dBalance > dMonthly)
-                    {
-                        // Charge each user for their monthly sponsorship
-                        string sql1 = "Update SponsoredOrphan set LastPaymentDate=getdate() where id='" + id.ToString() + "'";
-                        gData.Exec(sql1);
-                        string sNotes = "Sponsor Payment " + sChildID + " (rebate " + GetBBPAmountDouble(dMatchAmt).ToString() + " bbp)";
-                        sql1 = "Insert into SponsoredOrphanPayments (id,childid,amount,added,userid,updated,notes) values (newid(),'" + sChildID + "','"
-                            + dMonthly.ToString() + "',getdate(),'" + userid + "',getdate(),'" + sNotes + "')";
-                        gData.Exec(sql1);
-                        DataOps.AdjBalance(-1 * dMonthly, userid, sNotes);
-                    }
-                    else
-                    {
-                        try
-                        {
-                            // If  the 21 day grace period has already elapsed, move the child back to the pool:
-                            if (tElapsed.Days > 51)
-                            {
-                                Log("Child ID " + sChildID + " is being removed due to non payment.");
-                                sql = "Update SponsoredOrphan set LastPaymentDate=null, Userid=null where ID = '" + id + "'";
-                                gData.Exec(sql);
-                            }
-                            else if (tElapsed.Days > 30 && tElapsed.Days < 52 && tLastNotifyElapsed.Hours > 24)
-                            {
-                                // If they are within the 21 day grace period
-                                MailAddress r = new MailAddress("rob@saved.one", "The BiblePay Team");
-                                User u = DataOps.GetUserRecord(sUserId);
-                                MailAddress t = new MailAddress(u.EmailAddress, u.UserName);
-                                MailAddress cc = new MailAddress("rob@biblepay.org", "Rob Andrews");
-                                MailMessage m = new MailMessage(r, t);
-                                m.Bcc.Add(cc);
-                                m.Subject = "Monthly Orphan Sponsorship Payment is Due";
-                                string sBody = "Dear " + u.UserName + ",<br><br>We are unable to deduct the monthly amount due of " + dMonthly.ToString() + " BBP for child "
-                                    + sChildID + ".  Our records show that it has been " + tElapsed.Days.ToString() + " days since your last payment.  <br><br>  Will you please make a deposit into your Foundation account?  We will try again tomorrow, and then 20 more successive times.  If we cannot successfully charge your account for the sponsorship within the 21 day (grace period) we will automatically cancel your sponsorship and move the child back to the available pool.  <br><br>Thank you for understanding,<br>The BiblePay Team<br>";
-                                m.IsBodyHtml = true;
-                                m.Body = sBody;
-                                bool fSent = SendMail(m);
-                                sql = "Update SponsoredOrphan set LastNotified = getdate() where id = '" + id + "'";
-                                gData.Exec(sql);
-                            }
-                        }
-                        catch (Exception ex1)
-                        {
-                            Log("PayMonthlyOrphanSponsorships: " + ex1.Message);
-                        }
-
-                    }
-                }
-            }
-            catch (Exception ex2)
-            {
-                Log("PayMonthlyOrphanSponsorships[2]:" + ex2.Message);
-            }
-        }
-
 
         public static void PayVideos(string sID)
         {
@@ -150,9 +69,9 @@ namespace Saved.Code
             {
                 string sql = "select datediff(second,starttime, watching) span,size/422000 secs, datediff(second,starttime, watching)/((SIZE/422000)+.01) pct,* from tip where paid is null  and userid is not null";
                 if (sID != "")
-                    sql += " and userid='" + sID + "'";
+                    sql += " and userid='" + BMS.PurifySQL( sID ,100) + "'";
 
-                DataTable dt1 = gData.GetDataTable(sql);
+                DataTable dt1 = gData.GetDataTable2(sql);
                 for (int i = 0; i < dt1.Rows.Count; i++)
                 {
                     double nPCT = GetDouble(dt1.Rows[i]["Pct"]);
@@ -189,11 +108,10 @@ namespace Saved.Code
             }
         }
 
-
         public static void AddThumbnails()
         {
             string sql = "Select * from Rapture where thumbnail is null and url like '%mp4%'";
-            DataTable dt = gData.GetDataTable(sql);
+            DataTable dt = gData.GetDataTable2(sql);
             for (int i = 0; i < dt.Rows.Count; i++)
             {
                 string url = dt.Rows[i]["url"].ToString();
@@ -204,7 +122,11 @@ namespace Saved.Code
                 FileInfo fi = new FileInfo(sOutFile);
                 if (fi.Exists)
                 {
-                    string sOutURL = "https://foundation.biblepay.org/Uploads/Thumbnails/" + sID + ".jpg";
+                    string sSpendAddress = GetBMSConfigurationKeyValue("fundingaddress_mainnet");
+                    string sSpendPrivKey = GetBMSConfigurationKeyValue("fundingkey_mainnet");
+                    BiblePayCommon.Common.User u = new BiblePayCommon.Common.User();
+                    BiblePayCommon.Common.DACResult r1 = BiblePayDLL.Sidechain.UploadFileTypeBlob(false, sOutFile, u);
+                    string sOutURL = r1.Result;
                     sql = "Update Rapture set Thumbnail='" + sOutURL + "' where id = '" + sID + "'";
                     gData.Exec(sql);
                 }
@@ -219,7 +141,7 @@ namespace Saved.Code
 
         // Convert unconverted RequestVideo to Resilient format
         string sql = "Select * from RequestVideo where status is null";
-        DataTable dt = gData.GetDataTable(sql);
+        DataTable dt = gData.GetDataTable2(sql);
         for (int i = 0; i < dt.Rows.Count; i++)
         {
             string url = dt.Rows[i]["url"].ToString();
@@ -231,26 +153,21 @@ namespace Saved.Code
             string sPath = GetPathFromTube(url);
             // Convert the path to hash
             string sNewFileName = "700" + sPath.GetHashCode().ToString() + ".mp4";
-            if (System.IO.File.Exists(sPath))
-            {
-                System.IO.FileInfo fi = new FileInfo(sPath);
-                string sHeading = Left(fi.Name, 100);
-                string sNotes = Utils.CleanseHeading(sHeading) + "\r\n\r\n" + Left(DataOps.GetNotes(sPath), 4000);
+                if (System.IO.File.Exists(sPath))
+                {
+                    System.IO.FileInfo fi = new FileInfo(sPath);
+                    string sHeading = Left(fi.Name, 100);
+                    string sNotes = Utils.CleanseHeading(sHeading) + "\r\n\r\n" + Left(DataOps.GetNotes(sPath), 4000);
 
-                string sTargetPath = sVideoPath + "\\" + sNewFileName;
-                bool bOK = false;
-                try
-                {
-                    System.IO.File.Copy(sPath, sTargetPath);
-                    bOK = true;
-                }
-                catch (Exception)
-                {
+                    string sSpendAddress = GetBMSConfigurationKeyValue("fundingaddress_mainnet");
+                    string sSpendPrivKey = GetBMSConfigurationKeyValue("fundingkey_mainnet");
+                    BiblePayCommon.Common.User u = new BiblePayCommon.Common.User();
 
-                }
-                if (bOK)
-                {
-                    string sURL = "https://san.biblepay.org/Rapture2/" + sNewFileName;
+                    BiblePayCommon.Common.DACResult r1 = BiblePayDLL.Sidechain.UploadFileTypeBlob(false, sPath, u);
+                    string sURL = r1.Result;
+                    
+                if (sURL != "")
+                {  
                     sql = "Insert into Rapture (id,added,Notes,URL,FileName,Category,UserID) values (newid(), getdate(), @notes, @url, @filename, @category, @userid)";
                     SqlCommand command = new SqlCommand(sql);
                     command.Parameters.AddWithValue("@notes", sNotes);
@@ -266,7 +183,7 @@ namespace Saved.Code
                 }
                 else
                 {
-                    sql = "Update RequestVideo set Status='AMAZON FAILURE' where id = '" + sID + "'";
+                    sql = "Update RequestVideo set Status='FAILURE' where id = '" + sID + "'";
                     gData.Exec(sql);
                 }
             }
@@ -277,7 +194,6 @@ namespace Saved.Code
             }
         }
 
-
     }
 
 
@@ -286,8 +202,6 @@ namespace Saved.Code
 
         if (sEmail == null || sEmail == "")
             return "UNDELIVERABLE";
-
-
         string sKey = GetBMSConfigurationKeyValue("thechecker");
         string sURL = "https://api.thechecker.co/v2/verify?email=" + sEmail + "&api_key=" + sKey;
         string sOut = BMS.GetWebJsonApi(sURL, "", "","","");
@@ -309,8 +223,5 @@ namespace Saved.Code
         }
         return "";
     }
-
-
-
  }
 }

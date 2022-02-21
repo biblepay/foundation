@@ -25,7 +25,7 @@ namespace Saved.Code
 
         public static int iThreadCount = 0;
         public static int nGlobalHeight = 0;
-        public static int pool_version = 1019;
+        public static int pool_version = 1020;
         public static int iXMRThreadID = 0;
         public static double iXMRThreadCount = 0;
         public static int iTitheNumber = 0;
@@ -45,6 +45,7 @@ namespace Saved.Code
             public string socketid;
             public int timestamp;
             public string target;
+            public double difficulty;
             public string seed;
             public string solution;
             public string nonce;
@@ -99,8 +100,8 @@ namespace Saved.Code
 
         public static string GetPoolValue(string sKey)
         {
-            string sql = "Select value from System where systemkey='" + sKey + "'";
-            string value = gData.GetScalarString(sql, "value", false);
+            string sql = "Select value from System where systemkey='" + BMS.PurifySQL(sKey,30) + "'";
+            string value = gData.GetScalarString2(sql, "value", false);
             return value;
         }
         public static void RemoveWorker(string socketid)
@@ -211,7 +212,7 @@ namespace Saved.Code
                 XMRJob x = new XMRJob();
                 x.timestamp = UnixTimeStamp();
                 x.socketid = socketid;
-                 return x;
+                return x;
             }
             finally
             {
@@ -315,7 +316,7 @@ namespace Saved.Code
         }
 
 
-        public static void InsShare(string bbpaddress, double nShareAdj, double nFailAdj, int height, int nBXMR, int nBXMRC, string moneroaddress)
+        public static void InsShare(string bbpaddress, double nShareAdj, double nFailAdj, int height, double nBXMR, double nBXMRC, string moneroaddress)
         {
             string sql = "exec insShare @bbpid,@shareAdj,@failAdj,@height,@sxmr,@fxmr,@sxmrc,@fxmrc,@bxmr,@bxmrc";
             SqlCommand command = new SqlCommand(sql);
@@ -364,8 +365,8 @@ namespace Saved.Code
                 Log("FMB: " + ex.Message);
             }
             // Retrieve from the database instead
-            string sql = "Select bbpaddress from worker (nolock) where moneroaddress='" + sMoneroAddress + "'";
-            string bbp = gData.GetScalarString(sql, "bbpaddress");
+            string sql = "Select bbpaddress from worker (nolock) where moneroaddress='" + BMS.PurifySQL(sMoneroAddress,100) + "'";
+            string bbp = gData.GetScalarString2(sql, "bbpaddress");
             return bbp;
         }
 
@@ -478,7 +479,7 @@ namespace Saved.Code
             string sql = "select  HashRate,Height From HashRate where height > "
                 + nMin.ToString() + " and height < " + nMax.ToString() + " order by height";
 
-            DataTable dt = gData.GetDataTable(sql, false);
+            DataTable dt = gData.GetDataTable2(sql, false);
             Chart c = new Chart();
             System.Drawing.Color bg = System.Drawing.Color.White;
             System.Drawing.Color primaryColor = System.Drawing.Color.Blue;
@@ -530,7 +531,7 @@ namespace Saved.Code
             int nMin = nMax - 205;
 
             string sql = "select minercount, height From HashRate Where height > " + nMin.ToString() + " and height < " + nMax.ToString() + " order by height";
-            DataTable dt = gData.GetDataTable(sql, false);
+            DataTable dt = gData.GetDataTable2(sql, false);
             Chart c = new Chart();
             System.Drawing.Color bg = System.Drawing.Color.White;
             System.Drawing.Color primaryColor = System.Drawing.Color.Blue;
@@ -582,7 +583,7 @@ namespace Saved.Code
             int nMin = nMax - 205;
 
             string sql = "select SolvedCount, height From HashRate Where height > " + nMin.ToString() + " and height < " + nMax.ToString() + " order by height";
-            DataTable dt = gData.GetDataTable(sql, false);
+            DataTable dt = gData.GetDataTable2(sql, false);
             Chart c = new Chart();
             System.Drawing.Color bg = System.Drawing.Color.White;
             System.Drawing.Color primaryColor = System.Drawing.Color.Blue;
@@ -668,13 +669,13 @@ namespace Saved.Code
         }
 
 
-        public static bool ValidateBiblepayAddress(string sAddress)
+        public static bool ValidateBiblepayAddress(bool fTestNet, string sAddress)
         {
             try
             {
                 object[] oParams = new object[1];
                 oParams[0] = sAddress;
-                NBitcoin.RPC.RPCClient n = WebRPC.GetLocalRPCClient();
+                NBitcoin.RPC.RPCClient n = fTestNet ? WebRPC.GetTestNetRPCClient() : WebRPC.GetLocalRPCClient();
 
                 dynamic oOut = n.SendCommand("validateaddress", oParams);
                 string sResult = oOut.Result["isvalid"].ToString();
@@ -722,16 +723,16 @@ namespace Saved.Code
                 return "";
             }
         }
-        
+
         public static void PaySanctuaryInvestors()
         {
-            
+
             double nOrphanSancPct = GetOrphanFracSancPercentage();
 
             try
             {
                 string sql = "SELECT   amount, height, txid, address, id      FROM       sanctuaryPayment      WHERE paid is null and amount > 100";
-                DataTable dt = gData.GetDataTable(sql, false);
+                DataTable dt = gData.GetDataTable2(sql, false);
                 for (int i = 0; i < dt.Rows.Count; i++)
                 {
 
@@ -744,7 +745,7 @@ namespace Saved.Code
                     string sAddress = dt.Rows[i]["address"].ToString();
                     string sTXID = dt.Rows[i]["txid"].ToString();
 
-                    DataTable dt2 = gData.GetDataTable(sql2, false);
+                    DataTable dt2 = gData.GetDataTable2(sql2, false);
                     for (int j = 0; j < dt2.Rows.Count; j++)
                     {
                         string sql3 = "Insert Into Deposit (id, address, txid, userid, added, amount, height, notes) values (newid(), @address, @txid, @userid, getdate(), @amount, @height, @notes)";
@@ -759,7 +760,7 @@ namespace Saved.Code
                             double nReward = nAmount / 4500000 * nNetSancReward;
                             command.Parameters.AddWithValue("@amount", Math.Round(nReward, 2));
                             command.Parameters.AddWithValue("@height", nHeight);
-                            string sNarr = "Sanctuary Payment [for " + Math.Round(nAmount, 2).ToString()+ " (Orphan Rate=" + Math.Round(nOrphanSancPct, 2) + "%]";
+                            string sNarr = "Sanctuary Payment [for " + Math.Round(nAmount, 2).ToString() + " (Orphan Rate=" + Math.Round(nOrphanSancPct, 2) + "%]";
                             command.Parameters.AddWithValue("@notes", sNarr);
                             gData.ExecCmd(command, false, false, false);
                         }
@@ -786,7 +787,7 @@ namespace Saved.Code
                 dictBan.Clear();
                 //Memorize the excess banlist
                 string sql = "Select distinct dbo.iponly(ip) ip from Worker where bbpaddress in (select bbpaddress from leaderboard where efficiency < .20) UNION ALL Select IP from Bans";
-                DataTable dt = gData.GetDataTable(sql);
+                DataTable dt = gData.GetDataTable2(sql);
                 lBanList.Clear();
                 for (int i = 0; i < dt.Rows.Count; i++)
                 {
@@ -811,7 +812,7 @@ namespace Saved.Code
             {
                 UICommon.SendMassDailyTweetReport();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Log("Mail out " + ex.Message);
             }
@@ -830,9 +831,9 @@ namespace Saved.Code
             nLastPaid = UnixTimeStamp();
             try
             {
-                WebServices.PayMonthlyOrphanSponsorships();
 
                 GetSancTXIDList();
+
                 PaySanctuaryInvestors();
                 RecordParticipants();
                 randomxhashes.Clear();
@@ -869,7 +870,7 @@ namespace Saved.Code
                     string address = dt.Rows[i]["bbpaddress"].ToString();
                     double nReward = GetDouble(dt.Rows[i]["Reward"]);
 
-                    bool bValid = ValidateBiblepayAddress(address);
+                    bool bValid = ValidateBiblepayAddress(false,address);
 
                     if (bValid && nReward > .01)
                     {
@@ -926,6 +927,7 @@ namespace Saved.Code
             public double nMinimumBidAmount;
             public double nReserveAmount;
             public double nBuyItNowAmount;
+            public double nIteration;
             public double nLowestAcceptableAmount;
             public bool fMarketable;
             public bool fDeleted;
@@ -948,9 +950,9 @@ namespace Saved.Code
                 dynamic oOut = n.SendCommand("getstatement", oParams);
                 return oOut;
             }
-            catch(Exception x)
+            catch (Exception x)
             {
-                Log("Unable to get statement " + x.Message);                
+                Log("Unable to get statement " + x.Message);
             }
             dynamic xz = null;
             return xz;
@@ -970,13 +972,69 @@ namespace Saved.Code
             }
             return false;
         }
-        public static List<NFT> GetNFTList(string sTypes)
+        public static string GV(dynamic o) 
         {
+            try
+            {
+                if (o == null)
+                    return "";
+                string sStr = o.Value.ToString() ?? "";
+                if (sStr == null)
+                    return "";
+                return sStr;
+            }
+            catch(Exception)
+            {
+                return "";
+            }
+        }
+        public static bool GVB(dynamic o)
+        {
+            string data = GV(o);
+            if (data.ToLower() == "true" || data == "1")
+                return true;
+            return false;
+        }
+
+
+        public static string SerializeNFT(string sHWID, string sNFTID, string sAction)
+        {
+            Code.Fastly.KeyType k = Code.Fastly.DeriveRokuKeypair(sHWID);
+            string sBuyerCPK = k.PubKey;
+            bool fTestNet = !IsProdChain(k.PubKey);
+            Code.PoolCommon.NFT myNFT = GetSpecificNFT(sNFTID, fTestNet);
+            string sPK = "NFT-" + myNFT.Hash;
+            string sSignature = ""; //No need for a buyer to have one
+            string sPayload = "<MT>NFT</MT><MK>" + sPK + "</MK><MV><nft><cpk>" + sBuyerCPK + "</cpk><name>"
+                + myNFT.Name + "</name><description>" + myNFT.Description + "</description><loqualityurl>"
+                + myNFT.LoQualityURL + "</loqualityurl><hiqualityurl>" + myNFT.LoQualityURL
+                + "</hiqualityurl><deleted>" + (myNFT.fDeleted ? "1" : "0") + "</deleted><marketable>0</marketable><time>"
+                + UnixTimeStamp().ToString()
+                + "</time><type>" + myNFT.Type + "</type><iteration>"
+                + (myNFT.nIteration + 1).ToString() + "</iteration><minbidamount>0</minbidamount>"
+                + "<reserveamount>" + myNFT.nReserveAmount.ToString() + "</reserveamount><buyitnowamount>"
+                + myNFT.nBuyItNowAmount.ToString() + "</buyitnowamount><lastcpk>" + myNFT.CPK + "</lastcpk>"
+                + "</nft><BOACTION>" + sAction + "</BOACTION><BOSIGNER>" + sBuyerCPK + "</BOSIGNER><BOSIG>"
+                + sSignature + "</BOSIG><BOMSG>" + myNFT.Hash + "</BOMSG></MV>";
+            sPayload = sPayload.Replace("\"", "");
+            return sPayload;
+        }
+        public static List<NFT> GetNFTList(string sTypes, bool fTestNet, string sCPKOnly)
+        {
+
+            string sql = "Select NFTID from nftblacklist";
+            DataTable dt1 = gData.GetDataTable2(sql, false);
+            List<string> lIDs = new List<string>();
+            for (int i = 0; i < dt1.Rows.Count; i++)
+            {
+                lIDs.Add(dt1.Rows[i]["nftid"].ToString());
+            }
             // Type = Orphan or Digital Goods
             List<NFT> lNFTs= new List<NFT>();
             try
             {
-                NBitcoin.RPC.RPCClient n = WebRPC.GetTestNetRPCClient();
+                NBitcoin.RPC.RPCClient n = fTestNet ? WebRPC.GetTestNetRPCClient() : WebRPC.GetLocalRPCClient();
+
                 object[] oParams = new object[2];
                 oParams[0] = "1";
                 oParams[1] = "1";
@@ -985,25 +1043,44 @@ namespace Saved.Code
                 foreach (var jNFT in oOut.Result)
                 {
                     NFT n1 = new NFT();
-                    n1.Name = jNFT.Value["Name"].Value;
-                    n1.Description = jNFT.Value["Description"].Value;
-                    n1.nMinimumBidAmount = GetDouble(jNFT.Value["MinimumBidAmount"].Value);
-                    n1.nReserveAmount = GetDouble(jNFT.Value["ReserveAmount"].Value);
-                    n1.nBuyItNowAmount = GetDouble(jNFT.Value["BuyItNowAmount"].Value);
-                    n1.nLowestAcceptableAmount = GetDouble(jNFT.Value["LowestAcceptableAmount"].Value);
-                    n1.Hash = jNFT.Value["Hash"].Value;
-                    n1.found = true;
-                    n1.fMarketable = (bool)jNFT.Value["Marketable"].Value;
-                    n1.fDeleted = (bool)jNFT.Value["Deleted"].Value;
-                    n1.LoQualityURL = jNFT.Value["Lo Quality URL"].Value;
-                    n1.HiQualityURL = jNFT.Value["Hi Quality URL"].Value;
-
-                    n1.Type = jNFT.Value["Type"].Value;
+                    n1.Name = GV(jNFT.Value["Name"]);
+                    n1.Type = GV(jNFT.Value["Type"]);
                     n1.Type = n1.Type.ToLower();
+                    bool fOrphan = n1.Type.Contains("orphan");
+
+                    n1.Description = GV(jNFT.Value["Description"]);
+                    n1.nMinimumBidAmount = GetDouble(GV(jNFT.Value["MinimumBidAmount"]));
+                    n1.nReserveAmount = GetDouble(GV(jNFT.Value["ReserveAmount"]));
+                    n1.nBuyItNowAmount = fOrphan ? GetDouble(GV(jNFT.Value["SponsorshipAmount"])) : GetDouble(GV(jNFT.Value["BuyItNowAmount"]));
+                    n1.nIteration = GetDouble(GV(jNFT.Value["Iteration"]));
+                    n1.CPK = GV(jNFT.Value["CPK"]);
+
+                    n1.nLowestAcceptableAmount = GetDouble(GV(jNFT.Value["LowestAcceptableAmount"]));
+                    n1.Hash = GV(jNFT.Value["Hash"]);
+                    n1.found = true;
+                    n1.fMarketable = GVB(jNFT.Value["Marketable"]);
+                    if (fOrphan)
+                        n1.fMarketable = GVB(jNFT.Value["Sponsorable"]);
+
+                    n1.fDeleted = GVB(jNFT.Value["Deleted"]);
+                    n1.LoQualityURL = GV(jNFT.Value["Lo Quality URL"]);
+                    n1.HiQualityURL = GV(jNFT.Value["Hi Quality URL"]);
+
                     bool fTest = n1.Name.ToLower().Contains("test");
 
                     string[] vType = n1.Type.Split(" ");
-                    if (!fTest && n1.fMarketable && n1.nMinimumBidAmount > 0)
+
+                    string sShortID = n1.Hash.Substring(0, 8);
+                    if (lIDs.Contains(sShortID) || lIDs.Contains(n1.Hash.ToString()))
+                    {
+                        n1.fMarketable = false;
+                    }
+
+                    if ((sCPKOnly != "" && n1.CPK == sCPKOnly) || (sTypes == "all"))
+                    {
+                        lNFTs.Add(n1);
+                    }
+                    if (sCPKOnly == "" && !fTest && n1.fMarketable && n1.nLowestAcceptableAmount > 0)
                     {
                         if (InList(sTypes, vType[0]))
                         {
@@ -1032,25 +1109,28 @@ namespace Saved.Code
             }
         }
 
-        public static string BuyNFT(string hash, string sNewBuyerCPK, double nTotal)
+        public static string BuyNFT(string hash, string sNewBuyerCPK, double nTotal, bool fTestNet)
         {
             try
             {
-                NBitcoin.RPC.RPCClient n = WebRPC.GetTestNetRPCClient();
+                NBitcoin.RPC.RPCClient n = fTestNet ? WebRPC.GetTestNetRPCClient() : WebRPC.GetLocalRPCClient();
                 object[] oParams = new object[3];
                 oParams[0] = sNewBuyerCPK;
                 oParams[1] = hash;
                 oParams[2] = nTotal.ToString();
                 dynamic oOut = n.SendCommand("buynft", oParams);
+                if (oOut.Result["Result"] == null)
+                {
+                    string sErr = oOut.Result["Error"].Value;
+                    return sErr;
+                }
+
                 string sOut = oOut.Result["Result"].Value;
                 if (sOut == "Success")
                 {
                     return "";
                 }
-                string sErr = oOut.Result["Error"].Value;
-
-                return sErr;
-
+                return sOut;
             }
             catch(Exception ex)
             {
@@ -1164,7 +1244,7 @@ namespace Saved.Code
         public static void ScanForSanctuaryPayments()
         {
             string sql = "Select * from SanctuaryPayment where Amount is null";
-            DataTable d1 = gData.GetDataTable(sql, false);
+            DataTable d1 = gData.GetDataTable2(sql, false);
             NBitcoin.RPC.RPCClient n = WebRPC.GetLocalRPCClient();
 
             for (int i = 0; i < d1.Rows.Count; i++)
@@ -1193,7 +1273,7 @@ namespace Saved.Code
         public static void ScanForAmounts()
         {
             string sql = "Select * from Deposit where Amount is null";
-            DataTable d1 = gData.GetDataTable(sql, false);
+            DataTable d1 = gData.GetDataTable2(sql, false);
             NBitcoin.RPC.RPCClient n = WebRPC.GetLocalRPCClient();
 
             for (int i = 0; i < d1.Rows.Count; i++)
@@ -1228,7 +1308,7 @@ namespace Saved.Code
             try
             {
                 string sql = "Select distinct id,depositaddress from Users where depositaddress is not null";
-                DataTable d1 = gData.GetDataTable(sql, false);
+                DataTable d1 = gData.GetDataTable2(sql, false);
 
                 JObject joe = new JObject();
                 joe.Add(new JProperty("start", _pool._template.height - 20));
@@ -1303,7 +1383,7 @@ namespace Saved.Code
         public static string GetSancTXIDList()
         {
             string sql = "Select distinct id,paymentaddress from Sancs where paymentaddress is not null";
-            DataTable d1 = gData.GetDataTable(sql, false);
+            DataTable d1 = gData.GetDataTable2(sql, false);
             NBitcoin.RPC.RPCClient n = WebRPC.GetLocalRPCClient();
 
             string sOut = "";
@@ -1341,6 +1421,7 @@ namespace Saved.Code
             return sOut;
         }
 
+        /*
 
         public static void SendMarketingEmail()
         {
@@ -1348,7 +1429,7 @@ namespace Saved.Code
             try
             {
                 string sql = "Select top 100 * from Leads where Advertised is null";
-                DataTable dt = gData.GetDataTable(sql);
+                DataTable dt = gData.GetDataTable2(sql);
                 int nMax = 10;
                 int nSent = 0;
                 if (dt.Rows.Count > 0)
@@ -1387,6 +1468,8 @@ namespace Saved.Code
                 Log("Send Marketing Email Issues: " + ex.Message);
             }
         }
+        */
+
 
         public static void TallyBXMRC()
         {
@@ -1413,7 +1496,7 @@ namespace Saved.Code
         public static string GetFieldValue(string sEmail, string sField)
         {
             string sql = "Select * from USERS where EmailAddress='" + BMS.PurifySQL(sEmail, 100) + "'";
-            string sValue = gData.GetScalarString(sql, sField);
+            string sValue = gData.GetScalarString2(sql, sField);
             return sValue;
         }
 
@@ -1434,6 +1517,9 @@ namespace Saved.Code
         }
         public static void UserActivityRewards()
         {
+
+            return;
+
             try
             {
 
@@ -1495,36 +1581,13 @@ namespace Saved.Code
 
         }
 
+        static int nLastUpdatedUsers = 0;
         public static void SyncUsers()
         {
             int iFinished = 0;
-
-            try
-            {
-                if (false)
-                {
-                    /*
-                    // Check deliverability of those who we have not checked
-                    string sql10 = "Select top 100 * from Users where verification is null and isnull(emailaddress,'') != ''";
-                    DataTable dt = gData.GetDataTable(sql10);
-                    for (int i = 0; i < dt.Rows.Count; i++)
-                    {
-                        string email = dt.Rows[i]["emailAddress"].ToString();
-                        string id = dt.Rows[i]["id"].ToString();
-                        string response = WebServices.VerifyEmailAddress(email, id);
-                        string sql11 = "Update users set verification='" + response + "' where id = '" + id + "'";
-                        gData.Exec(sql11);
-
-                    }
-                    Log("SyncUsers - Updated " + dt.Rows.Count.ToString());
-                    */
-                }
-
-            }
-            catch(Exception ex)
-            {
-                Log("SyncUsers()::" + ex.Message);
-            }
+            int nElapsed = UnixTimeStamp() - nLastUpdatedUsers;
+            if (nElapsed < (60 * 60 * 12))
+                return;
 
 
             try
@@ -1552,8 +1615,8 @@ namespace Saved.Code
                     string drr = dr[3].ToString();
                     DateTime dtDr = UnixTimeStampToDateTime(GetDouble(drr));
 
-                    string sql2 = "Select * from Users where Username='" + real_name + "'";
-                    DataTable dtOurUser = gData.GetDataTable(sql2);
+                    string sql2 = "Select * from Users where Username='" + BMS.PurifySQL(real_name,30) + "' or emailAddress='" + BMS.PurifySQL(email_address,100) + "'";
+                    DataTable dtOurUser = gData.GetDataTable2(sql2);
                     if (dtOurUser.Rows.Count > 0)
                     {
                         string id = dtOurUser.Rows[0]["id"].ToString();
@@ -1578,6 +1641,7 @@ namespace Saved.Code
                 Log("Err SyncUsers " + ex.Message);
             }
             Log("Successfully updated " + iFinished.ToString() + " USERS");
+            nLastUpdatedUsers = UnixTimeStamp();
         }
 
 
@@ -1620,12 +1684,10 @@ namespace Saved.Code
                 if (nHourlyElapsed > (60 * 60))
                 {
                     nLastHourly = UnixTimeStamp();
+                    Proposals.SubmitProposals(true);
+                    Proposals.SubmitProposals(false);
                     SyncUsers();
                 }
-
-                Fastly.SyncFastlyNicknames();
-
-
 
             }
             catch (Exception ex)
@@ -1662,6 +1724,22 @@ namespace Saved.Code
         }
 
 
+        public static void ExecRokuOperations()
+        {
+
+            try
+            {
+                RokuOperations.GenerateMediaPlayGrid();
+                RokuOperations.GenerateMediaListXML();
+                string test = "";
+            }
+            catch(Exception ex)
+            {
+                Log("ExecRokuOperations::" + ex.Message);
+            }
+        }
+
+
         private static int nLastGrouped = 0;
         public static void GroupShares()
         {
@@ -1678,6 +1756,7 @@ namespace Saved.Code
                     GetBlockForStratum();
                 }
 
+                ExecRokuOperations();
 
                 int nBestHeight = _pool._template.height;
                 if (nBestHeight == 0) return;
@@ -1763,7 +1842,7 @@ namespace Saved.Code
                     string sHeightRange = "height = '" + iMyHeight.ToString() + "'";
                     string sql = "Select shares,sucXMRC,bxmr,bbpaddress,subsidy from Share (nolock) WHERE subsidy > 1 and percentage is null and "
                         + sHeightRange + " and paid is null";
-                    DataTable dt1 = gData.GetDataTable(sql, false);
+                    DataTable dt1 = gData.GetDataTable2(sql, false);
                     if (dt1.Rows.Count > 0)
                     {
                         // First get the total shares
@@ -1810,7 +1889,8 @@ namespace Saved.Code
             {
                 Log("Group Shares " + ex.Message);
             }
-            Log("Finished Grouping shares v2.0", true);
+            if (false)
+                Log("Finished Grouping shares v2.0", true);
         }
         public static void SQLExecutor()
         {
@@ -1825,7 +1905,7 @@ namespace Saved.Code
                     }
                     catch (Exception ex2)
                     {
-                        Log("SQLExecutor::" + ex2.Message);
+                        Log("SQLExecutor::" + ex2.Message + ":" + lSQL[i].CommandText);
                     }
                     lSQL.RemoveAt(i);
                     i--;
@@ -2039,11 +2119,11 @@ namespace Saved.Code
                     _pool._template = new BlockTemplate();
                     _pool._template.hex = oOut.Result["hex"].ToString();
                     _pool._template.curtime = oOut.Result["curtime"].ToString();
-                    _pool._template.prevhash = oOut.Result["prevblockhash"];
-                    _pool._template.height = oOut.Result["height"];
-                    _pool._template.bits = oOut.Result["bits"];
-                    _pool._template.prevblocktime = oOut.Result["prevblocktime"];
-                    _pool._template.target = oOut.Result["target"];
+                    _pool._template.prevhash = oOut.Result["prevblockhash"].ToString();
+                    _pool._template.height =(int)oOut.Result["height"];
+                    _pool._template.bits = oOut.Result["bits"].ToString();
+                    _pool._template.prevblocktime = oOut.Result["prevblocktime"].ToString();
+                    _pool._template.target = oOut.Result["target"].ToString();
                     _pool._template.updated = UnixTimeStamp();
                     if (nGlobalHeight != _pool._template.height)
                     {

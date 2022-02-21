@@ -71,20 +71,12 @@ namespace Saved.Code
                     PurgeSockets(false);
                     PurgeJobs();
                 }
-                else
-                {
-                    Fastly.SyncFastlyNicknames();
-                }
-                
-
             }
         }
 
 
         public Pool()
         {
-            //var t = new Thread(InitializePool);
-            //t.Start();
             var t1 = new Thread(PoolService);
             t1.Start();
             var t2 = new Thread(SQLExecutor);
