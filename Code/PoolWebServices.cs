@@ -108,6 +108,7 @@ namespace Saved.Code
             }
         }
 
+        /*
         public static void AddThumbnails()
         {
             string sql = "Select * from Rapture where thumbnail is null and url like '%mp4%'";
@@ -132,6 +133,8 @@ namespace Saved.Code
                 }
             }
         }
+        */
+
 
     public static void ConvertVideos()
     {

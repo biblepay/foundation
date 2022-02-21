@@ -451,7 +451,7 @@ namespace PoolService
                 i++;
                 if (i % 5 == 0)
                 {
-                    Saved.Code.WebServices.AddThumbnails();
+                    //Saved.Code.WebServices.AddThumbnails();
                     Console.WriteLine("Done with Thumbs");
                 }
 

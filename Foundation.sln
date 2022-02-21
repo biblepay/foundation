@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Google.Authenticator", "Goo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PoolService", "PoolService\PoolService.csproj", "{35ACA53C-A506-469B-A7F4-214687E9D97B}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BiblePayCommon", "..\BiblePayUnchained\BiblePayCommon\BiblePayCommon.csproj", "{9B763ADC-F208-477E-A468-A8F78DA715D4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{35ACA53C-A506-469B-A7F4-214687E9D97B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{35ACA53C-A506-469B-A7F4-214687E9D97B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{35ACA53C-A506-469B-A7F4-214687E9D97B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9B763ADC-F208-477E-A468-A8F78DA715D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B763ADC-F208-477E-A468-A8F78DA715D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B763ADC-F208-477E-A468-A8F78DA715D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B763ADC-F208-477E-A468-A8F78DA715D4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

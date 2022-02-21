@@ -14,7 +14,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Saved</RootNamespace>
     <AssemblyName>Saved</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <UseIISExpress>true</UseIISExpress>
     <Use64BitIISExpress />
     <IISExpressSSLPort>44358</IISExpressSSLPort>
@@ -24,6 +24,7 @@
     <UseGlobalApplicationHostFile />
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -33,6 +34,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -44,14 +46,19 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AWSSDK.Core, Version=3.3.0.0, Culture=neutral, PublicKeyToken=885c28607f98e604, processorArchitecture=MSIL">
-      <HintPath>packages\AWSSDK.Core.3.5.0-beta\lib\net45\AWSSDK.Core.dll</HintPath>
+    <Reference Include="BiblePayCommon, Version=1.0.0.0, Culture=neutral, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dependencies\BiblePayCommon.dll</HintPath>
     </Reference>
-    <Reference Include="AWSSDK.S3, Version=3.3.0.0, Culture=neutral, PublicKeyToken=885c28607f98e604, processorArchitecture=MSIL">
-      <HintPath>packages\AWSSDK.S3.3.5.0-beta\lib\net45\AWSSDK.S3.dll</HintPath>
+    <Reference Include="BiblePayDLL, Version=1.0.0.0, Culture=neutral, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dependencies\BiblePayDLL.dll</HintPath>
     </Reference>
     <Reference Include="BouncyCastle.Crypto, Version=1.8.8.0, Culture=neutral, PublicKeyToken=0e99375e54769942, processorArchitecture=MSIL">
       <HintPath>packages\Portable.BouncyCastle.1.8.8\lib\net40\BouncyCastle.Crypto.dll</HintPath>
+    </Reference>
+    <Reference Include="ChilkatDotNet48">
+      <HintPath>..\BiblePayUnchained\Dependencies\ChilkatDotNet48.dll</HintPath>
     </Reference>
     <Reference Include="MailKit, Version=2.10.0.0, Culture=neutral, PublicKeyToken=4e064fe7c44a8f1b, processorArchitecture=MSIL">
       <HintPath>packages\MailKit.2.10.1\lib\net47\MailKit.dll</HintPath>
@@ -65,6 +72,10 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>MySQL\MySql.Data.dll</HintPath>
     </Reference>
+    <Reference Include="NBitcoin, Version=4.0.0.61, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\NBitcoin\bin\Debug\netstandard2.0\NBitcoin.dll</HintPath>
+    </Reference>
     <Reference Include="OpenHtmlToPdf">
       <HintPath>Code\OpenHtmlToPdf.dll</HintPath>
     </Reference>
@@ -74,18 +85,17 @@
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Core" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Drawing.Common, Version=4.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>packages\System.Drawing.Common.4.7.0\lib\net461\System.Drawing.Common.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.Http" />
+    <Reference Include="System.Numerics" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Security" />
     <Reference Include="System.Web.DataVisualization" />
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Web" />
     <Reference Include="System.Xml" />
@@ -117,6 +127,7 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>packages\Newtonsoft.Json.12.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="System.Xml.Linq" />
     <Reference Include="WebGrease">
       <Private>True</Private>
       <HintPath>packages\WebGrease.1.6.0\lib\WebGrease.dll</HintPath>
@@ -139,6 +150,22 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="AddressBook.aspx" />
+    <Content Include="Content\jquery-ui.css" />
+    <Content Include="Dependencies\BiblePayCommon.dll" />
+    <Content Include="Dependencies\ChilkatDotNet48.dll" />
+    <Content Include="Dependencies\NBitcoin.dll" />
+    <Content Include="ProposalsList.aspx" />
+    <Content Include="MyOrders.aspx" />
+    <Content Include="BuyItem.aspx" />
+    <Content Include="ProposalAdd.aspx" />
+    <Content Include="Quiz.aspx" />
+    <Content Include="QuizList.aspx" />
+    <Content Include="Scripts\jquery-ui-112.js" />
+    <Content Include="Scripts\jquery.contextMenu.js" />
+    <Content Include="Scripts\jquery.toast.js" />
+    <Content Include="Storefront.aspx" />
+    <Content Include="LithicCallback.aspx" />
     <Content Include="Fastly.aspx" />
     <Content Include="BMS\NewUser.aspx" />
     <Content Include="BMS\CheckReward.aspx" />
@@ -183,7 +210,6 @@
     <Content Include="BlockHistory.aspx" />
     <Content Include="FractionalSanctuaries.aspx" />
     <Content Include="Deposit.aspx" />
-    <Content Include="Quiz.aspx" />
     <Content Include="PoolAbout.aspx" />
     <Content Include="GettingStarted.aspx" />
     <Content Include="Leaderboard.aspx" />
@@ -262,11 +288,78 @@
     <Compile Include="Code\Fastly.cs" />
     <Compile Include="Code\FileSplitter.cs" />
     <Compile Include="Code\PoolWebServices.cs" />
+    <Compile Include="Code\Proposals.cs" />
     <Compile Include="Code\Retired.cs" />
+    <Compile Include="Code\RokuOperations.cs" />
+    <Compile Include="Code\Stripe.cs" />
     <Compile Include="Code\UICommon.cs" />
     <Compile Include="Code\Utilities.cs" />
     <Compile Include="Code\WebRPC.cs">
       <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Code\zinc.cs" />
+    <Compile Include="AddressBook.aspx.cs">
+      <DependentUpon>AddressBook.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="AddressBook.aspx.designer.cs">
+      <DependentUpon>AddressBook.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="ProposalsList.aspx.cs">
+      <DependentUpon>ProposalsList.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="ProposalsList.aspx.designer.cs">
+      <DependentUpon>ProposalsList.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="MyOrders.aspx.cs">
+      <DependentUpon>MyOrders.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="MyOrders.aspx.designer.cs">
+      <DependentUpon>MyOrders.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="BuyItem.aspx.cs">
+      <DependentUpon>BuyItem.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="BuyItem.aspx.designer.cs">
+      <DependentUpon>BuyItem.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="ProposalAdd.aspx.cs">
+      <DependentUpon>ProposalAdd.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="ProposalAdd.aspx.designer.cs">
+      <DependentUpon>ProposalAdd.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Quiz.aspx.cs">
+      <DependentUpon>Quiz.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Quiz.aspx.designer.cs">
+      <DependentUpon>Quiz.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="QuizList.aspx.cs">
+      <DependentUpon>QuizList.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="QuizList.aspx.designer.cs">
+      <DependentUpon>QuizList.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Storefront.aspx.cs">
+      <DependentUpon>Storefront.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Storefront.aspx.designer.cs">
+      <DependentUpon>Storefront.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="LithicCallback.aspx.cs">
+      <DependentUpon>LithicCallback.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="LithicCallback.aspx.designer.cs">
+      <DependentUpon>LithicCallback.aspx</DependentUpon>
     </Compile>
     <Compile Include="Fastly.aspx.cs">
       <DependentUpon>Fastly.aspx</DependentUpon>
@@ -582,13 +675,6 @@
     <Compile Include="Deposit.aspx.designer.cs">
       <DependentUpon>Deposit.aspx</DependentUpon>
     </Compile>
-    <Compile Include="Quiz.aspx.cs">
-      <DependentUpon>Quiz.aspx</DependentUpon>
-      <SubType>ASPXCodeBehind</SubType>
-    </Compile>
-    <Compile Include="Quiz.aspx.designer.cs">
-      <DependentUpon>Quiz.aspx</DependentUpon>
-    </Compile>
     <Compile Include="PoolAbout.aspx.cs">
       <DependentUpon>PoolAbout.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -801,13 +887,12 @@
       <Project>{DAC3D229-1AFE-4A03-8F94-92696491A229}</Project>
       <Name>Google.Authenticator</Name>
     </ProjectReference>
-    <ProjectReference Include="NBitcoin\NBitcoin.csproj">
-      <Project>{faf1696f-aa44-4902-84e4-705f5595d06d}</Project>
-      <Name>NBitcoin</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Analyzer Include="packages\AWSSDK.S3.3.5.0-beta\analyzers\dotnet\cs\AWSSDK.S3.CodeAnalysis.dll" />
+    <Analyzer Include="packages\AWSSDK.S3.3.7.0\analyzers\dotnet\cs\AWSSDK.S3.CodeAnalysis.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Connected Services\" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
@@ -824,7 +909,7 @@
           <AutoAssignPort>True</AutoAssignPort>
           <DevelopmentServerPort>58565</DevelopmentServerPort>
           <DevelopmentServerVPath>/</DevelopmentServerVPath>
-          <IISUrl>https://localhost:44358/</IISUrl>
+          <IISUrl>http://localhost:44358/</IISUrl>
           <NTLMAuthentication>False</NTLMAuthentication>
           <UseCustomServer>False</UseCustomServer>
           <CustomServerUrl>
