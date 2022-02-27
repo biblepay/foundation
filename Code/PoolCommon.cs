@@ -831,18 +831,20 @@ namespace Saved.Code
             nLastPaid = UnixTimeStamp();
             try
             {
+                if (GetBMSConfigurationKeyValue("satellitepool") != "1")
+                {
+                    GetSancTXIDList();
+                    PaySanctuaryInvestors();
+                    MailOut();
+                    Saved.Code.WebServices.PayVideos("");
+                    UserActivityRewards();
+                    StoreQuotes(0);
+                    GetChartOfIndex();
+                }
 
-                GetSancTXIDList();
-
-                PaySanctuaryInvestors();
                 RecordParticipants();
                 randomxhashes.Clear();
-                Saved.Code.WebServices.PayVideos("");
                 clearbans();
-                MailOut();
-                UserActivityRewards();
-                StoreQuotes(0);
-                GetChartOfIndex();
 
             }
             catch (Exception ex2)
@@ -854,7 +856,11 @@ namespace Saved.Code
 
                 // Create a batchid
                 string batchid = Guid.NewGuid().ToString();
-                string sql = "Update share set txid=@batchid where Paid is null and subsidy > 1 and updated < getdate() - .20";
+                double nMaturityDuration = GetDouble(GetBMSConfigurationKeyValue("maturityduration")); // this is a float with a duration in days
+                if (nMaturityDuration == 0)
+                    nMaturityDuration = .20;
+
+                string sql = "Update share set txid=@batchid where Paid is null and subsidy > 1 and updated < getdate() - " + nMaturityDuration.ToString();
                 SqlCommand command = new SqlCommand(sql);
                 command.Parameters.AddWithValue("@batchid", batchid);
                 gData.ExecCmd(command, false, false, false);
@@ -865,6 +871,10 @@ namespace Saved.Code
                 DataTable dt = gData.GetDataTable(command, false);
                 List<Payment> Payments = new List<Payment>();
                 double nTotal = 0;
+                double nMinPaymentThreshhold = GetDouble(GetBMSConfigurationKeyValue("minimumpaymentthreshhold"));
+                if (nMinPaymentThreshhold == 0)
+                    nMinPaymentThreshhold = .01;
+                
                 for (int i = 0; i < dt.Rows.Count; i++)
                 {
                     string address = dt.Rows[i]["bbpaddress"].ToString();
@@ -872,7 +882,7 @@ namespace Saved.Code
 
                     bool bValid = ValidateBiblepayAddress(false,address);
 
-                    if (bValid && nReward > .01)
+                    if (bValid && nReward > nMinPaymentThreshhold)
                     {
                         nTotal += nReward;
                         Payment p = new Payment();
@@ -1699,6 +1709,8 @@ namespace Saved.Code
 
         private static void RecordParticipants()
         {
+            // This is for the difficulty chart
+
             int nBestHeight = _pool._template.height;
             if (nBestHeight == 0) return;
 

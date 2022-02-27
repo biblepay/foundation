@@ -44,7 +44,7 @@ function doSlideshow()
             <br> BiblePay (BBP) is deflationary, decreasing its emissions by 19.5% per year. <br>
             <br>The project views itself as a utility that provides an alternative method for giving to charity.
              With Generic Smart Contracts, the project seeks to become the go-to wallet for Christians.In the future, the team intends to lease file space on its Sanctuaries and release corporate integration features, such as c# access to the blockchain. 
-               The BiblePay platform is a derivative of Dash-Evolution. BiblePay is an international decentralized autonomous organizationon.  The Team seeks to help orphans globally. <br>
+               The BiblePay platform is a derivative of Dash-Evolution. BiblePay is an international decentralized autonomous organization.  The Team seeks to help orphans globally. <br>
      </div>
 
     <br />
