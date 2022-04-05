@@ -29,7 +29,6 @@ namespace Saved
         protected void btnMessageBox_Click(object sender, EventArgs e)
         {
             divThankYou.Visible = false;
-
         }
     }
 }

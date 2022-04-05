@@ -199,7 +199,16 @@ namespace Saved.Code
             bool fGood = ValidateBiblepayAddress(false,toAddress);
             if (!fGood)
                 return "";
+            //verify this is not to an internal address first
+            
+            string sql = "Select count(*) ct from  Users where depositAddress='" + BMS.PurifySQL(toAddress,100) + "'";
 
+            double dCt = gData.GetScalarDouble(sql, "ct");
+            if (dCt > 0)
+            {
+                Log("User trying to withdraw to " + toAddress + " failed.");
+                return "";
+            }
             List<Payment> p = new List<Payment>();
             Payment p1 = new Payment();
             p1.bbpaddress = toAddress;

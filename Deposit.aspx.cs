@@ -110,6 +110,17 @@ namespace Saved
                 return;
             }
 
+
+            //verify this is not to an internal address first
+
+            string sql = "Select count(*) ct from  Users where depositAddress='" +BMS.PurifySQL( txtWithdrawalAddress.Text,100) + "'";
+            double dCt = gData.GetScalarDouble(sql, "ct");
+            if (dCt > 0)
+            {
+                MsgBox("To Address Invalid", "Sorry, you may not withdraw to another users incoming address because it interferes with our internal distinct TXID list.  ", this);
+                return;
+            }
+
             if (nTotal >= nReq)
             {
 

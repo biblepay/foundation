@@ -18,11 +18,6 @@ namespace Saved
         public string GetPartners()
         {
 
-            //http://san.biblepay.org/Mission/Logos/JesusLogo.jpg
-            //http://san.biblepay.org/Mission/Logos/CameroonOneLogo.png
-            //http://san.biblepay.org/Mission/Logos/CompassionLogo.png
-            //http://san.biblepay.org/Mission/Logos/KairosLogo.png
-
             string sLogos = "JesusLogo.jpg|sai.jpg|CameroonOneLogo.png|CompassionLogo.png|KairosLogo.png|DashPayLogo.png|boinclogo.jpg|SouthXChangeLogo.png";
             string sClicks = "jesus-christ.us/Jesus/JesusChrist.htm|sai.ngo|cameroonone.org|compassion.com|kairoschildrensfund.com|dash.org|boinc.berkeley.edu|www.southxchange.com/Market/Book/BBP/BTC";
             string[] vLogos = sLogos.Split(new string[] { "|" }, StringSplitOptions.None);
@@ -35,7 +30,7 @@ namespace Saved
             {
 
                 string sURL = vURLS[i];
-                sPartners += "<td style='padding:5px;' ><a href=http://" + sURL + "><img width=225 height=100 src=http://san.biblepay.org/Mission/Logos/" + vLogos[i] + " /></a>&nbsp;&nbsp;</td>";
+                sPartners += "<td style='padding:5px;' ><a href=http://" + sURL + "><img width=225 height=100 src=https://bbpnyc.b-cdn.net/Mission/Logos/" + vLogos[i] + " /></a>&nbsp;&nbsp;</td>";
                 iColNo++;
                 if (iColNo == iCols)
                 {

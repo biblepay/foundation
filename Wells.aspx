@@ -25,19 +25,19 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/well1-location.jpg")%>" />
+        <img width=500 height=250 src="https://bbpnyc.b-cdn.net/Wells/well1-location.jpg" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/well1-handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/well1-handover2.JPG")%>" />
+        <img width=500 height=250 src="https://bbpnyc.b-cdn.net/Wells/well1-handover1.JPG" />
+        <img width=500 height=250 src="https://bbpnyc.b-cdn.net/Wells/well1-handover2.JPG" />
     <br />
     
         Dedication:
     <br />
-        <video xclass='connect-bg' width='500' height='350' style='background-color:black' controls>
-            <source src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/well1-video.MOV")%>" type='video/mp4' />
+        <video xclass='connect-bg' width='500' height='350' style='background-color:black' controls preload='metadata'>
+            <source src="https://bbpnyc.b-cdn.net/Wells/well1-video.mp4">" type='video/mp4' />
         </video>
 
 <hr />
@@ -50,19 +50,19 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/well2-location.jpg")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/well2-location.jpg")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/well2-handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/well2-handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/well2-handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/well2-handover2.JPG")%>" />
     <br />
     
         Dedication:
     <br />
         <video xclass='connect-bg' width='500' height='350' style='background-color:black' controls>
-            <source src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/well2-video.MOV")%>" type='video/mp4' />
+            <source src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/well2-video.mp4")%>" type='video/mp4' />
         </video>
 
 
@@ -77,19 +77,19 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/well3-location.jpg")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/well3-location.jpg")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/well3-handover.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/well3-handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/well3-handover.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/well3-handover2.JPG")%>" />
     <br />
     
         Dedication:
     <br />
         <video xclass='connect-bg' width='500' height='350' style='background-color:black' controls>
-            <source src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/well3-video.MOV")%>" type='video/mp4' />
+            <source src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/well3-video.mp4")%>" type='video/mp4' />
         </video>
 
 
@@ -103,18 +103,18 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well1_Location.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well1_Location.JPG")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well1_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well1_Handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well1_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well1_Handover2.JPG")%>" />
     <br />
     
         Dedication:
     <br />
-                         <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well1_Plaque.JPG")%>" />
+                         <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well1_Plaque.JPG")%>" />
    
   
 
@@ -126,18 +126,18 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well2_Location.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well2_Location.JPG")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well2_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well2_Handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well2_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well2_Handover2.JPG")%>" />
     <br />
     
         Dedication:
     <br />
-                         <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well2_Plaque.JPG")%>" />
+                         <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well2_Plaque.JPG")%>" />
    
 
 
@@ -151,14 +151,14 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well3_Location.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well3_Location.JPG")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well3_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well3_Handover2.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well3_Plaque.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well3_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well3_Handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well3_Plaque.JPG")%>" />
 
     <br />
     
@@ -167,7 +167,7 @@
 
    
         <video width='500' height='350' style='background-color:black' controls>
-            <source src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well3_Dedication.MOV")%>" type='video/mp4' />        </video>
+            <source src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well3_Dedication.mp4")%>" type='video/mp4' />        </video>
                     
              <hr />
 
@@ -178,20 +178,20 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well4_Location.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well4_Location.JPG")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well4_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well4_Handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well4_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well4_Handover2.JPG")%>" />
 
     <br />
     
         Dedication:
     <br />
 
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well4_Plaque.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well4_Plaque.JPG")%>" />
 
 
 
@@ -204,20 +204,20 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well5_Location.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well5_Location.JPG")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well5_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well5_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well5_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well5_Handover1.JPG")%>" />
 
     <br />
     
         Dedication:
     <br />
 
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well5_Plaque.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well5_Plaque.JPG")%>" />
 
         <hr />
 
@@ -228,20 +228,20 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well6_Location.jpg")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well6_Location.jpg")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well6_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well6_Handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well6_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well6_Handover2.JPG")%>" />
 
     <br />
     
         Dedication:
     <br />
 
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well5_Plaque.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well5_Plaque.JPG")%>" />
 
     <hr />
 
@@ -252,20 +252,20 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well7_Location.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well7_Location.JPG")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well7_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well7_Handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well7_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well7_Handover2.JPG")%>" />
 
     <br />
     
         Dedication:
     <br />
 
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well7_Plaque.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well7_Plaque.JPG")%>" />
 
        <hr />
 
@@ -276,20 +276,20 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well8_Location.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well8_Location.JPG")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well8_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well8_Handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well8_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well8_Handover2.JPG")%>" />
 
     <br />
     
         Dedication:
     <br />
 
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well8_Plaque.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well8_Plaque.JPG")%>" />
     <hr />
 
 
@@ -298,25 +298,25 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well9_Location.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well9_Location.JPG")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well9_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well9_Handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well9_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well9_Handover2.JPG")%>" />
 
     <br />
     
         Dedication:
     <br />
 
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well9_Plaque.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well9_Plaque.JPG")%>" />
     <br />
        Construction:
     <br />
         <video width='500' height='350' style='background-color:black' controls>       
-            <source src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well9_Construction.mp4")%>" type='video/mp4' />        </video>
+            <source src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well9_Construction.mp4")%>" type='video/mp4' />        </video>
 
 
                     <hr />
@@ -327,20 +327,20 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well10_Location.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well10_Location.JPG")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well10_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well10_Handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well10_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well10_Handover2.JPG")%>" />
 
     <br />
     
         Dedication:
     <br />
 
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well10_Plaque.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well10_Plaque.JPG")%>" />
 
 
 
@@ -354,21 +354,21 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well14_Location.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well14_Location.JPG")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well14_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well14_Handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well14_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well14_Handover2.JPG")%>" />
 
     <br />
     
         Dedication:
     <br />
 
-        <img width=500 height=350 style='vertical-align:top' src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well14_Plaque.JPG")%>" />
-        <video width='500' height='350' style='background-color:black' controls>            <source src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well14_Dedication.MOV")%>" type='video/mp4' />        </video>
+        <img width=500 height=350 style='vertical-align:top' src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well14_Plaque.JPG")%>" />
+        <video width='500' height='350' style='background-color:black' controls>            <source src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well14_Dedication.mp4")%>" type='video/mp4' />        </video>
 
 
                                          
@@ -387,21 +387,21 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well15_Location.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well15_Location.JPG")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well15_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well15_Handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well15_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well15_Handover2.JPG")%>" />
 
     <br />
     
         Dedication:
     <br />
 
-        <img width=500 height=350 style='vertical-align:top' src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well15_Plaque.JPG")%>" />
-        <video width='500' height='350' style='background-color:black' controls>            <source src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well15_Dedication.MOV")%>" type='video/mp4' />        </video>
+        <img width=500 height=350 style='vertical-align:top' src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well15_Plaque.JPG")%>" />
+        <video width='500' height='350' style='background-color:black' controls>            <source src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well15_Dedication.mp4")%>" type='video/mp4' />        </video>
 
 
                     
@@ -419,21 +419,21 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well16_Location.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well16_Location.JPG")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well16_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well16_Handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well16_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well16_Handover2.JPG")%>" />
 
     <br />
     
         Dedication:
     <br />
 
-        <img width=500 height=350 style='vertical-align:top' src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well16_Plaque.JPG")%>" />
-        <video width='500' height='350' style='background-color:black' controls>            <source src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well16_Dedication.MOV")%>" type='video/mp4' />        </video>
+        <img width=500 height=350 style='vertical-align:top' src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well16_Plaque.JPG")%>" />
+        <video width='500' height='350' style='background-color:black' controls>            <source src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well16_Dedication.mp4")%>" type='video/mp4' />        </video>
 
 
                     
@@ -451,21 +451,21 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well17_Location.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well17_Location.JPG")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well17_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well17_Handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well17_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well17_Handover2.JPG")%>" />
 
     <br />
     
         Dedication:
     <br />
 
-        <img width=500 height=350 style='vertical-align:top' src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well17_Plaque.JPG")%>"/>
-        <video width='500' height='350' style='background-color:black' controls>            <source src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well17_Dedication.MOV")%>" type='video/mp4' />        </video>
+        <img width=500 height=350 style='vertical-align:top' src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well17_Plaque.JPG")%>"/>
+        <video width='500' height='350' style='background-color:black' controls>            <source src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well17_Dedication.mp4")%>" type='video/mp4' />        </video>
 
 
                     
@@ -476,20 +476,20 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well18_Location.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well18_Location.JPG")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well18_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well18_Handover2.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well18_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well18_Handover2.JPG")%>" />
 
     <br />
     
         Dedication:
    <br />
-        <img width=500 height=350 style='vertical-align:top' src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well18_Plaque.JPG")%>" />
-        <video width='500' height='350' style='background-color:black' controls>            <source src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well18_Dedication.MOV")%>" type='video/mp4' />        </video>
+        <img width=500 height=350 style='vertical-align:top' src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well18_Plaque.JPG")%>" />
+        <video width='500' height='350' style='background-color:black' controls>            <source src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well18_Dedication.mp4")%>" type='video/mp4' />        </video>
 
 
 
@@ -501,27 +501,27 @@
     
         Site Selection:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well19_Location.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well19_Location.JPG")%>" />
         <br />
     
         Handover:
     <br />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well19_Handover1.JPG")%>" />
-        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well19_Handover2.JPG")%>" />
-                    <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well19_Handover3.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well19_Handover1.JPG")%>" />
+        <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well19_Handover2.JPG")%>" />
+                    <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well19_Handover3.JPG")%>" />
 
         <br />
         Water Test:
         <br />
-                    <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://biblepay.global.ssl.fastly.net/Wells/Well19_WaterTest.jpg")%>" />
+                    <img width=500 height=250 src="<%=Saved.Code.Fastly.SV("https://bbpnyc.b-cdn.net/Wells/Well19_WaterTest.jpg")%>" />
 
     <br />
     
         Dedication:
    <br />
-        <img width=500 height=350 style='vertical-align:top' src="https://san.biblepay.org/Wells/Well19_Plaque.JPG" />
+        <img width=500 height=350 style='vertical-align:top' src="https://bbpnyc.b-cdn.net/Wells/Well19_Plaque.JPG" />
         <video width='500' height='350' style='background-color:black' controls>      
-            <source src="https://san.biblepay.org/Wells/Well19_Dedication.MOV" type='video/mp4' />   
+            <source src="https://bbpnyc.b-cdn.net/Wells/Well19_Dedication.mp4" type='video/mp4' />   
 
         </video>
 
@@ -590,7 +590,7 @@
         Dedication:
    <br />
         <video width='500' height='350' style='background-color:black' controls>      
-            <source src="https://foundation.biblepay.org/Images/Wells3/dedication3.MOV" type='video/mp4' />   
+            <source src="https://foundation.biblepay.org/Images/Wells3/dedication3.mp4" type='video/mp4' />   
         </video>
 
 

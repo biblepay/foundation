@@ -25,7 +25,7 @@ namespace Saved.Code
 
         public static int iThreadCount = 0;
         public static int nGlobalHeight = 0;
-        public static int pool_version = 1020;
+        public static int pool_version = 1021;
         public static int iXMRThreadID = 0;
         public static double iXMRThreadCount = 0;
         public static int iTitheNumber = 0;
@@ -871,9 +871,6 @@ namespace Saved.Code
                 DataTable dt = gData.GetDataTable(command, false);
                 List<Payment> Payments = new List<Payment>();
                 double nTotal = 0;
-                double nMinPaymentThreshhold = GetDouble(GetBMSConfigurationKeyValue("minimumpaymentthreshhold"));
-                if (nMinPaymentThreshhold == 0)
-                    nMinPaymentThreshhold = .01;
                 
                 for (int i = 0; i < dt.Rows.Count; i++)
                 {
@@ -882,7 +879,7 @@ namespace Saved.Code
 
                     bool bValid = ValidateBiblepayAddress(false,address);
 
-                    if (bValid && nReward > nMinPaymentThreshhold)
+                    if (bValid && nReward > .01)
                     {
                         nTotal += nReward;
                         Payment p = new Payment();
@@ -1514,7 +1511,7 @@ namespace Saved.Code
         {
             try
             {
-                string sCherry = "\r\n[hr][img]https://san.biblepay.org/Images/cherriessmall.png[/img] " + nAmount.ToString() + " BBP";
+                string sCherry = "\r\n[hr][img]https://bbpnyc.b-cdn.net/Images/cherriessmall.png[/img] " + nAmount.ToString() + " BBP";
                 string sql = "Update smf_messages set body=CONCAT(body, '" + sCherry + "') where id_msg='" + nID.ToString() + "' and id_topic='517'";
                 bool fSuccess = MySQLData.ExecuteNonQuery(sql);
 
@@ -2114,7 +2111,7 @@ namespace Saved.Code
         public static void GetBlockForStratum()
         {
             int nAge = UnixTimeStamp() - _pool._template.updated;
-            if (nAge < 60)
+            if (nAge < 15)
                 return;
 
             lock (cs_stratum)
@@ -2132,7 +2129,7 @@ namespace Saved.Code
                     _pool._template.hex = oOut.Result["hex"].ToString();
                     _pool._template.curtime = oOut.Result["curtime"].ToString();
                     _pool._template.prevhash = oOut.Result["prevblockhash"].ToString();
-                    _pool._template.height =(int)oOut.Result["height"];
+                    _pool._template.height = (int)oOut.Result["height"];
                     _pool._template.bits = oOut.Result["bits"].ToString();
                     _pool._template.prevblocktime = oOut.Result["prevblocktime"].ToString();
                     _pool._template.target = oOut.Result["target"].ToString();

@@ -443,21 +443,21 @@ namespace Saved.Code
              html += AddMenuOption("Account", "https://forum.biblepay.org/sso.php?source=https://foundation.biblepay.org/Default.aspx;Login.aspx?opt=logout;AccountEdit.aspx;Deposit.aspx;FractionalSanctuaries.aspx",
                 "Log In;Log Out;Account;Deposit/Withdrawal;Fractional Sanctuaries", "fa-unlock-alt");
 
-            html += AddMenuOption("Community", "Default.aspx;https://social.biblepay.org/index.php?link1=memories&pagemode=modeprayerlist;Dashboard.aspx;ProposalAdd;ProposalsList",
+            html += AddMenuOption("Community", "Default.aspx;https://social.biblepay.org/prayer;Dashboard.aspx;ProposalAdd;ProposalsList",
                    "Home;Prayer Requests;Salvation Dashboard;Add Proposal;Proposals List", "fa-ambulance");
 
-            html += AddMenuOption("Doctrine", "https://social.biblepay.org/index.php?link1=memories&pagemode=modetheologicalstudy;https://social.biblepay.org/movies/", 
+            html += AddMenuOption("Doctrine", "https://unchained.biblepay.org/Study;https://social.biblepay.org/movies/", 
                 "Theological Studies;Christian Videos", "fa-life-ring");
 
-            html += AddMenuOption("NFTs", "NFTBrowse;NFTList", "NFT Marketplace;My NFTs", "fa-database");
+            html += AddMenuOption("NFTs", "https://opensea.io/collection/biblepay?search[sortAscending]=true&search[sortBy]=PRICE&search[toggles][0]=BUY_NOW;https://opensea.io/collection/biblepay-christian?search[sortAscending]=true&search[sortBy]=PRICE&search[toggles][0]=BUY_NOW", "General NFTs;Christian NFTs", "fa-database");
 
-            html += AddMenuOption("Orphans", "NFTOrphans;Viewer.aspx?target=collage", "NFT Orphans;Orphan Collage", "fa-child");
+
+            html += AddMenuOption("Orphans", "https://opensea.io/collection/biblepay-orphans?search[sortAscending]=true&search[sortBy]=PRICE&search[toggles][0]=BUY_NOW", "NFT Orphans", "fa-child");
 
             html += AddMenuOption("Pool", "Leaderboard.aspx;GettingStarted.aspx;PoolAbout.aspx;BlockHistory.aspx;Viewer.aspx?target="
                 + System.Web.HttpUtility.UrlEncode("https://minexmr.com/dashboard") + ";MiningCalculator.aspx",
                 "Leaderboard;Getting Started;About;Block History;XMR Inquiry;Mining Calculator", "fa-sitemap");
 
-            html += AddMenuOption("Reports", "Accountability.aspx;Partners.aspx", "Accountability;Partners", "fa-table");
             html += AddMenuOption("Tweets", "TweetList;TweetAdd", "Tweet List;Advertise a Tweet", "fa-line-chart");
 
             // html += AddMenuOption("Admin", "Markup.aspx", "Markup Edit", "fa-wrench");
