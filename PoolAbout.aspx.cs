@@ -69,6 +69,8 @@ namespace Saved
 
             html += GetTR("Height", PoolCommon.nGlobalHeight.ToString());
             html += GetTR("Job Count", PoolCommon.dictJobs.Count().ToString());
+            html += GetTR("Thread Count", PoolCommon.iXMRThreadCount.ToString());
+
             html += GetTR("Worker Count", PoolCommon.dictWorker.Count().ToString());
 
             sql = "Select sum(shares) suc, sum(fails) fail from Share (nolock) where updated > getdate()-1";

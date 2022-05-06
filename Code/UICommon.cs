@@ -448,11 +448,13 @@ namespace Saved.Code
 
             html += AddMenuOption("Doctrine", "https://unchained.biblepay.org/Study;https://social.biblepay.org/movies/", 
                 "Theological Studies;Christian Videos", "fa-life-ring");
+            // sPaths = "NFTBrowse?type=christian;NFTBrowse?type=orphan;NFTBrowse?type=general;NFTAdd;NFTList";
 
-            html += AddMenuOption("NFTs", "https://opensea.io/collection/biblepay?search[sortAscending]=true&search[sortBy]=PRICE&search[toggles][0]=BUY_NOW;https://opensea.io/collection/biblepay-christian?search[sortAscending]=true&search[sortBy]=PRICE&search[toggles][0]=BUY_NOW", "General NFTs;Christian NFTs", "fa-database");
+            //Opensea Version::html += AddMenuOption("NFTs", "https://opensea.io/collection/biblepay?search[sortAscending]=true&search[sortBy]=PRICE&search[toggles][0]=BUY_NOW;https://opensea.io/collection/biblepay-christian?search[sortAscending]=true&search[sortBy]=PRICE&search[toggles][0]=BUY_NOW", "General NFTs;Christian NFTs", "fa-database");
+            html += AddMenuOption("NFTs", "https://unchained.biblepay.org/NFTBrowse?type=general;https://unchained.biblepay.org/NFTBrowse?type=christian" 
+                , "General NFTs;Christian NFTs", "fa-database");
 
-
-            html += AddMenuOption("Orphans", "https://opensea.io/collection/biblepay-orphans?search[sortAscending]=true&search[sortBy]=PRICE&search[toggles][0]=BUY_NOW", "NFT Orphans", "fa-child");
+            html += AddMenuOption("Orphans", "https://unchained.biblepay.org/NFTBrowse?type=orphan", "NFT Orphans", "fa-child");
 
             html += AddMenuOption("Pool", "Leaderboard.aspx;GettingStarted.aspx;PoolAbout.aspx;BlockHistory.aspx;Viewer.aspx?target="
                 + System.Web.HttpUtility.UrlEncode("https://minexmr.com/dashboard") + ";MiningCalculator.aspx",

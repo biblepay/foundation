@@ -52,16 +52,6 @@ namespace Saved.Code
                     iStart++;
                 }
 
-                if (Debugger.IsAttached)
-                {
-                    // We can put unit test code in here etc:
-                }
-
-                if (Debugger.IsAttached)
-                {
-                   
-                }
-
                 Thread.Sleep(60000);
                 if (!Debugger.IsAttached)
                 {

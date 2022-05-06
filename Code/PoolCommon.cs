@@ -25,7 +25,7 @@ namespace Saved.Code
 
         public static int iThreadCount = 0;
         public static int nGlobalHeight = 0;
-        public static int pool_version = 1021;
+        public static int pool_version = 1022;
         public static int iXMRThreadID = 0;
         public static double iXMRThreadCount = 0;
         public static int iTitheNumber = 0;
@@ -156,7 +156,7 @@ namespace Saved.Code
             }
         }
 
-        private static int BAN_THRESHHOLD = 356;
+        private static int BAN_THRESHHOLD = 512;
         public static WorkerInfo Ban(string socketid, double iHowMuch, string sWhy)
         {
             string sKey = GetIPOnly(socketid);
@@ -176,7 +176,7 @@ namespace Saved.Code
             }
             if (fIsBanned)
             {
-                w.banlevel = 512;
+                w.banlevel = 1024;
             }
             if (w.banlevel < 0)
                 w.banlevel = 0;
@@ -227,6 +227,7 @@ namespace Saved.Code
             dictLock.EnterWriteLock();
             try
             {
+                x.timestamp = UnixTimeStamp();
                 dictJobs[x.socketid] = x;
             }
             finally
@@ -263,8 +264,6 @@ namespace Saved.Code
                                 }
                             }
                         }
-                        if (dictJobs.Count < 1000)
-                            return;
                     }
                 }
                 catch (Exception ex)
@@ -1162,8 +1161,7 @@ namespace Saved.Code
                 object[] oParams = new object[2];
                 oParams[0] = sTxid;
                 oParams[1] = 1;
-                //Log("Connected to " + n.Address.OriginalString);
-
+               
                 dynamic oOut = n.SendCommand("getrawtransaction", oParams);
                 // Loop Through the Vouts and get the recip ids and the amounts
                 string sOut = "";
@@ -1472,7 +1470,6 @@ namespace Saved.Code
             }
             catch(Exception ex)
             {
-                Log("Send Marketing Email Issues: " + ex.Message);
             }
         }
         */

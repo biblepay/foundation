@@ -13,7 +13,7 @@ namespace Saved.Code
 {
     public class XMRPool
     {
-        private bool SendXMRPacketToMiner(Socket oClient, byte[] oData, int iSize, string socketid)
+        private bool SendXMRPacketToMiner(Socket oClient, byte[] oData, int iSize)
         {
             try
             {
@@ -28,7 +28,8 @@ namespace Saved.Code
                 }
                 else
                 {
-                    bool fPrint = !(ex.Message.Contains("A connection attempt failed because the connected party did not properly respond after a period of time") || ex.Message.Contains("An existing connection was forcibly closed"));
+                    bool fPrint = !(ex.Message.Contains("A connection attempt failed because the connected party did not properly respond after a period of time") 
+                        || ex.Message.Contains("An existing connection was forcibly closed"));
                     if (fPrint)
                         Log("SEND " + ex.Message);
                 }
@@ -160,19 +161,36 @@ namespace Saved.Code
             double nTrace = 0;
             string sData = String.Empty;
             string sParseData = String.Empty;
+            int nLastReceived = UnixTimeStamp();
+
 
             try
             {
-                client.ReceiveTimeout = 4777;
-                client.SendTimeout = 3000;
+                client.ReceiveTimeout = 5000;
+                client.SendTimeout = 5000;
 
                 while (true)
                 {
                     int size = 0;
-                    byte[] data = new byte[256000];
+                    int nElapsed = UnixTimeStamp() - nLastReceived;
+
+                    if (nElapsed > (60 * 60))
+                    {
+                       client.Close();
+                       t.Close();
+                       PoolCommon.iXMRThreadCount--;
+                       return;
+                    }
+                    if (!client.Connected)
+                    {
+                        PoolCommon.iXMRThreadCount--;
+                        return;
+                    }
 
                     if (client.Available > 0)
                     {
+                        byte[] data = new byte[client.Available];
+                        nLastReceived = UnixTimeStamp();
 
                         try
                         {
@@ -259,10 +277,11 @@ namespace Saved.Code
                                     //{"id":1,"jsonrpc":"2.0","method":"login","params":{"login":"41s2xqGv4YLfs5MowbCwmmLgofywnhbazPEmL2jbnd7p73mtMH4XgvBbTxc6fj4jUcbxEqMFq7ANeUjktSiZYH3SCVw6uat","pass":"x","agent":"bbprig/5.10.0 (Windows NT 6.1; Win64; x64) libuv/1.34.0 gcc/9.2.0","algo":["cn/0","cn/1","cn/2","cn/r","cn/fast","cn/half","cn/xao","cn/rto","cn/rwz","cn/zls","cn/double","","cn-lite/0","cn-lite/1","cn-heavy/0","cn-heavy/tube","cn-heavy/xhv","cn-pico","cn-pico/tlo","rx/0","rx/wow","rx/loki","rx/arq","rx/sfx","rx/keva","argon2/chukwa","argon2/wrkz","astrobwt"]}}
                                     nTrace = 8;
                                     sParseData = sJson;
-                                    if (sJson.Contains("User-Agent:") || sJson.Contains("HTTP/1.1"))
+                                    if (sJson.Contains("User-Agent:") || sJson.Contains("HTTP/1.1") || sJson.Contains("xmrig-proxy"))
                                     {
                                         // Someone is trying to connect to the pool with a web browser?  (Instead of a miner):
-                                        Log("XMRPool::Received " + socketid + " Web browser Request ", true);
+                                        if (false)
+                                            Log("XMRPool::Received " + socketid + " Web browser Request ", true);
                                         PoolCommon.iXMRThreadCount--;
                                         client.Close();
                                         PoolCommon.WorkerInfo wban = PoolCommon.Ban(socketid, 1, "BAD-CONFIG");
@@ -317,8 +336,6 @@ namespace Saved.Code
                     // ****************************************** In from XMR Pool -> Miner *******************************************************
                     nTrace = 16;
                     NetworkStream stmIn = t.GetStream();
-                    nTrace = 17;
-                    byte[] bIn = new byte[128000];
                     nTrace = 18;
                     int bytesIn = 0;
 
@@ -330,7 +347,10 @@ namespace Saved.Code
 
                         if (stmIn.DataAvailable)
                         {
-                            bytesIn = stmIn.Read(bIn, 0, 127999);
+                            
+                            byte[] bIn = new byte[65536];
+
+                            bytesIn = stmIn.Read(bIn, 0, 65536);
                             if (bytesIn > 0)
                             {
                                 nTrace = 20;
@@ -406,7 +426,17 @@ namespace Saved.Code
                                     }
                                 }
                             }
+
+                            // Back to Miner
+                            if (bytesIn > 0)
+                            {
+                                // This goes back to the miner
+                                SendXMRPacketToMiner(client, bIn, bytesIn);
+                            }
+
                         }
+
+
                     }
                     catch (Exception ex)
                     {
@@ -415,11 +445,6 @@ namespace Saved.Code
                             Log("minerXMRThread[0]: Trace=" + nTrace.ToString() + ":" + ex.Message);
                             Ban(socketid, 1, ex.Message.Substring(0, 12));
                         }
-                    }
-                    if (bytesIn > 0)
-                    {
-                        // This goes back to the miner
-                        SendXMRPacketToMiner(client, bIn, bytesIn, socketid);
                     }
                     
                     Thread.Sleep(100);
@@ -442,12 +467,11 @@ namespace Saved.Code
                 }
                 else if (!ex.Message.Contains("being aborted"))
                 {
-                    //This is where we see Unexpected end of content while loading JObject. Path 'params.job_id', line 1, position 72.
-                    // and Unterminated string. Expected delimiter: ". Path 'params.result', line 1, position 108.
+                    // This is where we see Unexpected end of content while loading JObject. Path 'params.job_id', line 1, position 72.
                     // and Unterminated string. Expected delimiter: ". Path 'params.result', line 1, position 144.
-                    //Invalid character after parsing property name. Expected ':' but got:
+                    // Invalid character after parsing property name. Expected ':' but got:
                     // and Unterminated string. Expected delimiter: ". Path 'params.id', line 1, position 72.
-                    Log("minerXMRThread2 v2.0: " + ex.Message + " [sdata=" + sData + "], Trace=" + nTrace.ToString() + ", PARSEDATA     \r\n" + sParseData);
+                    Log("minerXMRThread2 v2.1: " + ex.Message + " [sdata=" + sData + "], Trace=" + nTrace.ToString() + ", PARSEDATA     \r\n" + sParseData);
                 }
             }
 
@@ -465,6 +489,7 @@ namespace Saved.Code
                     IPAddress ipAddress = IPAddress.Parse(GetBMSConfigurationKeyValue("bindip"));
                     listener = new TcpListener(IPAddress.Any, (int)GetDouble(GetBMSConfigurationKeyValue("XMRPort")));
                     listener.Start();
+                    Log("BBP XMR POOL is starting up...");
                 }
             }
             catch (Exception ex1)
@@ -483,23 +508,43 @@ namespace Saved.Code
                         Socket client = listener.AcceptSocket();
                         client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.DontLinger, false);
                         client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                        
+                        int nSockTrace = 0;
                         string socketid = client.RemoteEndPoint.ToString();
-                        PoolCommon.WorkerInfo wban = PoolCommon.Ban(socketid, .25, "XMR-Connect");
-                        if (!wban.banned)
+                        try
                         {
-                            PoolCommon.iXMRThreadID++;
-                            TcpClient tcp = new TcpClient();
-                            tcp.Connect(GetBMSConfigurationKeyValue("XMRExternalPool"), (int)GetDouble(GetBMSConfigurationKeyValue("XMRExternalPort")));
-                            ThreadStart starter = delegate { minerXMRThread(client, tcp, socketid); };
-                            var childSocketThread = new Thread(starter);
-                            PoolCommon.iXMRThreadCount++;
-                            childSocketThread.Start();
-                        }
-                        else
+                            PoolCommon.WorkerInfo wban = PoolCommon.Ban(socketid, .25, "XMR-Connect");
+                            nSockTrace = 1;
+
+                            if (!wban.banned)
+                            {
+                                PoolCommon.iXMRThreadID++;
+                                TcpClient tcp = new TcpClient();
+                                nSockTrace = 2;
+
+                                tcp.Connect(GetBMSConfigurationKeyValue("XMRExternalPool"), (int)GetDouble(GetBMSConfigurationKeyValue("XMRExternalPort")));
+                                nSockTrace = 3;
+
+                                ThreadStart starter = delegate { minerXMRThread(client, tcp, socketid); };
+                                var childSocketThread = new Thread(starter);
+                                nSockTrace = 4;
+
+                                PoolCommon.iXMRThreadCount++;
+                                nSockTrace = 5;
+
+                                childSocketThread.Start();
+                                nSockTrace = 6;
+
+                            }
+                            else
+                            {
+                                // They are already banned
+                                nSockTrace = 7;
+                                PoolCommon.CloseSocket(client);
+                            }
+                        }catch(Exception ex)
                         {
-                            // They are already banned
-                            PoolCommon.CloseSocket(client);
+                            Log("We have a big issue answering sockets " + ex.Message + ", sock trace=" + nSockTrace.ToString());
+
                         }
                     }
                 }

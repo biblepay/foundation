@@ -45,6 +45,10 @@ namespace Saved
             }
             else if (sAction == "QUERY_UTXOS")
             {
+                Response.Write("<eof>");
+                Response.End();
+                return;
+
                 string sXML = Request.Headers["Action"].ToNonNullString();
                 string sAddress = ExtractXML(sXML, "<address>", "</address>").ToString();
                 string sTicker = ExtractXML(sXML, "<ticker>", "</ticker>").ToString();

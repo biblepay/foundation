@@ -26,6 +26,11 @@ namespace Saved
 
         void Application_Error(object sender, EventArgs e)
         {
+
+            string sAE = Common.GetBMSConfigurationKeyValue("haltonerror");
+            if (sAE == "-1")
+                return;
+
             System.Web.UI.Page page = System.Web.HttpContext.Current.Handler as System.Web.UI.Page;
 
             bool fSessionExists = false;
